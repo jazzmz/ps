@@ -1,0 +1,14 @@
+/* ------------------------------------------------------
+File          : $RCSfile: pir-log-v.uf,v $ $Revision: 1.1 $ $Date: 2007-08-08 11:55:03 $
+Copyright     : ООО КБ "Пpоминвестрасчет"
+Назначение    : Инклюдник для pir-ref-v.p (процедуры просмотра класса pir-log)
+Автор         : $Author: lavrinenko $ 
+Изменения     : $Log: not supported by cvs2svn $
+------------------------------------------------------ */
+
+   DataLine.Sym1   FORMAT "x(20)"   COLUMN-LABEL "МОДУЛЬ"
+   DataLine.Sym2   FORMAT "x(17)"   COLUMN-LABEL "ПЕРВЫЙ ЗАПУСК"
+   DataLine.Sym3   FORMAT "x(17)"   COLUMN-LABEL "ПОСЛЕДНИЙ ЗАПУСК"
+   DataLine.Sym4   FORMAT "x(8)"    COLUMN-LABEL "ЗАПУСТИЛ"
+   DataLine.val[1] FORMAT ">>>>>>9" COLUMN-LABEL "ЗАПУСКОВ"
+   DataLine.Txt                     COLUMN-LABEL "КОММЕНТАРИЙ"

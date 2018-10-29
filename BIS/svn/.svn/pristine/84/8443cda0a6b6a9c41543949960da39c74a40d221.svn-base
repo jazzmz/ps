@@ -1,0 +1,55 @@
+def var prn-tit as char format "x(50)"  NO-UNDO.
+def var prn-tit1 as char format "x(80)" NO-UNDO.
+def var prn-tit2 as char format "x(80)" NO-UNDO.
+def var prn-tit3 as char format "x(80)" NO-UNDO.
+def var prn-tit4 as char format "x(80)" NO-UNDO.
+def var prn-tit5 as char format "x(80)" NO-UNDO.
+def var summ1 like acct-pos.balance NO-UNDO.
+def var summ2 like acct-pos.balance NO-UNDO.
+def var summ3 like acct-pos.balance NO-UNDO.
+def var summ4 like acct-pos.balance NO-UNDO.
+
+def var flag-side as char 	 no-undo.
+def var flag-form as int  	 no-undo.
+def var flag-itog as int  	 no-undo.
+def var tmp-itog as char  	 no-undo.
+def var summ-tot as dec extent 4 no-undo.
+
+DEFINE VARIABLE mFmt1 AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE mFmt2 AS CHARACTER   NO-UNDO.
+
+ pause 0.
+
+{getdaydir.i}
+cFileName = getDayDir('/home2/bis/quit41d/imp-exp/Arhiv',INTEGER(iParmStr)) + '/oborot1.txt'.
+
+ {setdest.i &filename=cFileName}
+ find first dept no-lock.
+ {justamin}
+assign prn-tit  = if end-date = ? then "СВОДНАЯ КАРТОЧКА ВЫПУСКА ЦЕННЫХ БУМАГ"
+                  else "ОБОРОТНАЯ ВЕДОМОСТЬ"
+       prn-tit1 = "" 
+       prn-tit2 = "Наименование и номер государственной" 
+       prn-tit4 = if end-date = ? then "Таблица остатков и оборотов:"
+                  else "Таблица оборотов по данному выпуску ценных бумаг:" 
+       prn-tit5 = "Дата составления " + if end-date = ? then ("карточки: " + string(beg-date,"99/99/9999"))
+                  else ("ведомости: " + string(end-date,"99/99/9999"))
+       mFmt1    = GetFmtQty("", "bal-acct", 13, 5)
+       mFmt2    = GetFmtQty("", "bal-acct", 16, 5)
+.
+
+for each sec-code where can-do(in-sec,sec-code.sec-code)
+    no-lock break by sec-code.sec-code:
+
+    assign flag-form = 0
+           flag-side = "А"
+           prn-tit3 = "регистрации выпуска ЦБ: " + sec-code.reg-num + 
+                      " - " + trim(sec-code.name)
+           tmp-itog = "по активу".
+
+    {oborot1.i }
+    assign flag-side = "П"
+           tmp-itog = "по пассиву".
+    {oborot1.i}
+    
+end.

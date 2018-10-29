@@ -1,0 +1,16 @@
+else if lastkey = keycode("+") then do on endkey undo, next action:
+     {justasec}
+     for each {&file} {&where} no-lock:
+     {{&postfind}} 
+     accum 
+           DataLine.Val[1] (total)
+           DataLine.Val[2] (total)
+     .
+     end.
+     pause 0.
+     display
+        accum total DataLine.Val[1] format "-zz,zzz,zzz,zzz,zzz,zz9.99" label "Сумма в валюте"
+        accum total DataLine.Val[2] format "-zz,zzz,zzz,zzz,zzz,zz9.99" label "Сумма в рублях"
+     with overlay frame total centered row level + 3 top-only 1 col color messages title "[ ИТОГО ]".
+     pause.
+end.

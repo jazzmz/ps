@@ -1,0 +1,548 @@
+{globals.i}
+{intrface.get xclass}
+{intrface.get pirwc}
+
+{pfuncdef
+   &LIBDEF        = "YES"
+   &NAME          = "PIRWU"
+   &LIBNAME       = "Функции для работы с WU"
+   &DESCRIPTION   = "Содержит функции разработанные в ООО ПИР Банк"
+   }
+
+{pfuncdef
+   &NAME          = "ВсяКомиссияWU"
+   &DESCRIPTION   = "Рассчитывает комиссию по WU"
+   &PARAMETERS    = "Сумма перевода,Страна получателя,Валюта Перевода,Срочный ли перевод"
+   &RESULT        = "СУММА"
+   &SAMPLE        = "ВсяКомиссияWU(100,'USA',840,TRUE)"
+   }
+  DEF INPUT  PARAM sumTransfer AS DEC     NO-UNDO.
+  DEF INPUT  PARAM countryRec  AS CHAR    NO-UNDO.
+  DEF INPUT  PARAM valTransfer AS CHAR    NO-UNDO.
+  DEF INPUT  PARAM isFast      AS LOG     NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS DEC     NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  DEF VAR vZoneOfCom AS CHAR NO-UNDO.
+  DEF VAR vCom       AS CHAR NO-UNDO.
+
+
+  vZoneOfCom = getXAttrValue("country",countryRec,"PirWUZone").
+
+  is-ok = 1.
+
+  FIND FIRST code WHERE code.parent = "PirWUComm"
+                    AND code.name   = vZoneOfCom
+                    AND DEC(ENTRY(1,code.val,"-")) <= sumTransfer AND sumTransfer <= DEC(ENTRY(2,code.val,"-"))
+                    AND CAN-DO(code.description[1],valTransfer) NO-LOCK NO-ERROR.
+
+
+
+  IF NOT AVAILABLE(code) THEN DO:
+    MESSAGE COLOR WHITE/RED "Не найдена комиссия для перевода на " sumTransfer " " valTransfer
+                            " в зону " vZoneOfCom 
+    VIEW-AS ALERT-BOX TITLE "Ошибка поиска комиссии".
+    is-ok = -1.
+    RETURN.
+  END.
+
+
+    vCom = IF isFast THEN code.description[2] ELSE code.description[3].
+
+    /*************************************
+     * Если не задана ставка для расчета *
+     * или алгоритм расчета, то выходим  *
+     * с ошибкой.                        *
+     *************************************/
+    IF (vCom = ? OR vCom = "" OR vCom = "?") AND (code.misc[1] = ? OR code.misc[1] = "?")  THEN DO:
+       MESSAGE COLOR WHITE/RED "Комиссия для данного типа перевода не определена." VIEW-AS ALERT-BOX TITLE "Ошибка поиска комиссии".   
+       is-ok = -1.
+      RETURN.
+    END.
+
+    IF misc[1] <> ? AND misc[1] <> "?" AND misc[1] <> "" THEN DO:
+        out_Result = DYNAMIC-FUNCTION(misc[1]  IN h_pirwc,sumTransfer,countryRec,valTransfer,isFast).
+    END. ELSE DO:
+
+        IF SUBSTRING(vCom,LENGTH(vCom)) = "=" THEN DO:
+           out_Result = DEC(SUBSTRING(vCom,1,LENGTH(vCom) - 1)).
+        END. ELSE DO:
+           out_Result = ROUND(sumTransfer * DEC(SUBSTRING(vCom,1,LENGTH(vCom) - 1)) / 100,2).
+        END.
+    END.
+
+END PROCEDURE.
+
+{pfuncdef
+   &NAME          = "СуммаПереводовWU"
+   &DESCRIPTION   = "Рассчитывает сумму переводов по WU за день"
+   &PARAMETERS    = "Валюта,Дата"
+   &RESULT        = "СУММА"
+   &SAMPLE        = "СуммаПереводовWU(810,01/01/2013)"
+   }
+  DEF INPUT  PARAM vVal AS DEC     NO-UNDO.
+  DEF INPUT  PARAM vDate AS Date     NO-UNDO.    
+
+  DEF OUTPUT PARAM out_Result  AS DEC     NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  DEF BUFFER bufOp      FOR op.
+  DEF BUFFER bufOpEntry FOR op-entry.                                                         
+ 
+  DEF VAR vRes AS DEC INIT 0 NO-UNDO.
+  DEF VAR vResInVal AS DEC INIT 0 NO-UNDO.
+
+  DEF VAR cVal as Char NO-UNDO.
+
+
+  if vVal = 810 then cVal = "".
+  if vVal = 840 THEN cVal = "".
+
+
+  FOR EACH bufOp WHERE vDate = bufOp.op-date 
+                   AND bufOp.class-code = "opbwu" NO-LOCK,
+   FIRST bufOpEntry OF bufOp WHERE bufOpEntry.currency = cVal NO-LOCK:
+
+
+   IF bufOpEntry.acct-cr BEGINS "302" THEN DO:   /*отправка*/
+     vRes = vRes + bufOpEntry.amt-rub.
+     vResInVal = vResInVal + bufOpEntry.amt-cur.
+   END.
+
+  END.
+  if vVal = 810 then out_Result = vRes.
+  if vVal = 840 then out_Result = vResInVal.
+
+END PROCEDURE.
+
+
+{pfuncdef
+   &NAME          = "НашаКомиссияWU"
+   &DESCRIPTION   = "Рассчитывает нашу часть комиссии по WU"
+   &PARAMETERS    = "Сумма перевода,Сумма комиссии,Страна получателя"
+   &RESULT        = "СУММА"
+   &SAMPLE        = "НашаКомиссияWU(100,10,'USA')"
+   }
+  DEF INPUT  PARAM sumTransfer AS DEC     NO-UNDO.
+  DEF INPUT  PARAM comAll      AS DEC     NO-UNDO.
+  DEF INPUT  PARAM countryRec  AS CHAR    NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS DEC     NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  out_Result = ROUND(comAll * 0.16,2).
+  is-ok = 1.
+END PROCEDURE.
+
+
+{pfuncdef
+   &NAME          = "ПараметрыОтправкиWU"
+   &DESCRIPTION   = "Получает данные необходимые для отправки перевода"
+   &PARAMETERS    = "Поставщик данные [Оператор,WUPOS]"
+   &RESULT        = "Набор значений через запятую"
+   &SAMPLE        = "ПолучитьПараметрыПереводаWU('ОПЕРАТОР')"
+   }
+  DEF INPUT  PARAM source      AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+  RUN VALUE(TSysClass:whatShouldIRun2("pir-tfrm")) (OUTPUT out_Result).
+  is-ok = 1.
+END PROCEDURE.
+
+{pfuncdef
+   &NAME          = "ПараметрыВыдачиWU"
+   &DESCRIPTION   = "Получает данные необходимые для Выдачи перевода"
+   &PARAMETERS    = "Поставщик данных [Оператор,WUPOS]"
+   &RESULT        = "Набор значений через запятую"
+   &SAMPLE        = "ПолучитьПараметрыПереводаWU('ОПЕРАТОР')"
+   }
+  DEF INPUT  PARAM source      AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+  RUN VALUE(TSysClass:whatShouldIRun2("pir-tfrm1")) (OUTPUT out_Result).
+  is-ok = 1.
+END PROCEDURE.
+
+{pfuncdef
+   &NAME          = "ПредСоздДок"
+   &DESCRIPTION   = "Возвращает дату в которой найдены документы от указанной транзакции"
+   &PARAMETERS    = "Дата от которой ищем документы,Код транзакции,Валюта,[Дата если не нашли]"
+   &RESULT        = "Дата предыдущего документа"
+   &SAMPLE        = "ПредСоздДок(05/31/2013,КОД_ТР(),'')"
+   }
+  DEF INPUT  PARAM currDate    AS DATE        NO-UNDO.
+  DEF INPUT  PARAM currTr      AS CHAR        NO-UNDO.
+  DEF INPUT  PARAM vCurrency   AS CHAR        NO-UNDO.
+  DEF INPUT  PARAM defDate     AS DATE INIT ? NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS DATE    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+
+  DEF BUFFER bufOpEntry FOR op-entry.
+  DEF BUFFER bufOp      FOR op.
+
+  defDate = (IF defDate = ? THEN DATE(FGetSetting("ДАТА_НР","","01/01/1900")) ELSE defDate).
+
+  out_Result = defDate.
+
+/*  FOR FIRST bufOpEntry WHERE bufOpEntry.op-date < currDate
+                         AND bufOpEntry.currency = vCurrency NO-LOCK, 
+   FIRST bufOp OF bufOpEntry WHERE bufOp.op-kind = currTr NO-LOCK:
+    out_Result = bufOpEntry.op-date.
+  END.*/
+
+   FIND LAST bufOp where bufOp.op-kind = currTr and bufOp.op-date < currDate.
+
+   IF AVAILABLE bufOp THEN out_result = bufOp.op-date.
+
+
+  is-ok = 1.
+END PROCEDURE.
+
+{pfuncdef
+   &NAME          = "ПозицияКлиринг"
+   &DESCRIPTION   = "Возвращает клиринговую позицию по перевода WU и нашу комиссию за выдачу перевода через запятую"
+   &PARAMETERS    = "Дата начала периода,Дата окончания периода,Валюта"
+   &RESULT        = "DECIMAL Клиринговая позиция"
+   &SAMPLE        = "ПозицияКлиринг(01/01/2012,03/01/2013,'')"
+   }
+
+  DEF INPUT PARAM vDate1       AS DATE    NO-UNDO.
+  DEF INPUT PARAM vDate2       AS DATE    NO-UNDO.
+  DEF INPUT PARAM vCurrency    AS CHAR    NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  DEF BUFFER bufOp      FOR op.
+  DEF BUFFER bufOpEntry FOR op-entry.                                                         
+ 
+  DEF VAR vRes AS DEC INIT 0 NO-UNDO.
+  DEF VAR vResInVal AS DEC INIT 0 NO-UNDO.
+  DEF VAR vCom AS DEC INIT 0 NO-UNDO.
+
+  FOR EACH bufOp WHERE vDate1 <= bufOp.op-date AND bufOp.op-date < vDate2 
+                   AND bufOp.class-code = "opbwu" NO-LOCK,
+   FIRST bufOpEntry OF bufOp WHERE bufOpEntry.currency = vCurrency NO-LOCK:
+
+
+   IF bufOpEntry.acct-cr BEGINS "409" THEN DO:
+     vRes = vRes - bufOpEntry.amt-rub.
+     vResInVal = vResInVal + bufOpEntry.amt-cur.
+     vCom = vCom + DECIMAL(getXAttrValueEx("op",STRING(bufOp.op),"ИнфКом","0")).
+   END. ELSE DO:
+     vRes = vRes + bufOpEntry.amt-rub.
+   END.
+
+  END.
+
+  out_Result = STRING(vRes) + "," + STRING(vCom) + "," + STRING(vResInVal).
+  is-ok = 1.
+
+END PROCEDURE.
+
+{pfuncdef
+   &NAME          = "СчетНезWU"
+   &DESCRIPTION   = "Возвращает счет незавершенных расчетов по WU"
+   &PARAMETERS    = "Счет одного из пары,Дата в которой совершается операция"
+   &RESULT        = "CHAR Счет по которому должно быть движение"
+   &SAMPLE        = "СчетНезWU('30232810900000001001',01/01/2013)"
+   }
+
+  DEF INPUT  PARAM vAcct       AS CHAR    NO-UNDO.
+  DEF INPUT  PARAM vCurrDate   AS DATE    NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  DEF BUFFER bufAcct      FOR acct.
+  DEF BUFFER bufContrAcct FOR acct.
+                                                                
+  DEF VAR vAcct1  AS CHAR NO-UNDO.
+  DEF VAR vAcct2  AS CHAR NO-UNDO.
+  DEF VAR vResult AS CHAR NO-UNDO.
+
+  FIND FIRST bufAcct WHERE bufAcct.acct = vAcct NO-LOCK NO-ERROR.
+
+  IF AVAILABLE(bufAcct) THEN DO:
+     IF CAN-FIND(FIRST bufContrAcct WHERE bufContrAcct.contr-acct = bufAcct.acct) THEN DO:
+
+    ASSIGN
+     vAcct1 = bufAcct.acct
+     vAcct2 = bufAcct.contr-acct
+    .
+
+    FIND FIRST op-entry 
+    	 WHERE (
+    	 		CAN-DO(vAcct1 + "," + vAcct2, op-entry.acct-db)
+    	       	OR
+    	       	CAN-DO(vAcct1 + "," + vAcct2, op-entry.acct-cr)
+    	       ) AND op-entry.op-date = vCurrDate
+    	 NO-LOCK NO-ERROR.
+   	IF AVAIL op-entry THEN DO:
+   		IF CAN-DO(vAcct1, op-entry.acct-db) OR CAN-DO(vAcct1, op-entry.acct-cr) THEN
+   			vResult = vAcct1.
+   		ELSE 
+   			vResult = vAcct2.   		
+   	END. ELSE
+   		vResult = vAcct1.
+
+     END.
+  END.
+
+ is-ok      = 0.
+ out_Result = vResult.
+END PROCEDURE.
+
+
+{pfuncdef
+   &NAME          = "СчетНезWU2"
+   &DESCRIPTION   = "Возвращает счет незавершенных расчетов по WU. "
+   &PARAMETERS    = "Счет одного из пары,Дата в которой совершается операция"
+   &RESULT        = "CHAR Счет по которому должно быть движение"
+   &SAMPLE        = "СчетНезWU('30232810900000001001',01/01/2013)"
+   }
+
+  DEF INPUT  PARAM vAcct       AS CHAR    NO-UNDO.
+  DEF INPUT  PARAM vCurrDate   AS DATE    NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+  DEF BUFFER bufAcct      FOR acct.
+  DEF BUFFER bufContrAcct FOR acct.
+
+  DEF VAR vAcct1  AS CHAR  NO-UNDO.
+  DEF VAR vAcct2  AS CHAR  NO-UNDO.
+
+  DEF VAR vOAcct1   AS TAcct NO-UNDO.
+  DEF VAR vOAcct2   AS TAcct NO-UNDO.
+
+  DEF VAR vPos1 AS DEC INIT 0 NO-UNDO.
+  DEF VAR vPos2 AS DEC INIT 0 NO-UNDO.
+
+  FIND FIRST bufAcct WHERE bufAcct.acct = vAcct NO-LOCK NO-ERROR.
+
+  IF AVAILABLE(bufAcct) THEN DO:
+
+
+    FIND FIRST bufContrAcct WHERE bufContrAcct.contr-acct = bufAcct.acct NO-LOCK NO-ERROR.
+
+
+      IF AVAILABLE(bufContrAcct) THEN DO:
+
+        ASSIGN
+          vAcct1 = bufAcct.acct
+          vAcct2 = bufAcct.contr-acct
+        .
+
+           /*****************
+            * Порядок IF важен.
+            * Ожидается, что остаток есть только на одном
+            * из счетов. 
+            *****************/
+          
+           vOAcct1 = NEW TAcct(BUFFER bufAcct:HANDLE).
+           vOAcct2 = NEW TAcct(BUFFER bufContrAcct:HANDLE).
+
+            vPos2 = vOAcct2:getLastPos2Date(vCurrDate - 1).
+                IF vPos2 > 0 THEN DO:
+                    out_Result = vAcct2.
+                END.
+
+            vPos1 = vOAcct1:getLastPos2Date(vCurrDate - 1).
+
+                IF vPos1 > 0 OR vPos2 = 0 THEN DO:
+                    out_Result = vAcct1.
+                END.
+
+             
+
+           DELETE OBJECT vOAcct1.
+           DELETE OBJECT vOAcct2.
+     END.
+  END.
+
+ is-ok      = 0.
+
+END PROCEDURE.
+
+
+{pfuncdef
+ &NAME        = "ИзXMLWU"
+ &DESCRIPTION = "Возвращает значение необходимого тэга из XML"
+ &PARAMETERS  = "XML с параметрами перевода,Путь к тэгу,[Кодировка назначения='ibm866'],[Оригинальная кодировка='utf-8']"
+ &RESULT      = "CHAR значение XML тэга"
+ &SAMPLE      = "ИзXMLWU('111.xml','/Request','ibm866','UTF-8')"
+}
+
+  DEF INPUT PARAM iFileName  AS CHAR  NO-UNDO.
+  DEF INPUT PARAM iPath      AS CHAR  NO-UNDO.
+  DEF INPUT PARAM iSEncoding AS CHAR  NO-UNDO.
+  DEF INPUT PARAM iTEncoding AS CHAR  NO-UNDO.
+
+  DEF OUTPUT PARAM out_Result  AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok       AS INT     NO-UNDO.
+
+
+  DEF VAR xDOC       AS HANDLE NO-UNDO.
+  DEF VAR xROOT      AS HANDLE NO-UNDO.
+  DEF VAR currXRef   AS HANDLE NO-UNDO.
+
+  DEF VAR vLevel     AS INT    NO-UNDO.
+  DEF VAR isRefFound AS LOG    NO-UNDO.
+  DEF VAR vRefCount  AS INT    NO-UNDO.
+  DEF VAR vCurrPoint AS CHAR   NO-UNDO.
+
+  DEF VAR currLevel AS INT NO-UNDO.
+  DEF VAR j AS INT NO-UNDO.
+
+
+  CREATE X-DOCUMENT xDOC.
+  CREATE X-NODEREF  xRoot.
+
+  xDOC:LOAD("FILE",iFileName,FALSE).
+  xDOC:GET-DOCUMENT-ELEMENT(xRoot).
+
+  vLevel = NUM-ENTRIES(iPath,"/") - 2.
+
+
+     DO currLevel = 1 TO vLevel:
+        vRefCount  = xRoot:NUM-CHILDREN.  
+        vCurrPoint = ENTRY(currLevel + 2,iPath,"/").
+  
+        isRefFound = FALSE.
+
+           DO j = 1 TO vRefCount:
+              CREATE X-NODEREF  currXRef.
+              xRoot:GET-CHILD(currXRef,j).
+
+                IF currXRef:NAME = vCurrPoint THEN DO:
+                   xRoot = currXRef.
+                   currXRef = ?.
+                   isRefFound = TRUE.
+                   LEAVE.
+                END.
+              DELETE OBJECT currXRef.
+           END.  
+  
+           IF NOT isRefFound THEN LEAVE.
+     END.
+
+IF isRefFound THEN DO:
+ xRoot:GET-CHILD(xRoot,1).
+ out_Result = CODEPAGE-CONVERT(xRoot:NODE-VALUE,IF iTEncoding = ? THEN "ibm866" ELSE iTEncoding,IF iSEncoding = ? THEN "UTF-8" ELSE iSEncoding).
+END. ELSE out_Result = "-1".
+is-ok = 0.
+END PROCEDURE.
+
+{pfuncdef
+ &NAME        = "Страна23"
+ &DESCRIPTION = "Преобразует 2х знаковый код страны в 3х знаковый по справочнику Стран"
+ &PARAMETERS  = "2х символьный код страны"
+ &RESULT      = "CHAR 3х символьный код страны"
+ &SAMPLE      = "Страна23('RU')"
+}
+
+  DEF INPUT  PARAM iCountryCode AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM out_Result   AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok        AS INT     NO-UNDO.
+
+  DEF BUFFER country FOR country.
+  DEF BUFFER signs   FOR signs.
+
+  is-ok = -1.
+
+  FOR FIRST signs WHERE signs.file-name   = "country"
+                      AND signs.code       = "ALFA-2"
+                      AND signs.code-value = iCountryCode NO-LOCK,                      
+      FIRST country WHERE country.country-id = signs.surrogate NO-LOCK:
+     out_Result = country.country-id.
+     is-ok = 0.
+  END.
+
+END PROCEDURE.
+
+{pfuncdef
+ &NAME        = "ВалютаСтранаЦифраWU"
+ &DESCRIPTION = "Преобразует код страны к коду валюты"
+ &PARAMETERS  = "2х или 3х символьный код страны"
+ &RESULT      = "CHAR код валюты"
+ &SAMPLE      = "ВалютаСтранаЦифраWU('US')"
+}
+  DEF INPUT PARAM iCountry AS CHAR NO-UNDO.
+  DEF OUTPUT PARAM out_Result   AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok        AS INT     NO-UNDO.
+  is-ok = 1.
+
+  CASE iCountry:
+    WHEN "USD" THEN DO:
+       out_Result = "840".
+    END.
+    WHEN "RUR" THEN DO:
+       out_Result = "810".
+    END.
+  END CASE.
+END PROCEDURE.
+
+
+{pfuncdef
+ &NAME        = "ВзятьИмяФайлаWU"
+ &DESCRIPTION = "Возвращает имя файла подлежащего загрузке"
+ &PARAMETERS  = "[Базовая директория]"
+ &RESULT      = "CHAR имя файла вместе с путем"
+ &SAMPLE      = "ВзятьИмяФайлаWU('/home2/bis/quit41d/imp-exp/wu')"
+}
+  DEF INPUT  PARAM iBaseDir     AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM out_Result   AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM is-ok        AS INT     NO-UNDO.
+
+ DEF VAR vFileName AS CHAR NO-UNDO.
+ is-ok = -1.
+
+ INPUT FROM OS-DIR (IF iBaseDir <> ? THEN iBaseDir ELSE "./") NO-ATTR-LIST.
+ 
+  REPEAT:
+     IMPORT vFileName.
+
+     IF vFileName MATCHES "*\.xml" THEN DO:
+
+       ASSIGN
+         is-ok      = 0
+         out_Result = (IF iBaseDir <> ? THEN iBaseDir ELSE "./") + vFileName.
+       .
+       LEAVE.
+     END.
+
+  END.
+INPUT CLOSE.
+
+IF is-ok = -1 THEN DO:
+
+    MESSAGE COLOR WHITE/RED "Не найден файл импорт!"  VIEW-AS ALERT-BOX TITLE "ОШИБКА ПОИСКА ФАЙЛА".
+
+
+END.
+
+
+END PROCEDURE.
+
+{pfuncdef
+ &NAME        = "ВзятьРазмерФайлаWU"
+ &DESCRIPTION = "Возвращает размер файла"
+ &PARAMETERS  = "Путь к файлу"
+ &RESULT      = "CHAR имя файла вместе с путем"
+ &SAMPLE      = "ВзятьРазмерФайлаWU('/home2/bis/quit41d/imp-exp/wu/1.xml')"
+}
+
+  DEF INPUT  PARAM iFileName    AS CHAR    NO-UNDO.
+  DEF OUTPUT PARAM out_Result   AS DEC     NO-UNDO.
+  DEF OUTPUT PARAM is-ok        AS INT     NO-UNDO.
+
+FILE-INFO:FILE-NAME = iFileName.
+is-ok = 1.
+out_Result = FILE-INFO:FILE-SIZE.
+END PROCEDURE.
+

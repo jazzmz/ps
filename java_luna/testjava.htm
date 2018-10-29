@@ -1,0 +1,63 @@
+<Script Language="JavaScript">
+
+var checknumber = function(cardnumber){
+	if (cardnumber.length !=16){
+//	alert('Wrong number!');
+	return 0;
+	}
+	else{
+		var sum=0;
+		var symb = new Array(cardnumber.length);
+		for (var i=0;i<cardnumber.length;i++) {
+			symb[i]=cardnumber.charAt(i);
+			if (i%2==0){
+				if (symb[i]*2>9){
+				sum=(sum*1+(symb[i]*2-9));
+				}
+				else{
+				sum=(sum*1+symb[i]*2);
+				}
+			}
+			else{
+			sum=(sum*1+symb[i]*1);
+			}
+//			document.write(i+"-й символ="+symb[i]+", sum="+sum+"<br>");
+		}
+	if (sum%10!=0){
+//	alert ('Номер вашей карты неверен!');
+	return 0;
+	}
+	else{
+//	document.write("Success");
+	return 1;
+	}
+	}
+}
+
+var str = prompt ("Input credit cards number","enter number");
+var result=checknumber(str);
+if (result==0) {
+	document.write("Номер карты неверен");
+}
+else if  (result==1) {
+	document.write("Номер карты верен");
+}
+else {
+	document.write("Неизвестная ошибка");
+}
+
+</SCRIPT>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

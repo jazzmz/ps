@@ -1,0 +1,3 @@
+{setdest.i}
+oTpl:show().
+{preview.i}

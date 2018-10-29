@@ -1,0 +1,65 @@
+/*--------------- Переменные для специальных полей: ---------------*/
+
+
+/*--------------- Буфера для полей БД: ---------------*/
+Define Buffer buf_0_op               For op. /* Буфер для op, роль 'Тот самый Op, под который лепится проводка' */
+
+/*--------------- Переменные для специальных полей: ---------------*/
+Define Variable acct-cur         As Character            No-Undo.
+Define Variable CrName           As Character Extent   2 No-Undo.
+Define Variable Summa1           As Character            No-Undo.
+Define Variable Summa2           As Character            No-Undo.
+Define Variable Summa3           As Character            No-Undo.
+Define Variable Summa4           As Character            No-Undo.
+Define Variable Summa5           As Character            No-Undo.
+Define Variable val1             As Character            No-Undo.
+Define Variable val2             As Character            No-Undo.
+Define Variable val3             As Character            No-Undo.
+Define Variable val4             As Character            No-Undo.
+Define Variable Val5             As Character            No-Undo.
+Define Variable AmtStr           As Character Extent   2 No-Undo.
+Define Variable Detail           As Character Extent   5 No-Undo.
+Define Variable PlCAcct          As Character            No-Undo.
+Define Variable PlLAcct          As Character            No-Undo.
+Define Variable PlMFO            As Character            No-Undo.
+Define Variable PlName           As Character Extent   5 No-Undo.
+Define Variable PlRKC            As Character Extent   2 No-Undo.
+Define Variable PoAcct           As Character            No-Undo.
+Define Variable PoCAcct          As Character            No-Undo.
+Define Variable PolMFO           As Character            No-Undo.
+Define Variable PoName           As Character Extent   5 No-Undo.
+Define Variable PoRKC            As Character Extent   2 No-Undo.
+Define Variable Rub              As Character            No-Undo.
+Define Variable theDate          As Character            No-Undo.
+Define Variable type-doc         As Character            No-Undo.
+Define Variable theKontr         As Character            No-Undo.
+Define Variable theUser          As Character            No-Undo.
+Define Variable theKontrID       As Character            No-Undo.
+Define Variable theUserID        As Character            No-Undo.
+Define Variable Val              As Character            No-Undo.
+Define Variable ValStr           As Character Extent   2 No-Undo.
+Define Variable INNPl		 As Character 		 No-Undo.
+Define Variable INNPo		 As Character 		 No-Undo.
+
+Def Var InCity  as logic          no-undo.
+Def Var NameCli as char  extent 2 no-undo.
+
+/**
+ * ПИР: бурягин	
+ * Для хранения ИНН клиента и его удаления из наименования
+ */ 
+Def Var InnCli  as char           no-undo.
+
+Def Buffer Bank1 for Banks.
+
+def var bank-cor-acct as char form "x(20)" no-undo.
+
+DEF STREAM listDirExch.
+
+/*--------------- Определение форм для циклов ---------------*/
+
+/* Начальные действия */
+{wordwrap.def}
+{pick-val.i}
+
+

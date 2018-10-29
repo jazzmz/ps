@@ -1,0 +1,20 @@
+/** 
+ *	Контроль права пользователя нажимать Ins,F9,Del в картотеке 
+ *  Транзакций ПЦ.
+ *  Бурягин Е.П., 2010
+ * 
+ *  Обрабатываемые макросы: &file, &action ::= {ins|f9|del}, &cannot, &can
+*/
+
+&IF DEFINED(cannot) &THEN
+IF NOT CAN-DO(GetXAttrValueEx("_user", USERID("bisquit"),"pirCanDo{&action}","*"), "{&file}") THEN DO:
+  message "PirAccess: Вы не имеете права выполнять операцию {&action}" + CHR(10) + "в данной картотеке ({&file})!" view-as alert-box.
+  {&cannot}
+END.
+&ENDIF.
+
+&IF DEFINED(can) &THEN
+IF CAN-DO(GetXAttrValueEx("_user", USERID("bisquit"),"pirCanDo{&action}","*"), "{&file}") THEN DO:
+  {&can}
+END.
+&ENDIF.

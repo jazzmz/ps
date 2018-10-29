@@ -1,0 +1,11 @@
+IF NO THEN .
+ELSE IF FRAME-FIELD BEGINS "Val" THEN DO:
+   FRAME-VALUE = DEC(FRAME-VALUE) * div.
+   RUN calc.p. 
+   FRAME-VALUE = DEC(FRAME-VALUE) / div.
+END.
+ELSE DO:
+  MESSAGE "Показатель: " DataLine.Txt view-as alert-box information.
+END.
+ 
+HIDE MESSAGE NO-PAUSE.

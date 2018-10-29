@@ -1,0 +1,148 @@
+{globals.i}
+
+DEF BUFFER xop-entry FOR op-entry.
+DEF VAR pg-num AS INTEGER NO-UNDO. /* номер страницы */
+DEF VAR pr_num AS INT NO-UNDO. /* 1-автомат (приход), 2-списание, 3-автомат при закр. дня */
+
+DEF VAR i AS INT  NO-UNDO.
+DEF VAR ii AS INT  NO-UNDO.
+DEF VAR fl AS LOG INITIAL NO NO-UNDO.
+DEF VAR iscash AS LOG INITIAL NO NO-UNDO. /* является ли кассовым */
+
+DEFINE TEMP-TABLE xentry NO-UNDO
+   FIELD acct-cat LIKE op-entry.acct-cat
+   FIELD doc-num  LIKE op.doc-num
+   FIELD doc-type AS LOGICAL
+   FIELD acct-db  LIKE op-entry.acct-db
+   FIELD acct-cr  LIKE op-entry.acct-cr
+   FIELD currency LIKE op-entry.currency
+   FIELD debit    LIKE op-entry.amt-rub
+   FIELD credit   LIKE op-entry.amt-rub
+   FIELD amt      LIKE op-entry.amt-rub
+   FIELD vamt     LIKE op-entry.amt-cur
+   FIELD op       LIKE op-entry.op
+   FIELD polupr   AS CHARACTER
+   FIELD num      AS INTEGER
+   FIELD num-usr  AS INTEGER
+   FIELD user-id  LIKE op.user-id
+   FIELD branch   LIKE branch.branch-id
+   FIELD branch_p LIKE branch.branch-id
+   FIELD user-name AS CHARACTER
+   FIELD refer AS CHARACTER
+   FIELD prnum AS INTEGER
+   FIELD op-date LIKE op.op-date
+   FIELD is_poch AS LOG FORMAT "Почта/Телеграф"
+   FIELD is_earch AS LOG
+   
+   INDEX acct-db acct-cat doc-type acct-db
+   INDEX op op polupr
+   INDEX branch branch user-id
+   INDEX cr currency
+   .
+
+
+DEFINE BUFFER bxentry FOR xentry.
+DEFINE BUFFER bx FOR xentry.
+
+
+{branch.pro}
+
+FUNCTION GetXAttrValue RETURN CHAR (INPUT in-FileName AS CHAR, 
+                                    INPUT in-Surr AS CHAR, 
+                                    INPUT in-Code AS CHAR) IN h_base.
+
+def var allops as logical no-undo. /* Включать срочные, депозитарные и доверительные операции */
+def var fullacct as logical initial yes no-undo. /* Выводить номера счетов в полном формате */
+
+def var cur_name as char format "x(100)" EXTENT 2
+init ["                            Реестр бухгалтерских проводок по балансовым счетам за ",
+   "                                                 (по дополнительному офису ( подразделению)"] no-undo. /* начало шапки */
+
+DEFINE VARIABLE adb AS CHARACTER FORMAT 'x(8)' NO-UNDO. /* текущий счет дебета */
+DEFINE VARIABLE acr AS CHARACTER FORMAT 'x(8)' NO-UNDO.  /* текущий счет кредита */
+DEFINE  VARIABLE adbcur      AS   CHARACTER     NO-UNDO.           /* текущая валюта дебет. счета */
+DEFINE  VARIABLE acrcur      AS   CHARACTER     NO-UNDO.           /* текущая валюта кред. счета */
+DEFINE  VARIABLE cur_user-id LIKE _user._userid NO-UNDO.           /* текущий пользователь */
+DEFINE  VARIABLE j           AS   INTEGER       INITIAL 0 NO-UNDO.
+
+DEFINE  VARIABLE p-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по ответисполнителю */
+DEFINE  VARIABLE p-num AS   INTEGER          NO-UNDO. /* Кол-во итого по ответисполнителю */
+
+DEFINE  VARIABLE v-amt LIKE op-entry.amt-cur NO-UNDO. /* Сумма итого по валюте и ответисполнителю */
+DEFINE  VARIABLE v-num AS   INTEGER          NO-UNDO. /* Кол-во итого по валюте и ответисполнителю */
+
+DEFINE  VARIABLE r-amt LIKE op-entry.amt-cur NO-UNDO. /* Сумма итого по валюте и ответисполнителю */
+DEFINE  VARIABLE r-num AS   INTEGER          NO-UNDO. /* Кол-во итого по валюте и ответисполнителю */
+
+DEFINE  VARIABLE b-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по отделу */
+DEFINE  VARIABLE b-num AS   INTEGER          NO-UNDO. /* Кол-во итого по отделу */
+
+DEFINE  VARIABLE pr-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по подразделению */
+DEFINE  VARIABLE pr-num AS   INTEGER          NO-UNDO. /* кол-во итого по подразделению */
+
+DEFINE  VARIABLE mem-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по бал. мем. документам */
+DEFINE  VARIABLE mem-num AS   INTEGER          NO-UNDO. /* Кол-во итого по бал. мем. документам */
+
+DEFINE  VARIABLE kas-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по бал. касс. док-там */
+DEFINE  VARIABLE kas-num AS   INTEGER          NO-UNDO. /* Кол-во итого по бал. касс. док-там */
+
+DEFINE  VARIABLE aut-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по бал. авт. док-там */
+DEFINE  VARIABLE aut-num AS   INTEGER          NO-UNDO. /* Кол-во итого по бал. авт. док-там */
+
+DEFINE  VARIABLE off-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по внебал. мем. документам*/
+DEFINE  VARIABLE off-num AS   INTEGER          NO-UNDO. /*Кол-во итого по внебал. мем. документам*/
+
+DEFINE  VARIABLE offk-amt LIKE op-entry.amt-rub NO-UNDO. /*Сумма итого по внебал. касс. док-там*/
+DEFINE  VARIABLE offk-num AS   INTEGER          NO-UNDO. /*Кол-во итого по внебал. касс. док-там*/
+
+DEFINE  VARIABLE ff-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по срочным операциям */
+DEFINE  VARIABLE ff-num AS   INTEGER          NO-UNDO. /* Кол-во итого по срочным операциям */
+
+DEFINE  VARIABLE tt-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по счетам ДУ */
+DEFINE  VARIABLE tt-num AS   INTEGER          NO-UNDO. /* Кол-во итого по счетам ДУ */
+
+DEFINE  VARIABLE dd-amt LIKE op-entry.amt-rub NO-UNDO. /* Сумма итого по депозитным док-ам */
+DEFINE  VARIABLE dd-num AS   INTEGER          NO-UNDO. /* Кол-во итого по депозитным док-ам */
+
+DEFINE NEW SHARED VARIABLE list-id        AS CHARACTER NO-UNDO. /* Список выбранных сотрудников */
+DEFINE NEW SHARED VARIABLE list-branch-id AS CHARACTER NO-UNDO. /* Список выбранных подразделений */
+DEFINE NEW SHARED VARIABLE out-branch-id  AS CHARACTER NO-UNDO. /* Не выбранное подразделение,
+                                                                   но на котором нажали ENTER */
+DEFINE NEW SHARED VARIABLE chk_all AS LOG NO-UNDO. /* Выбрали все отделения (отчет по филиалу) */
+
+DEFINE  VARIABLE only-branch AS LOG NO-UNDO. /* Выбрали только отделы */
+
+DEFINE  VARIABLE iii           AS INTEGER   NO-UNDO.
+DEFINE  VARIABLE tt-st         AS CHARACTER NO-UNDO.
+DEFINE  VARIABLE str2          AS CHARACTER NO-UNDO.
+DEFINE  VARIABLE str_p         AS CHARACTER NO-UNDO.
+DEFINE  VARIABLE cur_refer     AS CHARACTER NO-UNDO. /* референс */
+DEFINE  VARIABLE cur_user_name AS CHARACTER NO-UNDO. /* ФИО ответ. исполн. */
+
+DEFINE  VARIABLE list-setting_val AS CHARACTER NO-UNDO. /* значение, указанное в настроечном параметре"НазнСчМБР" */
+
+DEFINE  VARIABLE k        AS INTEGER   NO-UNDO.
+DEFINE  VARIABLE cur_txt  AS CHARACTER NO-UNDO. /* Часть текста в итого по отделениям */
+DEFINE  VARIABLE cur_btxt AS CHARACTER NO-UNDO. /* Текст в итого по отделениям */
+
+DEFINE  VARIABLE user_cldate AS CHARACTER NO-UNDO. /* Пользователь переоценки */
+DEFINE  VARIABLE us_type1    AS CHARACTER NO-UNDO. /* Код отделения, по умолч. 21 */
+DEFINE  VARIABLE us_type2    AS CHARACTER NO-UNDO. /* Код подразделения, по умолч. 23 */
+DEFINE  VARIABLE fl_ok       AS LOG       NO-UNDO.
+
+DEFINE  VARIABLE n_asu   AS CHARACTER NO-UNDO. /* код отдела автоматизации в референсе */
+DEFINE  VARIABLE sp_tr   AS CHARACTER NO-UNDO. /* список транзакций связ. банк. операциями и с ослуж клиентов */
+DEFINE  VARIABLE sp_trod AS CHARACTER NO-UNDO. /* список транзакций при заверш. опер. дня */
+
+
+DEFINE  VARIABLE i1             AS INTEGER   NO-UNDO.
+DEFINE  VARIABLE i2             AS INTEGER   NO-UNDO.
+DEFINE  VARIABLE befor_num_page AS INTEGER   NO-UNDO. /* Сколько уже напечатали страниц */
+DEFINE  VARIABLE col-a          AS CHARACTER NO-UNDO. /* колонка - отметка о поступлении приложения */
+DEFINE  VARIABLE list-pochta    AS CHARACTER NO-UNDO. /* значение настроечного пар-ра ТПТелеграф */
+DEFINE  VARIABLE list-teleg     AS CHARACTER NO-UNDO. /* значение настроечного пар-ра ТППочта */
+DEFINE  VARIABLE is_pochta      AS LOG       NO-UNDO. /* yes - почта, no - телеграф, ? - ни то, ни другое */
+
+
+DEFINE BUFFER xacct FOR acct.
+

@@ -1,0 +1,14 @@
+/* ------------------------------------------------------
+File          : $RCSfile: pir-log-v.lf,v $ $Revision: 1.1 $ $Date: 2007-08-08 11:55:03 $
+Copyright     : ООО КБ "Пpоминвестрасчет"
+Назначение    : Инклюдник для pir-ref-v.p (процедуры просмотра класса pir-log)
+Автор         : $Author: lavrinenko $ 
+Изменения     : $Log: not supported by cvs2svn $
+------------------------------------------------------ */
+
+{&nowith} DataLine.Sym1 @ {comment}   */ DataLine.Sym1
+{&nowith} DataLine.Sym2 @ {comment}   */ DataLine.Sym2
+{&nowith} DataLine.Sym3 @ {comment}   */ DataLine.Sym3
+{&nowith} DataLine.Sym4 @ {comment}   */ DataLine.Sym4
+{&nowith} DataLine.Val[1] @ {comment} */ DataLine.Val[1]
+{&nowith} DataLine.Txt @ {comment}    */ DataLine.Txt

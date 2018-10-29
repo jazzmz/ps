@@ -1,0 +1,282 @@
+PROCEDURE delete_kau:
+   DEFINE VAR lst-cod  AS CHARACTER NO-UNDO.
+   DEFINE VAR c-ost    AS CHARACTER NO-UNDO.
+   DEFINE VAR i        AS INTEGER   NO-UNDO.
+   DEFINE VAR action-name AS CHARACTER NO-UNDO.
+   max-loan-acct = 0.
+   FOR EACH loan WHERE loan.contract  EQ "DPS"
+                   AND CAN-DO(in-cont-code,loan.cont-code) NO-LOCK,
+       EACH loan-acct WHERE loan-acct.contract  EQ loan.contract
+                        AND loan-acct.cont-code EQ loan.cont-code
+                        AND CAN-DO({&LST-ACCT-TYPE},loan-acct.acct-type)
+                                                                 NO-LOCK:
+      lst-cod = IF loan-acct.acct-type EQ "loan-dps-p" THEN "é·‚Ç™´Ç,ç†Áè‡Ç"
+                ELSE IF loan-acct.acct-type EQ "loan-dps-t" THEN "é·‚Ç™´ë,ç†Áè‡ë1"
+                ELSE IF loan-acct.acct-type EQ "loan-dps-int" THEN "ç†Áè‡"
+                ELSE IF loan-acct.acct-type EQ "loan-dps-exc" THEN "è‡è‡"
+                ELSE "".
+      max-loan-acct = max-loan-acct + 1.
+      {del-bar.i}
+      action-name = "ë„°†≠†´®‚®™† ™Æ´(ëÁ).:" + STRING(max-loan-acct).
+      {init-bar.i """ + action-name + ""}
+      DO i = 1 TO NUM-ENTRIES(lst-cod):
+         c-ost = ENTRY(i,lst-cod).
+            DO TRANSACTION:
+               IF loan-acct.currency EQ "" THEN DO:
+                  FOR EACH kau-pos WHERE kau-pos.acct     EQ loan-acct.acct
+                                     AND kau-pos.currency EQ loan-acct.currency
+                                     AND kau-pos.kau      EQ loan-acct.contract  + "," +
+                                                             loan-acct.cont-code + "," +
+                                                             c-ost
+				     and kau-pos.since GE beg-date
+			             and kau-pos.since LE end-date
+
+                                                                       EXCLUSIVE-LOCK:
+                    
+	          DELETE kau-pos.
+
+                  END.
+               END.
+               ELSE DO:
+                  FOR EACH kau-cur WHERE kau-cur.acct     EQ loan-acct.acct
+                                     AND kau-cur.currency EQ loan-acct.currency
+                                     AND kau-cur.kau      EQ loan-acct.contract  + "," +
+                                                             loan-acct.cont-code + "," +
+                                                             c-ost
+                                     and kau-cur.since GE beg-date
+			             and kau-cur.since LE end-date
+							     
+                                                                   EXCLUSIVE-LOCK:
+/* message "ØÆß®Ê®Ô ¢†´"  kau-cur.balance. pause. */
+                        DELETE kau-cur.
+			
+
+                  END.
+               END.
+            END.
+            FOR EACH op-date WHERE op-date.op-date GE loan.open-date 
+	                       and op-date.op-date GE beg-date
+			       and op-date.op-date LE end-date NO-LOCK:
+               DO TRANSACTION:
+                  FOR EACH kau-entry WHERE kau-entry.acct     EQ loan-acct.acct
+                                       AND kau-entry.currency EQ loan-acct.currency
+                                       AND kau-entry.kau      EQ loan-acct.contract  + "," +
+                                                                 loan-acct.cont-code + "," +
+                                                                 c-ost
+                                       AND kau-entry.debit
+                                       AND kau-entry.op-date  EQ     op-date.op-date
+                                                                           EXCLUSIVE-LOCK:
+                     FIND op-entry WHERE op-entry.op       EQ kau-entry.op
+                                     AND op-entry.op-entry EQ kau-entry.op-entry
+                                                              EXCLUSIVE-LOCK NO-ERROR.
+                     IF AVAIL op-entry THEN op-entry.kau-db = "".
+                     DELETE kau-entry.
+                  END.
+                  FOR EACH kau-entry WHERE kau-entry.acct     EQ loan-acct.acct
+                                       AND kau-entry.currency EQ loan-acct.currency
+                                       AND kau-entry.kau      EQ loan-acct.contract  + "," +
+                                                                 loan-acct.cont-code + "," +
+                                                                 c-ost
+                                       AND NOT kau-entry.debit
+                                       AND kau-entry.op-date  EQ op-date.op-date
+                                                                           EXCLUSIVE-LOCK:
+                     FIND op-entry WHERE op-entry.op       EQ kau-entry.op
+                                     AND op-entry.op-entry EQ kau-entry.op-entry
+                                                              EXCLUSIVE-LOCK NO-ERROR.
+                     IF AVAIL op-entry THEN op-entry.kau-cr = "".
+                     DELETE kau-entry.
+                  END.
+               END.
+            END.
+            DO TRANSACTION:
+            FOR EACH kau WHERE kau.acct     EQ loan-acct.acct
+                           AND kau.currency EQ loan-acct.currency
+                           AND kau.kau      EQ loan-acct.contract  + "," +
+                                               loan-acct.cont-code + "," +
+                                               c-ost
+                                                                EXCLUSIVE-LOCK:
+/* message "ØÆß®Ê®Ô"  kau.balance. pause. */
+/*               DELETE kau.*/
+            END.
+            END.
+      END.
+      /* ì§†´•≠®• äÄì */
+   END.
+END PROCEDURE.
+
+FUNCTION rfrsh-pos RETURNS LOGICAL (BUFFER buf-lnacct FOR loan-acct,
+                                    INPUT  c-ost      AS  CHARACTER,
+                                    INPUT  in-date    AS  DATE
+                                   ):
+   DEF VAR last-date AS DATE NO-UNDO.
+   DEF VAR dob       AS DATE NO-UNDO.
+
+   DEF BUFFER tmp-kauen FOR kau-entry.
+   DEF BUFFER tmp-open FOR op-entry.
+   DEF BUFFER pkau-pos FOR kau-pos.
+   DEF BUFFER pkau-cur FOR kau-cur.
+
+   FIND acct WHERE acct.acct     EQ buf-lnacct.acct
+               AND acct.currency EQ buf-lnacct.currency NO-LOCK NO-ERROR.
+/* message " ·Á•‚"  acct.acct in-date . pause. */
+   FIND last acct-pos where acct-pos.acct eq acct.acct and
+                            acct-pos.since EQ in-date  and
+			    acct-pos.currency eq acct.currency NO-LOCK NO-ERROR.
+/* message "ØÆß®Ê®Ô" acct-pos.since acct-pos.acct . pause.   */
+   IF AVAIL acct-pos THEN last-date = acct-pos.since.
+   ELSE RETURN NO.
+      dob = in-date.
+      IF buf-lnacct.currency EQ "" THEN DO:
+         FOR EACH tmp-kauen WHERE tmp-kauen.acct     EQ     buf-lnacct.acct
+                              AND tmp-kauen.currency BEGINS buf-lnacct.currency
+                              AND tmp-kauen.kau      EQ     (buf-lnacct.contract + "," +
+                                                             buf-lnacct.cont-code + "," +
+                                                             c-ost)
+                              AND tmp-kauen.debit    EQ     YES
+                              AND tmp-kauen.op-date  EQ     in-date NO-LOCK:
+
+/* message "Á‚Æ Ì‚Æ? " tmp-kauen.kau . pause. */
+
+            {closekau.i &bal      = yes
+                        &db       = yes
+                        &op-entry = tmp-kauen
+                        &cur      = pos
+                        &amt      = tmp-kauen.amt-rub
+                        &db-cr    = " "
+            }
+         END.
+         FOR EACH tmp-kauen WHERE tmp-kauen.acct     EQ     buf-lnacct.acct
+                              AND tmp-kauen.currency BEGINS buf-lnacct.currency
+                              AND tmp-kauen.kau      EQ     (buf-lnacct.contract + "," +
+                                                             buf-lnacct.cont-code + "," +
+                                                             c-ost)
+                              AND tmp-kauen.debit    EQ     NO
+                              AND tmp-kauen.op-date  EQ     in-date NO-LOCK:
+            {closekau.i &bal      = yes
+                        &op-entry = tmp-kauen
+                        &cur      = pos
+                        &amt      = tmp-kauen.amt-rub
+                        &db-cr    = " "
+            }
+         END.
+      END.
+      ELSE DO:
+         FOR EACH tmp-kauen WHERE tmp-kauen.acct     EQ     buf-lnacct.acct
+                              AND tmp-kauen.currency BEGINS buf-lnacct.currency
+                              AND tmp-kauen.kau      EQ     (buf-lnacct.contract  + "," +
+                                                             buf-lnacct.cont-code + "," +
+                                                             c-ost)
+                              AND tmp-kauen.debit    EQ     YES
+                              AND tmp-kauen.op-date  EQ     in-date NO-LOCK:
+            {closekau.i &bal      = yes
+                        &db       = yes
+                        &op-entry = tmp-kauen
+                        &cur      = cur
+                        &amt      = tmp-kauen.amt-cur
+                        &db-cr    = " "
+            }
+         END.
+         FOR EACH tmp-kauen WHERE tmp-kauen.acct    EQ     buf-lnacct.acct
+                             AND tmp-kauen.currency BEGINS buf-lnacct.currency
+                             AND tmp-kauen.kau      EQ     (buf-lnacct.contract  + "," +
+                                                            buf-lnacct.cont-code + "," +
+                                                            c-ost)
+                             AND tmp-kauen.debit    EQ     NO
+                             AND tmp-kauen.op-date  EQ     in-date NO-LOCK:
+            {closekau.i &bal      = yes
+                        &op-entry = tmp-kauen
+                        &cur      = cur
+                        &amt      = tmp-kauen.amt-cur
+                        &db-cr    = " "
+            }
+         END.
+      END.
+END FUNCTION.
+
+
+FUNCTION sgn-opent RETURNS CHARACTER (BUFFER buf-lnacct FOR loan-acct,
+                                      BUFFER buf-open FOR op-entry,
+                                      INPUT  c-ost    AS  CHARACTER,
+                                      INPUT in-summ   AS  DECIMAL
+                                     ):
+   DEF VAR db-cr AS LOGICAL NO-UNDO.
+   IF NOT AVAIL buf-lnacct THEN RETURN "çÖí ëóÖíÄ ÇäãÄÑÄ".
+   IF NOT AVAIL buf-open   THEN RETURN "çÖí èêéÇéÑäà".
+
+   IF buf-open.acct-cr  EQ buf-lnacct.acct AND
+      buf-open.currency BEGINS buf-lnacct.currency THEN db-cr = NO.
+   ELSE db-cr = YES.
+
+   FIND LAST kau WHERE kau.kau-id        EQ buf-lnacct.acct-type
+                   AND kau.acct          EQ buf-lnacct.acct
+                   AND kau.currency      EQ buf-lnacct.currency
+                   AND kau.kau           EQ (buf-lnacct.contract  + "," +
+                                             buf-lnacct.cont-code + "," +
+                                             c-ost)
+                                                EXCLUSIVE-LOCK NO-ERROR.
+
+   IF NOT AVAIL kau THEN DO:
+      CREATE kau.
+      ASSIGN
+         kau.acct     = buf-lnacct.acct
+         kau.currency = buf-lnacct.currency
+         kau.kau-id   = buf-lnacct.acct-type
+         kau.kau      = buf-lnacct.contract  + "," +
+                        buf-lnacct.cont-code + "," +
+                        c-ost
+      .
+   END.
+   {kau(off).cal &op-entry = buf-open
+                 &ssum     = " (IF db-cr THEN - buf-open.amt-rub
+                                         ELSE   buf-open.amt-rub
+                               )"
+                 &inc      = 1
+                 &scur     = " (IF db-cr THEN - buf-open.amt-cur
+                                         ELSE   buf-open.amt-cur) "
+   }
+   IF db-cr THEN DO:
+      {kauen.cr &op-entry = buf-open
+                &db-cr    = -db
+                &scur     = amt-cur
+                &ssum     = amt-rub
+                &kau-id   = kau.kau-id}
+   END.
+   ELSE DO:
+      {kauen.cr &op-entry = buf-open
+                &db-cr    = -cr
+                &scur     = amt-cur
+                &ssum     = amt-rub
+                &kau-id   = kau.kau-id
+                &nodef    = "/*"}
+
+   END.
+   IF buf-lnacct.currency EQ "" THEN
+   ASSIGN
+      kau-entry.amt-rub = in-summ
+      kau-entry.amt-cur = 0
+   .
+   ELSE
+   ASSIGN
+      kau-entry.amt-rub = 0
+      kau-entry.amt-cur = in-summ
+   .
+   ASSIGN
+      kau-entry.kau      = buf-lnacct.contract  + "," +
+                           buf-lnacct.cont-code + "," +
+                           c-ost
+      kau-entry.currency = kau.currency
+   .
+   FIND kau-entry WHERE kau-entry.op       EQ buf-open.op
+                    AND kau-entry.op-entry EQ buf-open.op-entry
+                    AND kau-entry.debit    EQ db-cr
+                                               NO-LOCK NO-ERROR.
+   IF db-cr THEN
+   buf-open.kau-db = buf-lnacct.contract  + "," +
+                     buf-lnacct.cont-code + "," +
+                     IF AMBIGUOUS kau-entry THEN "?" ELSE c-ost.
+   ELSE
+   buf-open.kau-cr = buf-lnacct.contract  + "," +
+                     buf-lnacct.cont-code + "," +
+                     IF AMBIGUOUS kau-entry THEN "?" ELSE c-ost.
+   RETURN "".
+END FUNCTION.

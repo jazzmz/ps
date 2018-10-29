@@ -1,0 +1,208 @@
+/* å•¨Æ‡®†´Ï≠Î© Æ‡§•‡ */
+
+&IF {&FORM-DOC} EQ 108 &THEN
+      &SCOP OFFSET_VAL 0
+      &SCOP OFFSET_2   0
+&ELSEIF {&FORM-DOC} EQ 109 &THEN
+      &SCOP OFFSET_VAL 80
+      &SCOP OFFSET_2   0
+&ELSE
+      &SCOP OFFSET_VAL 0
+      &SCOP OFFSET_2   150
+&ENDIF
+
+/* &IF defined(NOSIGN) EQ 0 &THEN */
+      &SCOP KOEF 2
+/* &ELSE
+      &SCOP KOEF 1
+&ENDIF */
+
+
+&IF DEFINED(SET_DATA) &THEN
+   
+   FIND FIRST doc-type
+      WHERE doc-type.doc-type EQ op.doc-type 
+      NO-LOCK NO-ERROR .
+      
+   IF AVAIL op THEN
+      detail[1] = op.details.
+   ELSE
+      detail[1] = detail[1] + " " +
+                  detail[2] + " " +
+                  detail[3] + " " +
+                  detail[4] + " " +
+                  detail[5].
+
+
+   DO i = 1 TO 5:
+      PlatName[i] = plName[i].
+   END.
+
+   IF plName[1] BEGINS "àçç" THEN
+   DO:
+      i = 4.
+      
+      DO WHILE LOOKUP(SUBSTRING(platName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      ASSIGN
+         innpl       = trim(substring(plName[1],5,i - 5))
+         platName[1] = substring(platName[1],i)
+      . 
+   END. /* IF plName[1] BEGINS "àçç" */
+
+   platName[1] = platName[1] + " " +
+                 platName[2] + " " +
+                 platName[3] + " " +
+                 platName[4] + " " +
+                 platName[5].
+
+   DO i = 1 TO 5:
+    PolName[i] = poName[i].
+   END.
+
+   IF poName[1] BEGINS "àçç" THEN
+   DO:
+
+      i = 4.
+
+      DO WHILE lookup(substring(polName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      ASSIGN
+         innpo      = trim(substring(polName[1],5,i - 5))
+         polName[1] = substring(polName[1],i)
+      .
+   END. /* IF poName[1] BEGINS "àçç" */
+
+   polName[1] = polName[1] + " " +
+                polName[2] + " " +
+                polName[3] + " " +
+                polName[4] + " " +
+                polName[5].
+
+   IF {&ELIT_POL} THEN
+   DO:
+      {wordwrap.i &s=PolName &n=5 &l=47}
+   END.
+   ELSE
+   DO:
+      {wordwrap.i &s=PolName &n=5 &l=35}
+   END.
+   {wordwrap.i &s=PlatName &n=5 &l=35}
+   {wordwrap.i &s=Detail &n=5 &l=71}
+
+   plrkc[1] = plrkc[1] + " " + plrkc[2].
+   porkc[1] = porkc[1] + " " + porkc[2].
+
+   {wordwrap.i &s=PlRkc &n=2 &l=35}
+   {wordwrap.i &s=PoRkc &n=2 &l=35}
+
+   ASSIGN
+      PlatName[5] = substring(platname[5], 1,35)
+      PlRkc[2]    = substring(PlRkc[2],   1,35)
+      polname[5]  = substring(polname[5],  1,IF {&ELIT_POL} THEN 47 ELSE 35)
+      PoRkc[2]    = substring(PoRkc[2],   1,35)
+      amtstr[1]   = amtstr[1] + " " +
+                    amtstr[2] + " "
+   .             
+   {wordwrap.i &s=AmtStr &n=2 &l=63}
+
+&ENDIF
+&IF DEFINED(PRINT) &THEN
+   RUN PUT_PCL_STR(830 * {&KOEF},  ( 90                 ) * {&KOEF}, trim(buf_0_op.doc-num),INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1080 * {&KOEF}, ( 87                 ) * {&KOEF}, trim(theDate),   INPUT-OUTPUT buf-str).
+&IF {&NFORM} EQ 108 &THEN
+   RUN PUT_PCL_STR(380 * {&KOEF},  (200                 ) * {&KOEF}, AmtStr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  (250                 ) * {&KOEF}, AmtStr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (375 +  {&OFFSET_VAL}) * {&KOEF}, trim(rub),       INPUT-OUTPUT buf-str).
+&ELSEIF {&NFORM} EQ 109 &THEN
+   RUN PUT_PCL_STR(380 * {&KOEF},  (200                 ) * {&KOEF}, ValStr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  (250                 ) * {&KOEF}, ValStr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (375 +  {&OFFSET_VAL}) * {&KOEF}, trim(val),       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  (250 +  {&OFFSET_VAL}) * {&KOEF}, AmtStr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  (300 +  {&OFFSET_VAL}) * {&KOEF}, AmtStr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (475 +  {&OFFSET_VAL}) * {&KOEF}, trim(rub),       INPUT-OUTPUT buf-str).
+&ELSEIF {&NFORM} EQ 110 &THEN
+   RUN PUT_PCL_STR(380 * {&KOEF},  (200                 ) * {&KOEF}, AmtStr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  (250                 ) * {&KOEF}, AmtStr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1605 * {&KOEF}, (375 +  {&OFFSET_VAL}) * {&KOEF}, Summa1,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1605 * {&KOEF}, (425 +  {&OFFSET_VAL}) * {&KOEF}, Summa2,          INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (375 +  {&OFFSET_VAL}) * {&KOEF}, Val1,            INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (425 +  {&OFFSET_VAL}) * {&KOEF}, Val2,            INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1605 * {&KOEF}, (1150 + {&OFFSET_VAL}) * {&KOEF}, Summa3,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1605 * {&KOEF}, (1200 + {&OFFSET_VAL}) * {&KOEF}, Summa4,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1150 + {&OFFSET_VAL}) * {&KOEF}, Val3,            INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1200 + {&OFFSET_VAL}) * {&KOEF}, Val4,            INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1605 * {&KOEF}, (1440 + {&OFFSET_VAL}) * {&KOEF}, Summa5,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1440 + {&OFFSET_VAL}) * {&KOEF}, Val5,            INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1520 + {&OFFSET_VAL}) * {&KOEF}, acct-cur,        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1440 + {&OFFSET_VAL}) * {&KOEF}, CrName[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1500 + {&OFFSET_VAL}) * {&KOEF}, CrName[2],       INPUT-OUTPUT buf-str).
+&ENDIF
+   RUN PUT_PCL_STR(245 * {&KOEF},  (375 +  {&OFFSET_VAL}) * {&KOEF}, innpl,           INPUT-OUTPUT buf-str). 
+   RUN PUT_PCL_STR(145 * {&KOEF},  (423 +  {&OFFSET_VAL}) * {&KOEF}, platname[1],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (473 +  {&OFFSET_VAL}) * {&KOEF}, platname[2],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (523 +  {&OFFSET_VAL}) * {&KOEF}, platname[3],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (573 +  {&OFFSET_VAL}) * {&KOEF}, platname[4],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (623 +  {&OFFSET_VAL}) * {&KOEF}, platname[5],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (555 +  {&OFFSET_VAL}) * {&KOEF}, pllacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (730 +  {&OFFSET_VAL}) * {&KOEF}, plrkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (780 +  {&OFFSET_VAL}) * {&KOEF}, plrkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (733 +  {&OFFSET_VAL}) * {&KOEF}, plmfo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (790 +  {&OFFSET_VAL}) * {&KOEF}, plCAcct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (907 +  {&OFFSET_VAL}) * {&KOEF}, porkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (957 +  {&OFFSET_VAL}) * {&KOEF}, porkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (908 +  {&OFFSET_VAL}) * {&KOEF}, polmfo,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (963 +  {&OFFSET_VAL}) * {&KOEF}, pocacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1083 + {&OFFSET_VAL}) * {&KOEF}, poacct,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  (1083 + {&OFFSET_VAL}) * {&KOEF}, innpo,          INPUT-OUTPUT buf-str). 
+
+   IF {&ELIT_POL} THEN DO:
+      RUN PRINT_ELITE(                                             INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1130 + {&OFFSET_VAL}) * {&KOEF}, polname[1],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1180 + {&OFFSET_VAL}) * {&KOEF}, polname[2],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1230 + {&OFFSET_VAL}) * {&KOEF}, polname[3],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1280 + {&OFFSET_VAL}) * {&KOEF}, polname[4],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1330 + {&OFFSET_VAL}) * {&KOEF}, polname[5],      INPUT-OUTPUT buf-str).
+      RUN PRINT_PITCH(                                             INPUT-OUTPUT buf-str).
+   END.
+   ELSE DO:
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1130 + {&OFFSET_VAL}) * {&KOEF}, polname[1],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1180 + {&OFFSET_VAL}) * {&KOEF}, polname[2],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1230 + {&OFFSET_VAL}) * {&KOEF}, polname[3],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1280 + {&OFFSET_VAL}) * {&KOEF}, polname[4],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(145 * {&KOEF},  (1330 + {&OFFSET_VAL}) * {&KOEF}, polname[5],      INPUT-OUTPUT buf-str).
+   END.
+
+   RUN PUT_PCL_STR(1505 * {&KOEF}, (1265 + {&OFFSET_VAL}) * {&KOEF}, type-doc,        INPUT-OUTPUT buf-str).
+
+   IF INTEGER(buf_0_op.order-pay) GT 0 THEN
+      RUN PUT_PCL_STR(1975 * {&KOEF}, (1323 + {&OFFSET_VAL}) * {&KOEF}, STRING(INTEGER(buf_0_op.order-pay)),
+                                                                INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1490 + {&OFFSET_VAL} + {&OFFSET_2}) * {&KOEF}, detail[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1540 + {&OFFSET_VAL} + {&OFFSET_2}) * {&KOEF}, detail[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1590 + {&OFFSET_VAL} + {&OFFSET_2}) * {&KOEF}, detail[3],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1640 + {&OFFSET_VAL} + {&OFFSET_2}) * {&KOEF}, detail[4],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(145 * {&KOEF},  (1690 + {&OFFSET_VAL} + {&OFFSET_2}) * {&KOEF}, detail[5],       INPUT-OUTPUT buf-str).
+
+   &IF defined(LEFTSTAMP) NE 0 &THEN
+      RUN PUT_PCL_STR( 265 * {&KOEF}, ( 2350 ) * {&KOEF}, theDate,       INPUT-OUTPUT buf-str).
+      theUser = FILL(" ", INT((22 - LENGTH(theUser)) / 2)) + theUser.
+      RUN PUT_PCL_STR(145  * {&KOEF}, ( 2425 ) * {&KOEF}, theUser,       INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2025 ) * {&KOEF}, theKontr,      INPUT-OUTPUT buf-str).
+   &ELSEIF defined(RIGHTSTAMP) NE 0 &THEN
+      RUN PUT_PCL_STR(1650 * {&KOEF},  ( 2350 ) * {&KOEF}, theDate,       INPUT-OUTPUT buf-str).
+      theKontr = FILL(" ", INT((22 - LENGTH(theKontr)) / 2)) + theKontr.
+      RUN PUT_PCL_STR(1330 * {&KOEF}, ( 2425 ) * {&KOEF}, theKontr,      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR( 200 * {&KOEF}, ( 2025 ) * {&KOEF}, theUser,       INPUT-OUTPUT buf-str).
+   &ELSE
+      RUN PUT_PCL_STR(1330 * {&KOEF}, (1905 + {&OFFSET_2}) * {&KOEF}, theKontr,        INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR( 145 * {&KOEF}, (1905 + {&OFFSET_2}) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+   &ENDIF
+&ENDIF

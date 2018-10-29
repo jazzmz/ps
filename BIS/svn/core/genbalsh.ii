@@ -1,0 +1,302 @@
+{fmt.def }
+
+form
+   bal-acct.bal-acct format "99999"
+&IF DEFINED(NAMES) <> 0 &THEN
+   name[1] format "x({&widthname})"
+&ENDIF
+&IF DEFINED(INCOMING) <> 0 &THEN
+   insbal.in-bal-db column-label "ВХ. ОСТАТОК!(АКТИВ)"  FORMAT {&outformat}
+   insbal.in-bal-cr column-label "ВХ. ОСТАТОК!(ПАССИВ)" FORMAT {&outformat}
+&ENDIF
+&IF DEFINED(TURNOVER) <> 0 &THEN
+   insbal.debit     column-label "ОБОРОТЫ!(ДЕБЕТ)"      FORMAT {&outformat}
+   insbal.credit    column-label "ОБОРОТЫ!(КРЕДИТ)"     FORMAT {&outformat}
+&ENDIF
+   insbal.bal-db    column-label "ИСХ. ОСТАТОК!(АКТИВ)"  FORMAT {&outformat}
+   insbal.bal-cr    column-label "ИСХ. ОСТАТОК!(ПАССИВ)" FORMAT {&outformat}
+&IF DEFINED(LASTMOVE) <> 0 &THEN
+   insbal.since  form "99/99/99" column-label "ДПД"
+&ENDIF
+
+header
+/*    caps(branch.name) format "x(69)" "- ЛИСТ" PAGE-NUMBER (fil1) format ">9" skip*/
+    caps(cBankName) format "x(69)" "- ЛИСТ" PAGE-NUMBER (fil1) format ">9" skip
+    report-type2 skip(2)
+
+with frame bs{&f}
+DOWN NO-BOX col 1 width 250.
+
+IF mFormatCntRazInt > -1 THEN
+DO:
+   mFormatTmpChar = fChgFormat({&outformat}).
+   DO WITH FRAME bs{&f} :
+      ASSIGN
+      &IF DEFINED(INCOMING) <> 0 &THEN
+         insbal.in-bal-db:FORMAT = mFormatTmpChar
+         insbal.in-bal-cr:FORMAT = mFormatTmpChar
+      &ENDIF
+      &IF DEFINED(TURNOVER) <> 0 &THEN
+         insbal.debit:FORMAT  = mFormatTmpChar
+         insbal.credit:FORMAT = mFormatTmpChar
+      &ENDIF
+         insbal.bal-db:FORMAT = mFormatTmpChar
+         insbal.bal-cr:FORMAT = mFormatTmpChar
+      .
+   END.
+END.
+
+for each insbal where insbal.acct-cat = code.code
+              and not insbal.zo
+&if defined(in-branch-id) &then
+    and insbal.branch-id = branch.branch-id
+&endif
+    no-lock,
+    first bal-acct where bal-acct.bal-acct = insbal.bal-acct no-lock
+    , {{&1}}
+    break {&breakby} by bal-acct.bal-acct
+    with stream-io frame bs{&f}:
+
+    {on-esc leave}
+
+    if FIRST(BAL-ACCT.ACCT-CAT) then
+    do:
+       if cnt > 1 then page {&stream} .
+       clear. view {&stream}.
+       put {&stream}  unformatted skip space(6) caps(fCatLabel(code.code,YES,{&NAMEDATE})) skip(1).
+    end.
+
+    &IF DEFINED(SECTIONS) <> 0 &THEN
+       if FIRST-OF(B-SECT.CODE) then do:
+          {chkpage if last(b-sect.code) then 15 else 8}
+          down {&stream}  1.
+          put {&stream}  unformatted space(6) fTmpPlanRaz(bal-acct.acct-cat,b-sect.code) skip.
+       end.
+       {chkpage if last(b-sect.code) then 11 else 4}
+
+     &IF DEFINED(ACCT0) <> 0 &THEN
+       if FIRST-OF(B-ACCT0.CODE) then do:
+          {chkpage if last(b-acct0.code) then 15 else 8}
+          down {&stream}  1.
+          put {&stream}  unformatted space(6) b-acct0.code + ". " fTmpPlanRaz(bal-acct.acct-cat,b-acct0.code) skip.
+       end.
+       {chkpage if last(b-acct0.code) then 11 else 4}
+     &ENDIF
+
+     &IF DEFINED(NOACCT1) = 0 &THEN
+       if FIRST-OF(B-ACCT1.CODE) then do:
+          {chkpage if last(b-acct1.code) then 15 else 8}
+          down {&stream}  1.
+          name[1] = fTmpPlanAcct1(b-acct1.code).
+          IF name[1] <> "ОТСУТСТВУЕТ" THEN DO:
+             {wordwrap.i &s=name &l={&widthname} &n=10}
+             put {&stream}  unformatted b-acct1.code "   " name[1].
+             do i = 2 to 10:
+                if name[i] <> "" then do:
+                   down {&stream} .
+                   put {&stream}  unformatted skip space(6) name[i].
+                end.
+                else leave.
+             end.
+             down {&stream}  1.
+          END.
+       end.
+       {chkpage if last(b-acct1.code) then 11 else 4}
+     &ELSE
+        down {&stream}  1.
+     &ENDIF
+   &ENDIF
+
+   {chkpage 4}
+
+    accum
+       insbal.debit     (total {&breakby})
+       insbal.credit    (total {&breakby})
+       insbal.bal-db    (total {&breakby})
+       insbal.bal-cr    (total {&breakby})
+    .
+    assign
+       ind = insbal.in-bal-db
+       inc = insbal.in-bal-cr
+    .
+    if num > 0 then do:
+       find first xinsbal where
+                  xinsbal.acct-cat = insbal.acct-cat and
+                  xinsbal.bal-acct = insbal.bal-acct and
+                  xinsbal.zo = yes
+&if defined(in-branch-id) &then
+    and xinsbal.branch-id = branch.branch-id
+&endif
+                  no-lock no-error.
+       if avail xinsbal then do:
+          if num = 2 then do:
+             if BalAcctSide(bal-acct.bal-acct,{&NAMEDATE}) eq "А" then ind = ind + (xinsbal.debit - xinsbal.credit).
+             else inc = inc - (xinsbal.debit - xinsbal.credit).
+          end.
+          else accum
+             xinsbal.debit  (total {&breakby})
+             xinsbal.credit (total {&breakby}).
+       end.
+    end.
+    accum
+       ind (total {&breakby})
+       inc (total {&breakby})
+    .
+    display {&stream}
+              bal-acct.bal-acct at 1
+    &IF DEFINED(INCOMING) <> 0 &THEN
+            ind @ insbal.in-bal-db
+            inc @ insbal.in-bal-cr
+    &ENDIF
+    &IF DEFINED(TURNOVER) <> 0 &THEN
+            insbal.debit  + (if num = 3 and avail xinsbal then xinsbal.debit else 0)  @ insbal.debit
+            insbal.credit + (if num = 3 and avail xinsbal then xinsbal.credit else 0) @ insbal.credit
+    &ENDIF
+            insbal.bal-db @ insbal.bal-db
+            insbal.bal-cr @ insbal.bal-cr
+    &IF DEFINED(LASTMOVE) <> 0 &THEN
+            insbal.since
+    &ENDIF
+    .
+    &IF DEFINED(NAMES) <> 0 &THEN
+       {sv-disp.i "BalAcctName(bal-acct.bal-acct,{&NAMEDATE})" {&widthname} 10 }
+    &ENDIF
+
+    down {&stream} .
+
+    if num = 1 and avail xinsbal then do: /* Заключительные обороты отдельной строкой */
+    &IF DEFINED(TURNOVER) <> 0 &THEN
+        down {&stream} .
+        display {&stream}
+        &IF DEFINED(NAMES)    <> 0 &THEN
+            "Заключительные обороты" @ name[1]
+              bal-acct.bal-acct at 1
+        &ELSE
+             "   зо" @ bal-acct.bal-acct
+        &ENDIF
+        &IF DEFINED(INCOMING) <> 0 &THEN
+            {&x} @ insbal.in-bal-db
+            {&x} @ insbal.in-bal-cr &ENDIF
+            {&x} @ insbal.bal-db
+            {&x} @ insbal.bal-cr
+             xinsbal.debit      @ insbal.debit
+             xinsbal.credit     @ insbal.credit
+        &IF DEFINED(LASTMOVE) <> 0 &THEN
+             xinsbal.since      @ insbal.since
+        &ENDIF
+        .
+        down {&stream} .
+    &ENDIF
+    end.
+
+    &IF DEFINED(SECTIONS) <> 0 &THEN
+      &IF DEFINED(NOACCT1) = 0 &THEN
+        if last-of(b-acct1.code) then do:
+           down {&stream} .
+           {&und}
+           down {&stream} .
+           display {&stream}
+           &IF DEFINED(NAMES) <> 0 &THEN
+              "Итого по счету 1 порядка № " + b-acct1.code @ name[1]
+           &ENDIF
+           &IF DEFINED(INCOMING) <> 0 &THEN
+              (accum total by b-acct1.code ind) @ insbal.in-bal-db
+              (accum total by b-acct1.code inc) @ insbal.in-bal-cr
+           &ENDIF
+           &IF DEFINED(TURNOVER) <> 0 &THEN
+              (accum total by b-acct1.code insbal.debit)   +
+              (if num = 3 then accum total by b-acct1.code xinsbal.debit else 0)  @ insbal.debit
+              (accum total by b-acct1.code insbal.credit)  +
+              (if num = 3 then accum total by b-acct1.code xinsbal.credit else 0) @ insbal.credit
+          &ENDIF
+              (accum total by b-acct1.code insbal.bal-db) @ insbal.bal-db
+              (accum total by b-acct1.code insbal.bal-cr) @ insbal.bal-cr
+          .
+
+         /* Заключительные обороты отдельной строкой */
+         if num = 1 and ((accum total by b-acct1.code xinsbal.debit) > 0 or
+                         (accum total by b-acct1.code xinsbal.credit)  > 0) then do:
+            &IF DEFINED(TURNOVER) <> 0 &THEN
+                down {&stream} .
+                display {&stream}
+                   {&dispzo}
+                   (accum total by b-acct1.code xinsbal.debit)  @ insbal.debit
+                   (accum total by b-acct1.code xinsbal.credit) @ insbal.credit
+                .
+            &ENDIF
+         end.
+         down {&stream} .
+     end. /*b-acct1*/
+   &ENDIF
+
+     if LAST-OF(B-SECT.CODE) then do:
+        {&und}
+        down {&stream} .
+        display {&stream}
+           &IF DEFINED(NAMES) <> 0 &THEN
+              "Итого по разделу" @ name[1]
+           &ENDIF
+           &IF DEFINED(INCOMING) <> 0 &THEN
+               (accum total by b-sect.code ind) @ insbal.in-bal-db
+               (accum total by b-sect.code inc) @ insbal.in-bal-cr
+           &ENDIF
+           &IF DEFINED(TURNOVER) <> 0 &THEN
+               (accum total by b-sect.code insbal.debit)   +
+               (if num = 3 then accum total by b-sect.code xinsbal.debit else 0)  @ insbal.debit
+               (accum total by b-sect.code insbal.credit)  +
+               (if num = 3 then accum total by b-sect.code xinsbal.credit else 0) @ insbal.credit
+          &ENDIF
+               (accum total by b-sect.code insbal.bal-db) @ insbal.bal-db
+               (accum total by b-sect.code insbal.bal-cr) @ insbal.bal-cr
+         .
+         /* Заключительные обороты отдельной строкой */
+         if num = 1 and ((accum total by b-sect.code xinsbal.debit)  > 0 or
+                         (accum total by b-sect.code xinsbal.credit) > 0) then do:
+            &IF DEFINED(TURNOVER) <> 0 &THEN
+                down {&stream} .
+                display {&stream}
+                  {&dispzo}
+                  (accum total by b-sect.code xinsbal.debit)  @ insbal.debit
+                  (accum total by b-sect.code xinsbal.credit) @ insbal.credit
+                .
+            &ENDIF
+         end.
+         down {&stream} .
+      end. /*b-sect*/
+   &ENDIF /*SECTIONS*/
+
+   if LAST-OF(BAL-ACCT.ACCT-CAT) then do:
+      {&und}
+      down {&stream} .
+      display {&stream}
+         &IF DEFINED(NAMES) <> 0 &THEN
+             "ИТОГО" @ name[1]
+         &ENDIF
+         &IF DEFINED(INCOMING) <> 0 &THEN
+            (accum total by bal-acct.acct-cat ind) @ insbal.in-bal-db
+            (accum total by bal-acct.acct-cat inc) @ insbal.in-bal-cr
+       &ENDIF
+       &IF DEFINED(TURNOVER) <> 0 &THEN
+            (accum total by bal-acct.acct-cat insbal.debit)   +
+            (if num = 3 then accum total by bal-acct.acct-cat xinsbal.debit else 0)  @ insbal.debit
+            (accum total by bal-acct.acct-cat insbal.credit)  +
+            (if num = 3 then accum total by bal-acct.acct-cat xinsbal.credit else 0) @ insbal.credit
+       &ENDIF
+            (accum total by bal-acct.acct-cat insbal.bal-db) @ insbal.bal-db
+            (accum total by bal-acct.acct-cat insbal.bal-cr) @ insbal.bal-cr
+       .
+       /* Заключительные обороты отдельной строкой */
+       if num = 1 and ((accum total by bal-acct.acct-cat xinsbal.debit)  > 0 or
+                       (accum total by bal-acct.acct-cat xinsbal.credit) > 0) then do:
+          &IF DEFINED(TURNOVER) <> 0 &THEN
+              down {&stream} .
+              display {&stream}
+                 {&dispzo}
+                 (accum total by bal-acct.acct-cat xinsbal.debit)  @ insbal.debit
+                 (accum total by bal-acct.acct-cat xinsbal.credit) @ insbal.credit
+              .
+         &ENDIF
+      end.
+      down {&stream} .
+   end. /*acct-cat*/
+end.

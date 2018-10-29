@@ -1,0 +1,23 @@
+
+/*--------------- Определение переменных ---------------*/
+Define Variable cBankName        As Character            No-Undo.
+Define Variable cClientName      As Character Extent   3 No-Undo.
+Define Variable mDay             As Integer              No-Undo.
+Define Variable mMonth           As Character            No-Undo.
+Define Variable year3            As Integer              No-Undo.
+
+/*--------------- Определение форм для циклов ---------------*/
+/* Форма для цикла "header" */
+Form
+  cBankName format "x(40)" at 40 skip
+  "г.Москва" at 40 skip(2)
+  "БИК 044585491" at 40 skip(3)
+        "Настоящим " at 10 cClientName[1] format "x(75)" at 20 skip
+   "подтверждает, что по состоянию на " at 5 mDay format ">9" at 39 "-е" at 41 mMonth format "x(8)" at 44 year3 format "9999" at 52
+  "года остатки наших у Вас счетов," at 57 skip
+   "подтвержденные Вами в выписках:" at 5 skip(1)
+with frame acctvedh-Frame-1 down no-labels no-underline no-box width 95.
+
+Def Var FH_acctvedh-1 as integer init 11 no-undo. /* acctvedh-Frame1: мин. строк до перехода на новую страницу */
+
+

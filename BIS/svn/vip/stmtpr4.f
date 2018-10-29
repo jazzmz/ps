@@ -1,0 +1,37 @@
+
+      def var txtc as char format "x(39)".
+      form "³"
+        txtc 
+        db-rub form "x(23)" space(1)
+        cr-rub form "x(23)" 
+        "³" at 117.
+      put "ÃÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´".
+      disp
+         "ˆ â ® £ ®  " + trim(string(num-db)) + "„/" + trim(string(num-cr)) + "Š:" @ txtc
+         string(sh-vdb,"->>,>>>,>>>,>>>,>>9.99") + " " @ db-rub
+         string(sh-vcr,"->>,>>>,>>>,>>>,>>9.99") + " " @ cr-rub.
+      down.     
+      /* disp
+         "" @ txtc
+        formstr("","(" + trim(string(sh-db,"->>,>>>,>>>,>>>,>>9.99")),22) + ")" @ db-rub
+        formstr("","(" + trim(string(sh-cr,"->>,>>>,>>>,>>>,>>9.99")),22) + ")" @ cr-rub.
+      down. */          
+      put "ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´".
+      down.
+      disp
+         "‘ «ì¤® ­  ª®­¥æ ¤­ï:" @ txtc
+         string(sh-val,  "->>,>>>,>>>,>>>,>>9.99") when sh-val >= 0 @ db-rub
+         string(- sh-val,"->>,>>>,>>>,>>>,>>9.99") when sh-val < 0  @ cr-rub.
+      down.
+      /* disp
+         "(¢ ­ æ.íª¢¨¢ «¥­â¥):" @ txtc
+         formstr("","(" + trim(string(  sh-bal, "->>,>>>,>>>,>>>,>>9.99")),22) + ")"
+            when sh-bal >= 0 @ db-rub
+         formstr("","(" + trim(string(- sh-bal, "->>,>>>,>>>,>>>,>>9.99")),22) + ")"
+            when sh-bal <  0 @ cr-rub.
+      down.*/
+      strate = trim(strate) + " " + icur.
+      put "³ ˆáå®¤ïé¨© ªãàá : " strate "³" at 117 skip
+          "ÔÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¾" skip.
+   if doubl-v1 then
+      put skip(3) "ƒ« ¢­ë© ¡ãå£ «â¥à " cBankName FORMAT "x(30)" "_____________________ " FGetSetting("”ˆŽãå",?,"") FORMAT "x(35)" skip.

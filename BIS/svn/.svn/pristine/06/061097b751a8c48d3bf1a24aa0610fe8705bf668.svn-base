@@ -1,0 +1,5 @@
+/** Pir ПИР Buryagin:
+    проверяем, может ли текущий пользователь нажимать клавишу DEL 
+*/
+{pir-brw.acc &file="pir-pctra-brw" &action="del" &cannot="UNDO nextrec, NEXT nextrec."}
+   

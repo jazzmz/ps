@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<sen:SigEnvelope xmlns:sen="urn:cbr-ru:dsig:env:v1.1">
+  <sen:SigContainer>
+    <dsig:MACValue xmlns:dsig="urn:cbr-ru:dsig:v1.1">bzAwMDAwMMimivN2BJPeVA/quRDzG4svZaJmB+BHnC5saL+9jwj8+WheVkCy7HxOd16at2IJcVhcEqF4AWZnoY1NUADjzOw4Nzc4UlhJN01TMDG/cdZRnZaPTUVNAVQCAAA=</dsig:MACValue>
+  </sen:SigContainer>
+  <sen:Object>PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iV0lORE9XUy0xMjUxIj8+PEVEMjAxIHhtbG5zPSJ1cm46Y2JyLXJ1OmVkOnYyLjAiIEN0cmxDb2RlPSIyMzY4IiBDdHJsVGltZT0iMTE6MDc6NTciIEVEQXV0aG9yPSI0NTgzMDAxOTk5IiBFRERhdGU9IjIwMTMtMDctMDUiIEVETm89IjE2NDM0ODkiIEVEUmVjZWl2ZXI9IjQ1ODU0OTEwMDAiPjxkc2lnOlNpZ1ZhbHVlIHhtbG5zOmRzaWc9InVybjpjYnItcnU6ZHNpZzp2MS4xIj5iekF3TURBd01CK0p0MEgwc3ROTUREV0w4NEZvZnIvSnFNWVJxTllXRkEyeHJGYkhlWFlqaW5qMWxoRGp0dlZMaXVTNFVyY3BTTTZaSHhtNmFHWXplQ0VOcE0vMWVUNHdNalEzVXpsUlFVbExNREVSY2RaUm5aYVBUVVZOQWVvQkFBQT08L2RzaWc6U2lnVmFsdWU+PEFubm90YXRpb24+zeXyIOjx7+7r7eXt7fv1IOIg8uXq8/nl7CDw5enx5SDdz8Qg8ejx8uXs+yDB3dHPPC9Bbm5vdGF0aW9uPjxFcnJvckRpYWdub3N0aWM+zeXyIOjx7+7r7eXt7fv1IOIg8uXq8/nl7CDw5enx5SDdz8Qg8ejx8uXs+yDB3dHPICjo8e/u6/zn8+Xy8f8g5Ov/IMzu8eru4vHq7uPuIPDl4+ju7eApPC9FcnJvckRpYWdub3N0aWM+PC9FRDIwMT4=</sen:Object>
+</sen:SigEnvelope>

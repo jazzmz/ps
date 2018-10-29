@@ -1,0 +1,146 @@
+MAIN:
+DO ON ERROR  UNDO MAIN, LEAVE MAIN
+   ON ENDKEY UNDO MAIN, LEAVE MAIN:
+   
+   mFlag  = FALSE.
+	
+   /** Pir ПИР Buryagin:
+       проверяем, может ли текущий пользователь нажимать клавишу DEL 
+   */
+   {pir-brw.acc &file="pir-pctr-brw" &action="del" &cannot="LEAVE."}
+   
+   FOR FIRST signs WHERE signs.file-name  EQ "op"
+                     AND signs.code       EQ "ТранзПЦ"
+                     AND signs.code-value EQ STRING(pc-trans.pctr-id)
+   NO-LOCK,
+   
+   FIRST op WHERE op.op EQ INT(signs.surrogate)
+   NO-LOCK:
+
+      LEAVE.
+   END.
+
+   IF NOT AVAIL op THEN
+   DO:
+      RUN Fill-SysMes IN h_tmess ("", "", "4", "Документов по транзакции не найдено.\nУдалить запись?").
+      mFlag = IF pick-value EQ "yes" THEN TRUE
+                                     ELSE FALSE.
+      UNDO MAIN, LEAVE MAIN.
+   END.
+   
+   RUN messmenu.p (10,
+                   "[ Операции с документами ]",
+                  "",
+                  "1. Не удалять,"                +
+                  "2. Удалить только транзакцию," +
+                  "3. Удалить транзакцию и документы").
+   IF KEYFUNCTION(LASTKEY) EQ "end-error" THEN
+      NEXT ACTION.
+
+   CASE pick-value:
+      WHEN "1" THEN
+      DO:
+         mFlag = FALSE.
+         UNDO MAIN, LEAVE MAIN.
+      END.
+      WHEN "2" THEN
+      DO:
+         FOR EACH bsigns WHERE bsigns.file-name  EQ "op"
+                           AND bsigns.code       EQ "ТранзПЦ"
+                           AND bsigns.code-value EQ STRING(pc-trans.pctr-id)
+         EXCLUSIVE-LOCK:
+
+            DELETE bsigns.
+         END.
+         mFlag = TRUE.
+         LEAVE MAIN.
+      END.
+      WHEN "3" THEN
+      DO:
+         FOR EACH bsigns WHERE bsigns.file-name  EQ "op"
+                           AND bsigns.code       EQ "ТранзПЦ"
+                           AND bsigns.code-value EQ STRING(pc-trans.pctr-id)
+         NO-LOCK,
+         
+         FIRST op WHERE op.op EQ INT(bsigns.surrogate)
+         NO-LOCK:
+
+            mAlert = FALSE.
+
+            FOR EACH op-int WHERE
+                     op-int.op EQ op.op
+            EXCLUSIVE-LOCK:
+               FIND FIRST signs WHERE signs.file-name EQ "op-int"
+                                  AND signs.code      EQ "group"
+                                  AND signs.surrogate EQ STRING(op-int.op-int-id) NO-LOCK NO-ERROR.
+               IF     signs.code-value EQ "ФинЛим"
+                  AND op-int.op-int-status EQ CHR(251) THEN
+               DO:
+                  IF NOT mAlert THEN
+                  DO:
+                     mAlert = TRUE.
+                     RUN Fill-AlertSysMes IN h_tmess ("", "", "4", "По документу выполнено изменение расходного лимита в ПЦ.\nСформировать обратную операцию?").
+                     RUN Fill-SysMes IN h_tmess ("", "", "1", QUOTER(pick-value) + "-" + USERID("bisquit") + "-" + STRING(gend-date)).
+                     mResp = pick-value.
+                  END.
+               
+                  IF mResp EQ "yes" THEN
+                  DO:
+                     CREATE bop-int.
+               
+                     BUFFER-COPY op-int EXCEPT user-id create-date create-time cont-date cont-time op-int-status TO bop-int.
+               
+                     ASSIGN
+                        bop-int.user-id       = USERID("bisquit")
+                        bop-int.create-date   = TODAY
+                        bop-int.create-time   = TIME
+                        bop-int.cont-date     = ?
+                        bop-int.cont-time     = 0
+                        bop-int.op-int-status = "ЗВЛ"
+                        bop-int.par-dec[1]    = -1 * op-int.par-dec[1]
+                     .
+                        mComment              = GetXAttrValueEx("op-int",
+                                                                STRING(op-int.op-int-id),
+                                                                "comment",
+                                                                "")
+                     .
+                     mComment = mComment + " " + "Операция сформирована при удалении документа №" + op.doc-num + ", " +
+                                op.details + ", сумма " + STRING(bop-int.par-dec[1], "->>,>>>,>>>,>>>,>>9.99").
+            
+                     UpdateSigns("op-int",
+                                 STRING(bop-int.op-int-id),
+                                 "comment",
+                                 mComment,
+                                 ?).
+            
+                     FOR EACH signs3 WHERE signs3.file-name EQ "op-int"
+                                       AND signs3.surrogate EQ STRING(op-int.op-int-id)
+                     NO-LOCK:
+            
+                        IF    signs3.code EQ "Проводка"
+                           OR signs3.code EQ "Документ" THEN NEXT.
+            
+                        CREATE signs4.
+            
+                        BUFFER-COPY signs3 EXCEPT surrogate TO signs4.
+            
+                        signs4.surrogate = STRING(bop-int.op-int-id).
+                     END.
+                  END.
+               END.
+            
+               RUN Fill-SysMes IN h_tmess ("", "", "1", "По документу №" + STRING(op.op) + " удалена операция " + op-int.op-int-code +
+                                           " №" + STRING(op-int.op-int-id) + " статус " + op-int.op-int-status).
+               DELETE op-int.
+            END.
+
+            RUN card-del-op.p (op.op, YES).
+         END.
+
+         mFlag = TRUE.
+      END.
+   END CASE.
+END.
+
+IF NOT mFlag THEN
+   UNDO nextrec, NEXT nextrec.

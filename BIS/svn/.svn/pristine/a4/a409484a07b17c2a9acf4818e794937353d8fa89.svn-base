@@ -1,0 +1,44 @@
+/* Временная таблица для отчета */
+define temp-table ttDpsChkRep no-undo
+    field cont-code as char     /* Номер вклада */
+    field acct-type as char     /* Роль счета */
+    field acct      as char     /* Счет */
+    field currency  as char     /* Валюта счета */
+    field acct-pos  as decimal  /* Остаток по лицевому счету */
+    field kau-pos   as decimal  /* Остаток по субсчету (остаток) */
+    field kau-proc  as decimal  /* Остаток по суьсчету (проценты) */
+    field RemDiff   as decimal  /* Разность остатков */
+index iLoan as primary cont-code RemDiff acct-type acct.
+
+form
+    ttDpsChkRep.cont-code
+        format "x(20)"
+        column-label "ДОГОВОР"
+    ttDpsChkRep.acct-type
+        format "x(13)"
+        column-label "РОЛЬ"
+    ttDpsChkRep.acct     
+        format "x(20)"
+        column-label "СЧЕТ"
+    ttDpsChkRep.currency 
+        format "x(3)"
+        column-label "ВАЛ"
+    ttDpsChkRep.acct-pos 
+        column-label "ОСТАТОК СЧЕТА"
+    ttDpsChkRep.kau-pos  
+        column-label "СУБАНАЛИТИЧЕСКИЙ!ОСТАТОК ВКЛАДА"
+    ttDpsChkRep.kau-proc 
+        column-label "ОСТАТОК             !ПРОЦЕНТЫ"
+    ttDpsChkRep.RemDiff
+        column-label "РАЗНОСТЬ ОСТАТКОВ"
+
+    header  space (5) dept.name-bank format "x(60)"  "Стр.:" at 135
+            page-number format ">>9" at 140 skip (1)
+            space (5) "ПРОВЕРОЧНАЯ ВЕДОМОСТЬ АНАЛИТИЧЕСКИХ И СУБАНАЛИТИЧЕСКИХ ОСТАТКОВ ПО ВКЛАДУ"
+            "ДАТА ВЫПОЛНЕНИЯ: " + string(today, "99/99/9999")
+                format "x(28)"
+                at 116
+                skip (2)
+with frame DpsChkRepFrm
+    down
+    width 145.

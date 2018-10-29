@@ -1,0 +1,17 @@
+DEF TEMP-TABLE cDbOborot NO-UNDO
+					FIELD op-date LIKE op.op-date
+					FIELD amt-rub LIKE op-entry.amt-rub
+					FIELD amt-cur LIKE op-entry.amt-cur
+				.
+
+DEF TEMP-TABLE cCrOborot NO-UNDO
+					FIELD op-date LIKE op.op-date
+					FIELD amt-rub LIKE op-entry.amt-rub
+					FIELD amt-cur LIKE op-entry.amt-cur
+				.
+
+DEF TEMP-TABLE Itog NO-UNDO
+		FIELD op-date LIKE op.op-date
+		FIELD amt-rub LIKE op-entry.amt-rub
+		FIELD amt-cur LIKE op-entry.amt-cur
+	       .

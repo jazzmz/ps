@@ -1,0 +1,6 @@
+def var arch_file_name as char no-undo.
+def var arch_dir_name as char no-undo.
+def var stat as int no-undo.
+def var tmp_str as char no-undo.
+def var i_loop as int no-undo.
+def var enabled as char no-undo.  

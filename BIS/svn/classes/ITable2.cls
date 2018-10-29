@@ -1,0 +1,13 @@
+INTERFACE ITable2:
+ METHOD PUBLIC TTable2 addRow().
+ METHOD PUBLIC TTable2 addCell(INPUT cValue AS CHAR).
+ METHOD PUBLIC TTable2 addCell(INPUT cValue AS DEC).
+ METHOD PUBLIC TTable2 addCell(INPUT cValue AS INT).
+ METHOD PUBLIC TTable2 addCell(INPUT cValue AS INT64).
+ METHOD PUBLIC TTable2 addCell(INPUT cValue AS LOG).
+ METHOD PUBLIC TAArray getColsWidth().
+ METHOD PUBLIC TAArray getColsWidthAuto().
+ METHOD PUBLIC INT64   getColWidth(INPUT iCol AS INT).
+ METHOD PUBLIC INT64   getColCount().
+ METHOD PUBLIC INT64   getRowCount().
+END INTERFACE.

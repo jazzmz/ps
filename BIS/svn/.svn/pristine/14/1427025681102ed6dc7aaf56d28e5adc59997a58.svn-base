@@ -1,0 +1,60 @@
+DISPLAY
+&IF DEFINED(in-el) NE 0 &THEN /* для электронного */
+{{&in-el} &in-print=YES}
+&ENDIF
+	NameOrder
+   NumberForm
+	op.doc-num
+	AmtStr
+	PayType
+   PlCAcct
+	PlLAcct
+	PlMFO
+	PlName[1]
+	PlName[2]
+	PlName[3]
+	PlRKC[1]
+	PlRKC[2]
+	PoAcct
+	PoBankName
+	PoCAcct
+	PoMFO
+	PoName[1]
+	PoName[2]
+	PoName[3]
+	PoRKC[1]
+	PoRKC[2]
+   TRIM(Rub)    @ Rub
+	doc-type.digital WHEN AVAIL doc-type @ op.doc-type
+	op.doc-type WHEN NOT AVAIL doc-type @ op.doc-type
+   SUBSTRING(op.order-pay,2,1) WHEN SUBSTRING(op.order-pay,1,1) EQ "0" @ op.order-pay
+   op.order-pay                WHEN SUBSTRING(op.order-pay,1,1) NE "0" @ op.order-pay
+	theDate
+
+   numPartPayment
+   codePayDoc
+   theBank
+   theCity
+   op.op-date
+   namepr
+   numPayDoc
+   DatePayDoc
+   sum-balance-str
+   DetailPay
+   DestPay
+&IF DEFINED(NEW_1256) NE 0 &THEN /*Новые поля для печати TT0015703 */
+   PlINN
+   PlKPP
+   PoINN
+   PoKPP
+   mKBK
+   mOKATO
+   mPokOp
+   mPokNP
+   mPokND
+   mPokDD
+   mPokTP
+   mPokST
+&ENDIF
+WITH FRAME out-doc.
+DOWN WITH FRAME out-doc.

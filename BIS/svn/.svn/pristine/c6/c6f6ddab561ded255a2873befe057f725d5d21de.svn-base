@@ -1,0 +1,6 @@
+INTERFACE ITableDraw:
+
+METHOD PUBLIC VOID show().
+METHOD PUBLIC VOID setParent(INPUT cObject AS TTable2).
+
+END INTERFACE.

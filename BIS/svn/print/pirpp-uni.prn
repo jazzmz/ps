@@ -1,0 +1,96 @@
+/*
+               Банковская интегрированная система БИСквит
+    Copyright: (C) 1992-1998 ТОО "Банковские информационные системы"
+     Filename: pp-new.prn
+      Comment: Вывод на печать формы платежного поручения
+   Parameters:
+         Uses:
+      Used by: pp-new.p pp-new1.p
+      Created: 09.11.1999 Kostik
+     Modified: 10.02.2000 Kostik Инструкия ЦБ РФ 691-У
+     Modified: 28.07.2003 Guva заявка 15378 добавлено поле дата перечисления платежа 
+*/
+Form "~n@(#) pp-new.prn 1.0 Kostik 09/11/1999 Kostik 09/11/1999 Вывод на печать" with frame sccs-id width 250.
+DISPLAY
+   op.ins-date
+   NameOrder
+   NumberForm
+   op.doc-num
+   AmtStr
+   Detail PayType
+
+   PlCAcct
+   PlLAcct
+   PlMFO
+   PlName
+   PlRKC
+   PoAcct
+   PoBankName
+   PoCAcct
+   PoMFO
+   PoName
+   PoRKC
+   mPPDate
+
+&IF DEFINED(NEW_1256) NE 0 &THEN /*Новые поля для печати TT0015703 */
+   PlINN
+   PlKPP
+   PoINN
+   PoKPP
+   mKBK
+   mOKATO
+   mPokOp
+   mPokNP
+   mPokND
+   mPokDD
+   mPokTP
+   mPokST
+   mSpisPl
+&ENDIF
+&IF DEFINED(ELECTROPP) NE 0 &THEN /*Для печати электронной платежки */
+   elec-doc-num
+   elec-doc-date
+   uni-ident-send
+&ENDIF
+
+   TRIM(Rub) @ Rub
+/* #2895 */
+/* doc-type.digital WHEN AVAIL doc-type @  op.doc-type */
+   vReplDocType WHEN AVAIL doc-type @  vReplDocType
+   op.doc-type WHEN NOT AVAIL doc-type @ op.doc-type
+   /* op.due-date */
+   ""    WHEN CAN-DO("00,0,",op.order-pay)  @ op.order-pay
+   SUBSTRING(op.order-pay,2,1) WHEN SUBSTRING(op.order-pay,1,1) EQ "0"
+                                    AND NOT CAN-DO("00,0,",op.order-pay)  @ op.order-pay
+        op.order-pay WHEN SUBSTRING(op.order-pay,1,1) NE "0"
+                       AND NOT CAN-DO("00,0,",op.order-pay)  @ op.order-pay
+   theDate
+
+
+
+&IF defined(RECSTAMP) NE 0 &THEN
+    theBank
+    theCity
+    op.op-date
+&ELSEIF defined(BKSTAMP) NE 0 &THEN
+     theBank
+     theCity
+     op.op-date
+     theUser
+&ELSEIF defined(MCISTAMP) NE 0 &THEN
+     theBank
+     theCity
+     mSpisPl
+     theUser
+&ELSEIF defined(RIGHTSTAMP) NE 0 &THEN
+     theBank
+     theCity
+     op.op-date
+     theUser
+&ELSE
+     {pp-uni.not &DISPLAY-TRIG=YES}
+&ENDIF
+
+WITH FRAME out-doc.
+DOWN WITH FRAME out-doc.
+

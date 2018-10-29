@@ -1,0 +1,6 @@
+ CAST({1},"IIteration"):reset_(). /* Сбрасываем счетчик нумерации */
+
+DO WHILE NOT CAST({1},"IIteration"):EOI():
+   {3}=CAST({1},"IIteration"):get_({2}).
+
+

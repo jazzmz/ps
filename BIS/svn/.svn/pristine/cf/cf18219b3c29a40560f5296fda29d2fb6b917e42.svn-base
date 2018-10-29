@@ -1,0 +1,67 @@
+/* Сделали фрэйм для ввода даты */
+DEFINE FRAME frDateBeg
+             cTitle NO-LABEL AT COL 1 ROW 1
+             cDayBeg NO-LABEL AT COL 5 ROW 1 
+             "." AT COL 7 ROW 1 
+             cMonthBeg AT COL 8 ROW 1 NO-LABEL 
+             "." AT COL 10 ROW 1 
+             cYearBeg AT COL 11 ROW 1 NO-LABEL             
+             WITH 
+	     DCOLOR 45 PFCOLOR 75
+	     SIZE 1 BY 2 
+	    AT COL 1 ROW 2 
+	    NO-BOX
+           .
+
+/* Определили фрэйм с временем */
+DEFINE FRAME frTimeBeg
+             cTitle NO-LABEL AT COL 1 ROW 1
+             cHoursBeg NO-LABEL AT COL 3 ROW 1 
+             ":" AT COL 5 ROW 1 
+             cMinutesBeg NO-LABEL AT COL 6 ROW 1
+             WITH 
+	     DCOLOR 45 PFCOLOR 75
+             SIZE 1 BY 2 
+	     AT COL 1 ROW 2 
+	    NO-BOX
+             .
+
+/* 
+   Конечно так дублировать код неправильно
+   но пока не оч. силен в ABL
+*/
+DEFINE FRAME frDateEnd
+             cTitle NO-LABEL AT COL 1 ROW 1
+             cDayEnd NO-LABEL AT COL 5 ROW 1
+             "." AT COL 7 ROW 1
+             cMonthEnd AT COL 8 ROW 1 NO-LABEL
+             "." AT COL 10 ROW 1
+             cYearEnd AT COL 11 ROW 1 NO-LABEL
+             WITH 
+	    DCOLOR 45 PFCOLOR 75
+             SIZE 40 BY 2 
+             AT COL 1 ROW 4
+             NO-BOX
+            .
+            
+DEFINE FRAME frTimeEnd
+             cTitle NO-LABEL AT COL 1 ROW 1
+             cHoursEnd NO-LABEL AT COL 3 ROW 1
+            ":" AT COL 5 ROW 1
+             cMinutesEnd NO-LABEL 
+             AT COL 6 ROW 1
+             WITH 
+	    DCOLOR 45 PFCOLOR 75
+             SIZE 40 BY 2 
+             AT COL 1 ROW 4 NO-BOX
+            .
+DEFINE FRAME frmButton
+             btnOk AT COL 1 ROW 1
+             btnCancel AT COL 6 ROW 1
+             WITH 
+	    SIZE 13 BY 1
+	    DCOLOR 45 PFCOLOR 75
+	    NO-BOX
+            .
+/* ГЛАВНАЯ ФОРМА */
+DEFINE PRIVATE FRAME main WITH SIZE 1 BY 8 OVERLAY.

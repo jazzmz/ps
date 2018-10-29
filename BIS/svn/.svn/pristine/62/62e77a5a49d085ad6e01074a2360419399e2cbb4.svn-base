@@ -1,0 +1,37 @@
+FUNCTION isKursSet RETURNS LOGICAL(INPUT rRecOp AS RECID):
+   /************************************
+    *                                  *
+    * Функция проверяет факт установки *
+    * курса в дне с документом.        *
+    *				       *
+    ************************************/
+
+DEF VAR oSysClass AS TSysClass NO-UNDO.
+DEF VAR oDocument AS TDocument NO-UNDO.
+DEF VAR i         AS INTEGER   NO-UNDO.
+
+oSysClass = new TSysClass().
+oDocument = new TDocument(rRecOp).
+
+DO i = 1 TO oDocument:OpEntryCount:
+  IF oDocument:getOpEntry4Order(i):currency <> "" AND oSysClass:getCBRKurs(INTEGER(oDocument:getOpEntry4Order(i):currency),oDocument:DocDate) = ? THEN
+     DO:
+	 /*************************************
+	  * В документе есть хотя бы
+	  * одна валютная проводка
+	  * и на дату документа не установлен
+	  * учетный курс ЦБ.
+	  * То выходим с ошибкой.
+          *************************************/
+	 MESSAGE COLOR WHITE/RED "НЕТ УЧЕТНОГО КУРСА в " + STRING(oDocument:DocDate) SKIP
+							    "Работа с валютными документами запрещена!"
+							   VIEW-AS ALERT-BOX TITLE "[Ошибка #537]".
+         RETURN FALSE.
+     END.
+END.
+
+DELETE OBJECT oDocument.   
+DELETE OBJECT oSysClass.
+
+RETURN TRUE.
+END FUNCTION.

@@ -1,0 +1,1 @@
+C:\test\SOAP\MessageServiceUsageExample\MessageServiceUsageExample\Source\bin\Debug\MessageServiceUsageExample.exe.config

@@ -1,0 +1,155 @@
+/* ООО "ПИР Банк" Управление автоматизации 2013г.   */
+/* Расчёт ОПБ РИКЛ и показателя относительного риска */
+/* Что это такое - спросите у ПОДФТ.                 */
+
+def var RiskOfLaundering as char no-undo init "".
+def var iNumCorp as integer no-undo init 0.
+def var iNumPers as integer no-undo init 0.
+def var iNumBanks as integer no-undo init 0.
+def var iNum as integer no-undo init 0.
+def var iPointsCorp as integer no-undo init 0.
+def var iPointsBanks as integer no-undo init 0.
+def var iPointsPers as integer no-undo init 0.
+def var iPoints as integer no-undo init 0.
+def var iMoveCorp as decimal no-undo init 0.
+def var iMovePers as decimal no-undo init 0.
+def var iMoveBanks as decimal no-undo init 0.
+def var iMove as decimal no-undo init 0.
+def var iMoveCrTemp as decimal no-undo.
+def var iMoveDbTemp as decimal no-undo.
+def var iMoveTemp as decimal no-undo.
+def var iDate as date no-undo.
+def var iTempDate as integer no-undo.
+def var OPBRIKL as decimal no-undo.
+def var POR as decimal no-undo.
+def var iThreshold as integer no-undo.
+def var oAcct as TAcct no-undo.
+
+def var vLnCountInt as integer no-undo.
+def var vLnTotalInt as integer no-undo.
+
+{globals.i}
+{getdate.i}
+{gdate.i}
+{pir-logit.i}
+put screen col 2 row 24 "Инициализация..." .
+
+beg-date = BeforeYear(end-date).
+
+Procedure iCalcMove.
+	oAcct = new TAcct(acct.acct).                                  /* Классы. */
+	iMoveCrTemp = iMoveCrTemp  + oAcct:getCrMove(iDate,end-date). /* Считаем оборот по кредиту */
+	iMoveDbTemp = iMoveDbTemp  + oAcct:getDbMove(iDate,end-date). /* Считаем оборот по дебету */
+	delete object oAcct.                                          /* Удаляем объект */
+End procedure.
+
+for each cust-corp no-lock:
+    vLnTotalInt = vLnTotalInt + 1.
+end.
+for each banks no-lock:
+    vLnTotalInt = vLnTotalInt + 1.
+end.
+for each person no-lock:
+    vLnTotalInt = vLnTotalInt + 1.
+end.
+
+{init-bar.i "Обрабатываю данные..."}
+
+for each cust-corp no-lock:
+         {move-bar.i
+            vLnCountInt
+            vLnTotalInt
+          }
+        put screen col 2 row 23 "                                                                               ".
+        put screen col 2 row 23 "Сейчас обрабатываю: " + substring(cust-corp.name-short, 1, 59).
+	find first acct where acct.cust-id = cust-corp.cust-id and acct.cust-cat = "Ю" no-lock no-error.
+	if available acct then do:
+		iMoveCrTemp = 0.
+		iMoveDbTemp = 0.
+		iTempDate = end-date - acct.open-date.
+		if iTempDate GE 0 then iDate = beg-date. else iDate = acct.open-date.
+		for each acct where acct.cust-id = cust-corp.cust-id and acct.cust-cat = "Ю" and acct.open-date LE beg-date no-lock:
+			Run iCalcMove.
+		end.
+		if iMoveCrTemp > iMoveDbTemp then iMoveCorp = iMoveCorp + iMoveCrTemp. else iMoveCorp = iMoveCorp + iMoveDbTemp.
+		if iTempDate < 0 then iMoveTemp = iMoveTemp / (end-date - iDate) * (end-date - beg-date). /* Если год после открытия счёта неполный, то оборот делим на количество дней с момента открытия счёта и умножаем на количество дней в истекшем году */
+		RiskOfLaundering = caps(GetTempXAttrValueEx("cust-corp", string(cust-corp.cust-id), "РискОтмыв", end-date, "")). 
+		if (iMoveTemp GE iThreshold) and can-do ("ПОВЫШЕННЫЙ, СРЕДНИЙ, НИЗКИЙ", RiskOfLaundering) then do:
+			iNumCorp = iNumcorp + 1.
+			case RiskOfLaundering:
+				when "ПОВЫШЕННЫЙ" then iPointsCorp = iPointsCorp + 2.
+				when "СРЕДНИЙ" then iPointsCorp = iPointsCorp + 1.
+			end.
+		end.
+	end.
+	 vLnCountInt = vLnCountInt + 1.
+end.
+
+for each banks no-lock:
+         {move-bar.i
+            vLnCountInt
+            vLnTotalInt
+          }
+        put screen col 2 row 23 "                                                                               ".
+        put screen col 2 row 23 "Сейчас обрабатываю: " + substring(banks.short-name, 1, 59).
+	find first acct where acct.cust-id = banks.bank-id and acct.cust-cat = "Б" no-lock no-error.
+	if available acct then do:
+		iMoveTemp = 0.
+		iTempDate = end-date - acct.open-date.
+		if iTempDate GE 0 then iDate = beg-date. else iDate = acct.open-date.
+		for each acct where acct.cust-id = banks.bank-id and acct.cust-cat = "Б" and acct.open-date LE beg-date no-lock:
+			Run iCalcMove.
+		end.
+		if iMoveCrTemp > iMoveDbTemp then iMoveCorp = iMoveCorp + iMoveCrTemp. else iMoveCorp = iMoveCorp + iMoveDbTemp.
+		if iTempDate < 0 then iMoveTemp = iMoveTemp / (end-date - iDate) * (end-date - beg-date). /* Если год после открытия счёта неполный, то оборот делим на количество дней с момента открытия счёта и умножаем на количество дней в истекшем году */
+		RiskOfLaundering = caps(GetTempXAttrValueEx("banks", string(banks.bank-id), "РискОтмыв", end-date, "")). 
+		if (iMoveTemp GE iThreshold) and can-do ("ПОВЫШЕННЫЙ, СРЕДНИЙ, НИЗКИЙ", RiskOfLaundering) then do:
+			iNumBanks = iNumBanks + 1.
+			case RiskOfLaundering:
+				when "ПОВЫШЕННЫЙ" then iPointsBanks = iPointsBanks + 2.
+				when "СРЕДНИЙ" then iPointsBanks = iPointsBanks + 1.
+			end.
+		end.
+	end.
+	vLnCountInt = vLnCountInt + 1.
+end.
+
+for each person no-lock:
+         {move-bar.i
+            vLnCountInt
+            vLnTotalInt
+          }
+
+        put screen col 2 row 23 "                                                                               ".
+        put screen col 2 row 23 "Сейчас обрабатываю: " + substring(person.name-last, 1, 29) + " " + substring(person.first-names, 1, 29).
+	find first acct where acct.cust-id = person.person-id and acct.cust-cat = "Ч" no-lock no-error.
+	if available acct then do:
+		iMoveTemp = 0.
+		iTempDate = end-date - acct.open-date.
+		if iTempDate GE 0 then iDate = beg-date.
+		else iDate = acct.open-date.
+		for each acct where acct.cust-id = person.person-id and acct.cust-cat = "Ч" and acct.open-date LE beg-date no-lock:
+			Run iCalcMove.
+		end.
+		if iMoveCrTemp > iMoveDbTemp then iMoveCorp = iMoveCorp + iMoveCrTemp. else iMoveCorp = iMoveCorp + iMoveDbTemp.
+		if iTempDate < 0 then iMoveTemp = iMoveTemp / (end-date - iDate) * (end-date - beg-date). /* Если год после открытия счёта неполный, то оборот делим на количество дней с момента открытия счёта и умножаем на количество дней в истекшем году */
+		RiskOfLaundering = caps(GetTempXAttrValueEx("person", string(person.person-id), "РискОтмыв", end-date, "")). 
+		if (iMoveTemp GE iThreshold) and can-do ("ПОВЫШЕННЫЙ, СРЕДНИЙ, НИЗКИЙ", RiskOfLaundering) then do:
+			iNumPers = iNumPers + 1.
+			case RiskOfLaundering:
+				when "ПОВЫШЕННЫЙ" then iPointsBanks = iPointsPers + 2.
+				when "СРЕДНИЙ" then iPointsBanks = iPointsPers + 1.
+			end.
+		end.
+	end.
+	vLnCountInt = vLnCountInt + 1.
+end.
+
+iPoints = iPointsCorp + iPointsBanks + iPointsPers.
+iNum = iNumCorp + iNumBanks + iNumPers.
+iMove = iMoveCorp + iMoveBanks + iMovePers.
+OPBRIKL = iPoints / iNum.
+POR = OPBRIKL / (iMove / iNum).
+
+message "ОПБ РиКл = " iPoints "/" iNum "= " OPBRIKL view-as alert-box.
+message "Показатель относительного риска = " OPBRIKL "/ (" iMove "/" iNum ") = " POR view-as alert-box.

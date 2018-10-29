@@ -1,0 +1,2 @@
+DEF VAR oTpl AS TTpl.
+oTpl = new TTpl(ENTRY(1,PROGRAM-NAME(1),".") + ".tpl").

@@ -1,0 +1,34 @@
+[DataClass 4.1d] // Экспорт данных произвел ADMMDA 01/08/2012 09:29:10 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+no "f227_1" "g227" "Сводка по БД (по тр. бд)" 35 no "" no "*" 1 "" "" "" "" "" "" "" "OLTP,oltpb" "*" "Трансферное ценообразование" 30
+.
+[Signs] // Экспорт данных произвел ADMMDA 01/08/2012 09:29:10 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+"class-code" "DataClass" "f227_1" "dataclass" "" ? ?
+"module" "" "f227_1" "dataclass" "norm" ? ?
+.
+[DataAttr] // Экспорт данных произвел ADMMDA 01/08/2012 09:29:12 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+"f227_1" "Sym1" "Дата опердня" "date" "99/99/9999" "Опердень" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 1 yes 0 "" 01/01/12 ?
+"f227_1" "Sym2" "Операция" "character" "99/99/9999" "Операция" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 2 yes 4 "" 01/01/12 ?
+"f227_1" "Sym3" "Вид операции" "character" "" "Вид операции" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 3 yes 2 "" 01/01/12 ?
+"f227_1" "Sym4" "PK" "logical" "Yes/NO" "PK" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 4 yes 0 "" 01/01/12 ?
+"f227_1" "Txt1" "details1" "character" "" "details1" "First" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 31 no 0 "" 01/01/12 ?
+"f227_1" "Txt2" "details2" "character" "" "details2" "First" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 32 no 2 "" 01/01/12 ?
+"f227_1" "Txt3" "details3" "character" "" "details3" "First" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 33 no 2 "" 01/01/12 ?
+"f227_1" "Txt4" "details4" "character" "" "details4" "First" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 34 no 2 "" 01/01/12 ?
+"f227_1" "Val3" "Номер" "integer" "->>>>>>>9" "Номер" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 4 no 0 "" 31/07/12 ?
+"f227_1" "Val4" "amt-rub" "decimal" "" "amt-rub" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 24 yes 2 "" 01/01/12 ?
+"f227_1" "Val5" "amt-cur" "decimal" "Сумма в рублях" "Сумма в рублях" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 25 yes 2 "" 01/01/12 ?
+"f227_1" "Val6" "amt-calc" "decimal" "" "amt-calc" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 26 yes 4 "" 01/01/12 ?
+"f227_1" "Val7" "amt-fact" "decimal" "" "amt-fact" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 27 yes 4 "" 01/01/12 ?
+"f227_1" "Val8" "fprice" "decimal" "" "fprice" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 28 yes 4 "" 01/01/12 ?
+"f227_1" "Val9" "cprice" "decimal" "" "cprice" "Sum" "" "" "" "" "" "" "" "" "" "" "" "" "" "" 28 yes 4 "" 01/01/12 ?
+.
+[Method 4.1d] // Экспорт данных произвел ADMMDA 01/08/2012 09:29:14 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+"f227_1" "AfterCalc" 01/01/12 "" "" "pir_f227ac"
+"f227_1" "Calc" 01/01/12 "" "" "pir_f227_1"
+"f227_1" "JoinView" 01/01/12 "BqJoinView1" "" "f227jv"
+"f227_1" "JoinView" 01/01/12 "Join-Calc1" "" "f227jc"
+"f227_1" "View" 01/01/12 "Base" "" "f212v"
+.
+[User-Proc 4.1d] // Экспорт данных произвел ADMMDA 01/08/2012 09:29:14 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+0 ? "F227_1" "norm" 4 "f227_1" 147474 yes "" ""
+.

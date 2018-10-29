@@ -1,0 +1,1 @@
+powershell "C:\test\DirsScans\DirsScans.ps1"

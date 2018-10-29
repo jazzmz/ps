@@ -1,0 +1,18 @@
+{&nowith} DataLine.Sym1 @ {comment}  */ DataLine.Sym1
+{&nowith} DataLine.Sym2 @ {comment}  */ DataLine.Sym2
+{&nowith} DataLine.Sym3 @ {comment}  */ DataLine.Sym3
+{&nowith} DataLine.Sym4 @ {comment}  */ DataLine.Sym4
+{&nowith} entry(1,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 1 @ {comment}  */ Txt[1] 
+{&nowith} entry(2,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 2 @ {comment}  */ Txt[2] 
+{&nowith} entry(3,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 3 @ {comment}  */ Txt[3] 
+{&nowith} entry(4,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 4 @ {comment}  */ Txt[4] 
+{&nowith} entry(5,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 5 @ {comment}  */ Txt[5] 
+{&nowith} entry(9,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 9 @ {comment}  */ Txt[9] 
+{&nowith} entry(6,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 6 @ {comment}  */ Txt[6] 
+{&nowith} entry(7,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 7 @ {comment}  */ Txt[7] 
+{&nowith} entry(8,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 8 @ {comment}  */ Txt[8] 
+{&nowith} entry(10,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 10 @ {comment}  */ Txt[10] 
+{&nowith} entry(11,DataLine.Txt,"~n") when num-entries(DataLine.Txt,"~n") ge 11 @ {comment}  */ Txt[11] 
+
+{&nowith} DataLine.Val[1]  / div @ {comment}  */ DataLine.Val[1] 
+{&nowith} DataLine.Val[2]  / div @ {comment}  */ DataLine.Val[2] 

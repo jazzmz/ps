@@ -1,0 +1,24 @@
+<VirtualHost *:80 *:443>
+ ServerName localwww2
+ ServerAlias localwww2 localwww2.pirbank.ru
+ DocumentRoot "/var/www/localwww2/"
+
+<Directory "/var/www/localwww2">
+
+#        AuthBasicProvider ldap
+#        AuthBasicAuthoritative Off
+#        AuthType Basic
+#        AuthName "pirbank.ru"
+
+#        AuthLDAPBindDN "CN=sys_help,OU=SYS_USERS,OU=PIRBANK,DC=pirbank,DC=ru"
+#        AuthLDAPBindPassword "Pa$$word"
+
+#        AuthLDAPURL "ldap://dc01.pirbank.ru:389/OU=PIRBANK,DC=pirbank,DC=ru?sAMAccountName?sub?(objectClass=*)"
+#        Require valid-user
+
+        AllowOverride All
+
+  </Directory>
+
+
+</VirtualHost>

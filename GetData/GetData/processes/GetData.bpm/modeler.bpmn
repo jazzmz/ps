@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:BpmnDiagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:bpmn="http://stp.eclipse.org/bpmn" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmi:id="_IY3zoKXOEd2ops0OAH3MYQ" iD="_IYuCoKXOEd2ops0OAH3MYQ">
+  <pools xmi:type="bpmn:Pool" xmi:id="_IdCh8aXOEd2ops0OAH3MYQ" iD="_IdCh8KXOEd2ops0OAH3MYQ" name="Get Data">
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_YIWQRqaqEd2WW8PCIurzBA" iD="_YIWQRaaqEd2WW8PCIurzBA" name="thisTaskRequestMsg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_YIWQR6aqEd2WW8PCIurzBA" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YIWQSKaqEd2WW8PCIurzBA" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YIfaMaaqEd2WW8PCIurzBA" key="defaultDeclarationName" value="thisTaskRequestMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YIfaNaaqEd2WW8PCIurzBA" key="douri2" value="builtin:///diagram?wsdlmessage={http://thisdiagram/Get_Data}TaskRequest"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_YIfaMqaqEd2WW8PCIurzBA" direction="From">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_YIfaM6aqEd2WW8PCIurzBA" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YIfaNKaqEd2WW8PCIurzBA" key="dataObjectAssociationTypeValue" value="incomingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_w-cnIaaqEd2WW8PCIurzBA" iD="_w-cnIKaqEd2WW8PCIurzBA" name="thisTaskResponseMsg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_w-cnIqaqEd2WW8PCIurzBA" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-cnI6aqEd2WW8PCIurzBA" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-cnLKaqEd2WW8PCIurzBA" key="defaultDeclarationName" value="thisTaskResponseMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-mYIqaqEd2WW8PCIurzBA" key="douri2" value="builtin:///diagram?wsdlmessage={http://thisdiagram/Get_Data}TaskResponse"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_w-cnLaaqEd2WW8PCIurzBA" direction="To">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_w-mYIKaqEd2WW8PCIurzBA" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-mYIaaqEd2WW8PCIurzBA" key="dataObjectAssociationTypeValue" value="outgoingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_Njp_EQZuEeSdRZ4skEucPg" iD="_Njp_EAZuEeSdRZ4skEucPg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_Njp_EgZuEeSdRZ4skEucPg" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_Njp_EwZuEeSdRZ4skEucPg" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_Nj9hEAZuEeSdRZ4skEucPg" key="defaultDeclarationName" value="nsGetPeopleRequestMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NkV7kAZuEeSdRZ4skEucPg" key="douri2" value="builtin:///diagram?wsdlmessage={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleInput"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_NkFc4AZuEeSdRZ4skEucPg" direction="To">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_NkNYsAZuEeSdRZ4skEucPg" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NkUtcAZuEeSdRZ4skEucPg" key="dataObjectAssociationTypeValue" value="outgoingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_N-W-EQZuEeSdRZ4skEucPg" iD="_N-W-EAZuEeSdRZ4skEucPg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_N-W-EgZuEeSdRZ4skEucPg" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N-W-EwZuEeSdRZ4skEucPg" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N-pR8QZuEeSdRZ4skEucPg" key="defaultDeclarationName" value="nsGetPeopleResponseMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N_CTgAZuEeSdRZ4skEucPg" key="douri2" value="builtin:///diagram?wsdlmessage={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleOutput"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_N-xNwAZuEeSdRZ4skEucPg" direction="From">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_N-5woAZuEeSdRZ4skEucPg" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N_BscAZuEeSdRZ4skEucPg" key="dataObjectAssociationTypeValue" value="incomingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <vertices xmi:type="bpmn:Activity" xmi:id="_IgKucaXOEd2ops0OAH3MYQ" iD="_IgKucKXOEd2ops0OAH3MYQ" associations="_YIfaMqaqEd2WW8PCIurzBA" outgoingEdges="_ano9MaaqEd2WW8PCIurzBA" name="Task" activityType="EventStartMessage" looping="false">
+      <incomingMessages xmi:type="bpmn:MessagingEdge" href="#_YG2bcaaqEd2WW8PCIurzBA"/>
+    </vertices>
+    <vertices xmi:type="bpmn:Activity" xmi:id="_amvlUaaqEd2WW8PCIurzBA" iD="_amvlUKaqEd2WW8PCIurzBA" associations="_NkFc4AZuEeSdRZ4skEucPg _N-xNwAZuEeSdRZ4skEucPg" outgoingEdges="_nQDs4abDEd2uM-XHOXHPJA" incomingEdges="_ano9MaaqEd2WW8PCIurzBA" name="Request people record" activityType="Task">
+      <outgoingMessages xmi:type="bpmn:MessagingEdge" href="#_NiAZQQZuEeSdRZ4skEucPg"/>
+      <incomingMessages xmi:type="bpmn:MessagingEdge" href="#_N7YikQZuEeSdRZ4skEucPg"/>
+    </vertices>
+    <vertices xmi:type="bpmn:Activity" xmi:id="_vWvCcaaqEd2WW8PCIurzBA" iD="_vWvCcKaqEd2WW8PCIurzBA" associations="_w-cnLaaqEd2WW8PCIurzBA" incomingEdges="_nQDs4abDEd2uM-XHOXHPJA" activityType="EventEndMessage">
+      <outgoingMessages xmi:type="bpmn:MessagingEdge" href="#_w-S2IaaqEd2WW8PCIurzBA"/>
+    </vertices>
+    <sequenceEdges xmi:type="bpmn:SequenceEdge" xmi:id="_ano9MaaqEd2WW8PCIurzBA" iD="_ano9MKaqEd2WW8PCIurzBA"/>
+    <sequenceEdges xmi:type="bpmn:SequenceEdge" xmi:id="_nQDs4abDEd2uM-XHOXHPJA" iD="_nQDs4KbDEd2uM-XHOXHPJA"/>
+  </pools>
+  <pools xmi:type="bpmn:Pool" xmi:id="_xvnW4aYREd2ops0OAH3MYQ" iD="_xvnW4KYREd2ops0OAH3MYQ" name="Database">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_3dI6YKYREd2ops0OAH3MYQ" source="executablepool">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_3dccYKYREd2ops0OAH3MYQ" key="poolIsExecutable" value="false"/>
+    </eAnnotations>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_NkeecQZuEeSdRZ4skEucPg" iD="_NkeecAZuEeSdRZ4skEucPg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_NkeecgZuEeSdRZ4skEucPg" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NkeecwZuEeSdRZ4skEucPg" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NknBUAZuEeSdRZ4skEucPg" key="defaultDeclarationName" value="nsGetPeopleRequestMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NkwyUAZuEeSdRZ4skEucPg" key="douri2" value="builtin:///diagram?wsdlmessage={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleInput"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_NkqEoAZuEeSdRZ4skEucPg" direction="From">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_NktH8AZuEeSdRZ4skEucPg" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NkvkMAZuEeSdRZ4skEucPg" key="dataObjectAssociationTypeValue" value="incomingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_N9pzcQZuEeSdRZ4skEucPg" iD="_N9pzcAZuEeSdRZ4skEucPg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_N9pzcgZuEeSdRZ4skEucPg" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N9pzcwZuEeSdRZ4skEucPg" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N93O0QZuEeSdRZ4skEucPg" key="defaultDeclarationName" value="nsGetPeopleResponseMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N-FRQAZuEeSdRZ4skEucPg" key="douri2" value="builtin:///diagram?wsdlmessage={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleOutput"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_N98HUAZuEeSdRZ4skEucPg" direction="To">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_N9_xsAZuEeSdRZ4skEucPg" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N-EDIAZuEeSdRZ4skEucPg" key="dataObjectAssociationTypeValue" value="outgoingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <vertices xmi:type="bpmn:Activity" xmi:id="_HLaDkAZuEeSdRZ4skEucPg" iD="_HKzmoAZuEeSdRZ4skEucPg" associations="_NkqEoAZuEeSdRZ4skEucPg _N98HUAZuEeSdRZ4skEucPg" name="Provide-Service-Getpeople" activityType="Task">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_HLaDkQZuEeSdRZ4skEucPg" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_HLaqoAZuEeSdRZ4skEucPg" key="douri" value="project:///getPeople.sql/getPeople.sql.wsdl?wsdloperationbound={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople"/>
+      </eAnnotations>
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_HLaqoQZuEeSdRZ4skEucPg" source="genericFile">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_HLaqogZuEeSdRZ4skEucPg" key="projectRelativePath" value="getPeople.sql/getPeople.sql"/>
+      </eAnnotations>
+      <incomingMessages xmi:type="bpmn:MessagingEdge" href="#_NiAZQQZuEeSdRZ4skEucPg"/>
+      <outgoingMessages xmi:type="bpmn:MessagingEdge" href="#_N7YikQZuEeSdRZ4skEucPg"/>
+    </vertices>
+  </pools>
+  <pools xmi:type="bpmn:Pool" xmi:id="_SCrSgaaqEd2WW8PCIurzBA" iD="_SCrSgKaqEd2WW8PCIurzBA" name="Interface">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_XJKrMKaqEd2WW8PCIurzBA" source="executablepool">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_XJKrMaaqEd2WW8PCIurzBA" key="poolIsExecutable" value="false"/>
+    </eAnnotations>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_YH5kUaaqEd2WW8PCIurzBA" iD="_YH5kUKaqEd2WW8PCIurzBA" name="get_DataTaskRequestMsg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_YH5kUqaqEd2WW8PCIurzBA" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YH5kU6aqEd2WW8PCIurzBA" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YICuQKaqEd2WW8PCIurzBA" key="defaultDeclarationName" value="get_DataTaskRequestMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YICuRKaqEd2WW8PCIurzBA" key="douri2" value="builtin:///diagram?wsdlmessage={http://thisdiagram/Get_Data}TaskRequest"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_YICuQaaqEd2WW8PCIurzBA" direction="To">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_YICuQqaqEd2WW8PCIurzBA" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_YICuQ6aqEd2WW8PCIurzBA" key="dataObjectAssociationTypeValue" value="outgoingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <artifacts xmi:type="bpmn:DataObject" xmi:id="_w-mYKaaqEd2WW8PCIurzBA" iD="_w-mYKKaqEd2WW8PCIurzBA" name="get_DataTaskResponseMsg">
+      <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_w-mYKqaqEd2WW8PCIurzBA" source="attachedDataobject">
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-mYK6aqEd2WW8PCIurzBA" key="isBpelDeclaration" value="true"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-viGKaqEd2WW8PCIurzBA" key="defaultDeclarationName" value="get_DataTaskResponseMsg"/>
+        <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-viHKaqEd2WW8PCIurzBA" key="douri2" value="builtin:///diagram?wsdlmessage={http://thisdiagram/Get_Data}TaskResponse"/>
+      </eAnnotations>
+      <associations xmi:type="bpmn:Association" xmi:id="_w-viGaaqEd2WW8PCIurzBA" direction="From">
+        <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_w-viGqaqEd2WW8PCIurzBA" source="dataObjectAssociationTypeSource">
+          <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_w-viG6aqEd2WW8PCIurzBA" key="dataObjectAssociationTypeValue" value="incomingMesssageVariable"/>
+        </eAnnotations>
+      </associations>
+    </artifacts>
+    <vertices xmi:type="bpmn:Activity" xmi:id="_VeUS8aaqEd2WW8PCIurzBA" iD="_VeUS8KaqEd2WW8PCIurzBA" associations="_YICuQaaqEd2WW8PCIurzBA _w-viGaaqEd2WW8PCIurzBA" name="Interface" activityType="Task">
+      <outgoingMessages xmi:type="bpmn:MessagingEdge" href="#_YG2bcaaqEd2WW8PCIurzBA"/>
+      <incomingMessages xmi:type="bpmn:MessagingEdge" href="#_w-S2IaaqEd2WW8PCIurzBA"/>
+    </vertices>
+  </pools>
+  <messages xmi:type="bpmn:MessagingEdge" xmi:id="_YG2bcaaqEd2WW8PCIurzBA" iD="_YG2bcKaqEd2WW8PCIurzBA" source="_VeUS8aaqEd2WW8PCIurzBA" target="_IgKucaXOEd2ops0OAH3MYQ">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_5g8uoKelEd2nRskuAq7C6g" source="attachedDataobject">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_5g8uoaelEd2nRskuAq7C6g" key="douri" value="project:///schema/GetData.xsd?xsdelement={http://www.example.org/MoveData}MoveDataRequest"/>
+    </eAnnotations>
+  </messages>
+  <messages xmi:type="bpmn:MessagingEdge" xmi:id="_w-S2IaaqEd2WW8PCIurzBA" iD="_w-S2IKaqEd2WW8PCIurzBA" source="_vWvCcaaqEd2WW8PCIurzBA" target="_VeUS8aaqEd2WW8PCIurzBA">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_6TK1wKelEd2nRskuAq7C6g" source="attachedDataobject">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_6TK1waelEd2nRskuAq7C6g" key="douri" value="project:///schema/GetData.xsd?xsdelement={http://www.example.org/MoveData}MoveDataResponse"/>
+    </eAnnotations>
+  </messages>
+  <messages xmi:type="bpmn:MessagingEdge" xmi:id="_NiAZQQZuEeSdRZ4skEucPg" iD="_NiAZQAZuEeSdRZ4skEucPg" source="_amvlUaaqEd2WW8PCIurzBA" target="_HLaDkAZuEeSdRZ4skEucPg">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_NiObsAZuEeSdRZ4skEucPg" source="attachedDataobject">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_NiPCwAZuEeSdRZ4skEucPg" key="douri" value="project:///getPeople.sql/getPeople.sql.wsdl?messageForBoundOperation={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople/input/getPeopleRequest"/>
+    </eAnnotations>
+  </messages>
+  <messages xmi:type="bpmn:MessagingEdge" xmi:id="_N7YikQZuEeSdRZ4skEucPg" iD="_N7YikAZuEeSdRZ4skEucPg" source="_HLaDkAZuEeSdRZ4skEucPg" target="_amvlUaaqEd2WW8PCIurzBA">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_N70AYAZuEeSdRZ4skEucPg" source="attachedDataobject">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_N70AYQZuEeSdRZ4skEucPg" key="douri" value="project:///getPeople.sql/getPeople.sql.wsdl?messageForBoundOperation={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople/output/getPeopleResponse"/>
+    </eAnnotations>
+  </messages>
+</bpmn:BpmnDiagram>

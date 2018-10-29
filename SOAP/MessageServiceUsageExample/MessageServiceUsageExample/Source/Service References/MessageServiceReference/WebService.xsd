@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://tempuri.org/" elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="GetMessageIds">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="startDate" type="xs:dateTime" />
+        <xs:element minOccurs="1" maxOccurs="1" name="endDate" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetMessageIdsResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetMessageIdsResult" type="tns:ArrayOfInt" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="ArrayOfInt">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="int" type="xs:int" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="GetMessageContent">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="id" type="xs:int" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetMessageContentResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetMessageContentResult" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetTradeMessageContent">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="idTradeMessage" type="xs:int" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetTradeMessageContentResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetTradeMessageContentResult" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetTradeMessages">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="startFrom" type="xs:dateTime" />
+        <xs:element minOccurs="1" maxOccurs="1" name="endTo" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetTradeMessagesResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetTradeMessagesResult" type="tns:ArrayOfTradePlace" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="ArrayOfTradePlace">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="TradePlace" nillable="true" type="tns:TradePlace" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="TradePlace">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="TradeList" type="tns:ArrayOfTrade" />
+    </xs:sequence>
+    <xs:attribute name="INN" type="xs:string" />
+  </xs:complexType>
+  <xs:complexType name="ArrayOfTrade">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Trade" nillable="true" type="tns:Trade" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Trade">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="MessageList" type="tns:ArrayOfTradeMessage" />
+    </xs:sequence>
+    <xs:attribute name="ID_External" type="xs:string" />
+    <xs:attribute name="ID_EFRSB" type="xs:int" use="required" />
+  </xs:complexType>
+  <xs:complexType name="ArrayOfTradeMessage">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="TradeMessage" nillable="true" type="tns:TradeMessage" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="TradeMessage">
+    <xs:attribute name="ID" type="xs:int" use="required" />
+  </xs:complexType>
+  <xs:element name="GetTradeMessagesByTrade">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="startFrom" type="xs:dateTime" />
+        <xs:element minOccurs="1" maxOccurs="1" name="endTo" nillable="true" type="xs:dateTime" />
+        <xs:element minOccurs="0" maxOccurs="1" name="id" type="xs:string" />
+        <xs:element minOccurs="0" maxOccurs="1" name="tradePlaceInn" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetTradeMessagesByTradeResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetTradeMessagesByTradeResult" type="tns:ArrayOfTradePlace" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetArbitrManagerRegister">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="date" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetArbitrManagerRegisterResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetArbitrManagerRegisterResult" type="tns:AMList" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="AMList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="AMList" type="tns:ArrayOfArbitrManagerRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfArbitrManagerRegisterItem">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="ArbitrManager" nillable="true" type="tns:ArbitrManagerRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArbitrManagerRegisterItem">
+    <xs:attribute name="FirstName" type="xs:string" />
+    <xs:attribute name="MiddleName" type="xs:string" />
+    <xs:attribute name="LastName" type="xs:string" />
+    <xs:attribute name="RegNum" type="xs:string" />
+    <xs:attribute name="INN" type="xs:string" />
+    <xs:attribute name="SRORegNum" type="xs:string" />
+    <xs:attribute name="DateLastModif" type="xs:dateTime" use="required" />
+    <xs:attribute name="Region" type="xs:string" />
+    <xs:attribute name="DateReg" type="xs:dateTime" />
+    <xs:attribute name="SRORegDate" type="xs:dateTime" />
+  </xs:complexType>
+  <xs:element name="GetDebtorRegister">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="date" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetDebtorRegisterResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetDebtorRegisterResult" type="tns:DebtorList" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="DebtorList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="DebtorList" type="tns:ArrayOfChoice1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfChoice1">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element minOccurs="1" maxOccurs="1" name="DebtorPerson" nillable="true" type="tns:PersonDebtorRegisterItem" />
+      <xs:element minOccurs="1" maxOccurs="1" name="DebtorCompany" nillable="true" type="tns:CompanyDebtorRegisterItem" />
+    </xs:choice>
+  </xs:complexType>
+  <xs:complexType name="PersonDebtorRegisterItem">
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:DebtorRegisterItem">
+        <xs:attribute name="LastName" type="xs:string" />
+        <xs:attribute name="FirstName" type="xs:string" />
+        <xs:attribute name="MiddleName" type="xs:string" />
+        <xs:attribute name="INN" type="xs:string" />
+        <xs:attribute name="DateLastModif" type="xs:dateTime" use="required" />
+        <xs:attribute name="Region" type="xs:string" />
+        <xs:attribute name="Category" type="xs:string" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="DebtorRegisterItem" abstract="true" />
+  <xs:complexType name="CompanyDebtorRegisterItem">
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:DebtorRegisterItem">
+        <xs:attribute name="FullName" type="xs:string" />
+        <xs:attribute name="ShortName" type="xs:string" />
+        <xs:attribute name="INN" type="xs:string" />
+        <xs:attribute name="OGRN" type="xs:string" />
+        <xs:attribute name="DateLastModif" type="xs:dateTime" use="required" />
+        <xs:attribute name="Region" type="xs:string" />
+        <xs:attribute name="Category" type="xs:string" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="GetCompanyTradeOrganizerRegister">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="date" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetCompanyTradeOrganizerRegisterResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetCompanyTradeOrganizerRegisterResult" type="tns:TradeOrganizerList" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="TradeOrganizerList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="TradeOrganizerList" type="tns:ArrayOfCompanyTradeOrganizerRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfCompanyTradeOrganizerRegisterItem">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="TradeOrganizer" nillable="true" type="tns:CompanyTradeOrganizerRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="CompanyTradeOrganizerRegisterItem">
+    <xs:attribute name="FullName" type="xs:string" />
+    <xs:attribute name="ShortName" type="xs:string" />
+    <xs:attribute name="INN" type="xs:string" />
+    <xs:attribute name="OGRN" type="xs:string" />
+    <xs:attribute name="DateLastModif" type="xs:dateTime" use="required" />
+  </xs:complexType>
+  <xs:element name="GetSroRegister">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" maxOccurs="1" name="date" nillable="true" type="xs:dateTime" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetSroRegisterResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="1" name="GetSroRegisterResult" type="tns:SROList" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="SROList">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="SROList" type="tns:ArrayOfSroRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ArrayOfSroRegisterItem">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="SRO" nillable="true" type="tns:SroRegisterItem" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="SroRegisterItem">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="AuList" type="tns:ArrayOfAuInn" />
+    </xs:sequence>
+    <xs:attribute name="FullName" type="xs:string" />
+    <xs:attribute name="RegNum" type="xs:string" />
+    <xs:attribute name="DateReg" type="xs:dateTime" use="required" />
+    <xs:attribute name="INN" type="xs:string" />
+    <xs:attribute name="UrAdress" type="xs:string" />
+    <xs:attribute name="Phone" type="xs:string" />
+    <xs:attribute name="DateExclude" type="xs:dateTime" />
+    <xs:attribute name="CauseExclude" type="xs:string" />
+    <xs:attribute name="DateLastModif" type="xs:dateTime" use="required" />
+  </xs:complexType>
+  <xs:complexType name="ArrayOfAuInn">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="Au" nillable="true" type="tns:AuInn" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="AuInn">
+    <xs:attribute name="INN" type="xs:string" />
+  </xs:complexType>
+</xs:schema>

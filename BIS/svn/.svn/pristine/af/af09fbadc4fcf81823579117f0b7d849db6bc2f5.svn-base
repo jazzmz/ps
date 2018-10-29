@@ -1,0 +1,10 @@
+DEF TEMP-TABLE ttable
+    FIELD x-beg    AS INT
+    FIELD y-beg    AS INT
+    FIELD type     AS CHAR
+    FIELD val      AS CHAR
+    FIELD settings AS CHAR
+    INDEX pk IS PRIMARY x-beg y-beg
+    INDEX y-beg y-beg
+    INDEX x-beg x-beg
+.

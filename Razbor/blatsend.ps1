@@ -1,0 +1,1 @@
+C:\test\blat\blat.exe C:\test\blat\dorkin.txt -tf C:\test\blat\dorkin.txt

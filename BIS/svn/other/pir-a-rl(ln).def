@@ -1,0 +1,805 @@
+/*
+               Банковская интегрированная система БИСквит
+    Copyright: (C) MCMXCII-MCMXCIX ТОО "Банковские информационные системы"
+     Filename: a-rl(ln).def
+      Comment: Определение временных таблиц для расчета показателей.
+   Parameters: NEW
+         Uses:
+      Used by:
+      Created: 30/07/2004   fedm
+     Modified:
+*/
+
+{globals.i}
+{intrface.get umc}
+{intrface.get strng}
+{intrface.get xobj}
+{intrface.get xclass}
+{intrface.get tmess}
+
+{norm.i}
+
+/* Переменные, инициализированные извне при обработке шаблона отчёта,
+** к которым требуется доступ в процедуре отчёта.
+*/
+{norm-rps.def}
+
+/* Установки для внешней процедуры печати */
+printres  = NO.
+
+def var oAcct AS TAcct.
+def var dTemp as Dec.
+
+/* Таблица для хранения структуры отчёта */
+DEF {1} SHARED TEMP-TABLE tt-prm NO-UNDO
+   FIELD level        AS INT64      /* Номер уровня показателя 0    - отчет в целом
+                                  **                         1..N - № подуровня
+                                  */
+   FIELD class        AS CHAR     /* Класс объекта */
+   FIELD code         AS CHAR     /* Идентификатор показателя,
+                                  ** который указывается в шаблоне отчета
+                                  */
+   FIELD len          AS INT64      /* Ширина поля вывода. */
+   FIELD formatv      AS CHAR     /* Формат, указываемый в шаблоне */
+
+INDEX CodeLvl Code Level
+INDEX Level Level.
+
+/* Таблица для рассчитанных значений показателей */
+DEF {1} SHARED TEMP-TABLE tt-val NO-UNDO
+   FIELD code         AS CHAR     /* Идентификатор показателя,
+                                  ** который указывается в шаблоне отчета
+                                  */
+   FIELD surrogate    AS CHAR     /* Уникальный идентификатор объекта */
+   FIELD val          AS CHAR     /* Рассчитанное значение показателя */
+   FIELD type         AS CHAR     /* Тип показателя */
+   FIELD level        AS INT64      /* Номер уровня показателя 0    - отчет в целом
+                                  **                         1..N - № подуровня
+                                  */
+INDEX Id code level.
+
+/* Таблица для обработки kau-entry (СуммаДбГр) */
+DEFINE {1} SHARED TEMP-TABLE ttke NO-UNDO
+   FIELD id    AS RECID   /* kau-entry */
+   FIELD sign  AS LOGICAL /* новый/старый алгоритм */
+   FIELD summ  AS DECIMAL /* сумма */
+   FIELD allow AS LOGICAL /* выводить/пропускать */
+   INDEX id id
+   .
+
+/* Номер строки отчёта  */
+DEF NEW GLOBAL SHARED VAR mCntLin  AS INT64     NO-UNDO.
+
+/* Тип субпроводки для вывода в отчет по карточке. */
+DEF {1} SHARED VAR mKEType  AS CHAR  NO-UNDO INITIAL "прих".
+
+/* Хэндл персистентной библиотеки для расчёта по карточке УМЦ */
+DEF {1} SHARED VAR hLn  AS HANDLE  NO-UNDO.
+
+/* как поступать с карточками у которых остаток 0 */
+DEF {1} SHARED VAR mNullStr AS LOG NO-UNDO.
+
+/* Принзнак последней карточки */
+DEF {1} SHARED VAR mLastLn  AS LOG   NO-UNDO.
+
+DEF VAR mSort    AS CHAR  NO-UNDO.  /* Сортировка */
+DEF VAR mNulStr  AS LOG   NO-UNDO.  /* Нулевые строки            */
+
+
+
+DEFINE {1} SHARED VARIABLE sNeedRoundAmount AS LOGICAL   NO-UNDO INITIAL ?.
+DEFINE {1} SHARED VARIABLE sLineDelimiter   AS CHARACTER NO-UNDO INITIAL ?.
+
+IF NOT VALID-HANDLE(hLn) THEN
+   RUN "a-rl(ln).p" PERSISTENT SET hLn (beg, dob).
+
+/* Форматирование значения */
+FUNCTION FormatVal RETURNS CHAR
+   (iVal   AS CHAR,
+    iType  AS CHAR,
+    iLen   AS INT64,
+    iFormV AS CHAR
+   ):
+
+   DEF VAR vDec  AS DECIMAL NO-UNDO.
+   DEF VAR vFmt  AS CHAR    NO-UNDO.
+   DEF VAR vRet  AS CHAR    NO-UNDO INITIAL ?.
+
+   IF iType BEGINS "D" OR
+      iType BEGINS "I"
+   THEN
+   DO:
+      vDec = DECIMAL(iVal) NO-ERROR.
+
+      IF NOT ERROR-STATUS:ERROR THEN
+      DO:
+         ASSIGN
+            vFmt = (IF vDec < 0 THEN "-" ELSE "")
+            vFmt = vFmt + FILL(">", iLen - LENGTH(vFmt) - 4) + "9.99".
+
+         IF iType BEGINS "I" AND
+            vDec = ROUND(vDec, 0)
+         THEN
+            vFmt = REPLACE(vFmt, "9.99", ">>>9").
+
+         IF     iType  BEGINS "D"
+            AND iFormV NE     "" THEN
+            vRet = STRING(vDec, iFormV) NO-ERROR.
+         ELSE
+            vRet = STRING(vDec, vFmt)   NO-ERROR.
+      END.
+   END.
+
+   IF vRet = ? THEN
+      ASSIGN
+         vFmt = "x(" + STRING(iLen) + ")"
+         vRet = STRING(iVal, vFmt).
+
+   IF vRet = ? THEN
+      vRet = FILL("?", iLen).
+
+   RETURN vRet.
+
+END FUNCTION.
+
+/* Получить рассчитанное значение показателя */
+FUNCTION GetPrm RETURNS CHAR
+   (iCode  AS CHAR,
+    iLen   AS INT64,
+    iFormV AS CHAR
+   ):
+
+   DEF BUFFER tt-val  FOR tt-val.
+   DEF BUFFER btt-val FOR tt-val.
+
+   /* Возвращаемое значение */
+   DEF VAR vRet     AS CHAR     NO-UNDO.
+   /* Счётчик */
+   DEF VAR vCnt     AS INT64      NO-UNDO.
+   /* Десятичный результат формулы */
+   DEF VAR xResult  AS DECIMAL  NO-UNDO.
+
+   FOR LAST tt-val WHERE
+            tt-val.code = iCode:
+
+      /* Генерим событие "PrmBH" для доступа к значению параметра извне */
+      PUBLISH "PrmBH" ((BUFFER tt-val:HANDLE), mCntLin).
+
+      vRet = tt-val.val.
+
+      /* Форматирование vRet */
+      IF OutputFormat <> "" THEN
+      DO:
+         /* Если разрешен перенос значения на след.стоки
+         ** и значение не помещается в поле указанной ширины,
+         ** то разбиваем значение на подстроки
+         */
+         IF SUBSTR(iCode, LENGTH(iCode)) = "#" AND
+            LENGTH(vRet) > iLen  THEN
+         DO:
+            vRet = SplitStr (vRet, iLen, "~n").
+            DO vCnt = 1 TO NUM-ENTRIES(vRet, "~n"):
+               CREATE btt-val.
+
+               BUFFER-COPY tt-val EXCEPT code val
+                        TO btt-val
+                    ASSIGN btt-val.code    = tt-val.code + STRING(vCnt)
+                           btt-val.val     = ENTRY(vCnt, vRet, "~n")
+               NO-ERROR.
+            END.
+            vRet = ENTRY(1, vRet, "~n").
+         END.
+         ELSE
+            vRet = FormatVal (vRet, tt-val.type, iLen, iFormV) NO-ERROR.
+      END.
+   END.
+
+   IF vRet = "" AND SEARCH(ENTRY(1, iCode, "(") + ".r") <> ? THEN
+   DO:
+      RUN normpars.p (iCode, beg, dob, OUTPUT xResult).
+
+      vRet = IF CAN-DO("ESC,Ошибка", RETURN-VALUE) OR
+                printtext = ?
+             THEN ""
+             ELSE printtext.
+   END.
+   if iCode = "ОКК-учет" or iCode = "ОКК-учет-Ф" then do:
+
+   find first signs where signs.file-name = "loan" and signs.code = "АрендаКолво" and signs.surrogate = tt-val.surrogate NO-LOCK NO-ERROR.
+/*   message signs.xattr-value VIEW-AS ALERT-BOX.*/
+
+   if available(signs) then
+      do:
+         vRet = STRING(DEC(signs.xattr-value),">>>>9.999").
+/*	 message vRet VIEW-As ALERT-BOX.        */
+         tt-val.val = vRet.
+      end.
+      else
+      do:
+         dTemp = 0.
+         vRet = String(dTemp,">>>>9.999").
+      end.
+
+   end.
+   
+   if iCode = "ОКС-учет" or iCode = "ОКС-учет-Ф" then do:
+
+      find first loan where loan.contract = Entry(1,tt-val.surrogate) AND loan.cont-code = entry(2,tt-val.surrogate) NO-LOCK NO-ERROR.
+      if AVAILABLE(loan) then do:
+         find first loan-acct where loan-acct.contract = loan.contract and loan-acct.cont-code = loan.cont-code and loan-acct.acct-type = "ОС-аренда" NO-LOCK NO-ERROR.
+         if AVAILABLE(loan-acct) then do:
+          oAcct = new tAcct(loan-acct.acct).
+          dTemp = oAcct:getLastPos2Date(dob).
+          DELETE OBJECT oAcct.
+          vRet = String(dTemp,">>,>>>,>>>,>>>,>>9.99").
+	  tt-val.val = vRet.
+
+/*         message tt-val.val VIEW-AS ALERT-BOX.*/
+         end.
+         else
+         do:
+            MESSAGE "Не найден счет с ролью ОС-аренда для карточки с номером: " entry(2,tt-val.surrogate) VIEW-AS ALERT-BOX.
+         end.
+      end.
+      else
+      do:
+        MESSAGE "Не найдена карточка с номером: " entry(2,tt-val.surrogate) VIEW-AS ALERT-BOX.
+      end.
+   end.
+
+
+   if Can-do("*НаимЦенн*",iCode) and INDEX(vRet,",") <> 0 then vRet = (ENTRY(2,vRet)) + Fill(" ",INDEX(vRet,",")).
+
+   IF OutputFormat <> "" AND vRet = "" THEN
+      vRet = STRING(vRet, "x(" + STRING(iLen) + ")").
+
+
+
+   RETURN vRet.
+
+END FUNCTION.
+
+FUNCTION GetFullWordSum RETURNS CHARACTER
+   (
+     INPUT iDigital AS DECIMAL
+   , INPUT iIsFull  AS LOGICAL
+   )
+:
+   DEFINE VARIABLE vWordStr1 AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vWordStr2 AS CHARACTER NO-UNDO.
+
+   IF iIsFull EQ ?
+   THEN DO:
+      RUN amtstr.p
+         (
+            INPUT iDigital
+         ,  INPUT YES
+         , OUTPUT vWordStr1
+         , OUTPUT vWordStr2
+         ) .
+      IF vWordStr2 NE "" THEN
+         vWordStr2 = vWordStr2 + " коп.".
+   END.
+   ELSE DO:
+      RUN x-amtstr.p
+         (
+            INPUT iDigital
+         ,  INPUT ""
+         ,  INPUT YES
+         ,  INPUT ?
+         , OUTPUT vWordStr1
+         , OUTPUT vWordStr2
+         ) .
+      IF iIsFull NE YES
+      THEN DO:
+         vWordStr1 = REPLACE(vWordStr1, "рубль",  "руб.").
+         vWordStr1 = REPLACE(vWordStr1, "рубля",  "руб.").
+         vWordStr1 = REPLACE(vWordStr1, "рублей", "руб.").
+      END.
+   END.
+   IF vWordStr2 EQ "" THEN
+      vWordStr2 = "ноль копеек".
+   IF iIsFull NE YES
+   THEN DO:
+      vWordStr2 = REPLACE(vWordStr2, "копеек",  "коп.").
+      vWordStr2 = REPLACE(vWordStr2, "копейки", "коп.").
+      vWordStr2 = REPLACE(vWordStr2, "копейка", "коп.").
+   END.
+
+   RETURN TRIM(REPLACE(vWordStr1 + " " + LC(vWordStr2), "  ", " ")).
+END FUNCTION. /* GetFullWordSum */
+
+FUNCTION GetWordInt RETURNS CHARACTER
+   (
+     INPUT iDigital AS DECIMAL
+   )
+:
+   DEFINE VARIABLE vWordStr1 AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vWordStr2 AS CHARACTER NO-UNDO.
+
+   RUN amtstr.p
+      (
+         INPUT iDigital
+      ,  INPUT NO
+      , OUTPUT vWordStr1
+      , OUTPUT vWordStr2
+      ) .
+
+   RETURN vWordStr1.
+END FUNCTION. /* GetWordInt */
+
+FUNCTION GetWordDec RETURNS CHARACTER
+   (
+     INPUT iDigital AS DECIMAL
+   )
+:
+   DEFINE VARIABLE vWordStr1 AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vWordStr2 AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vFracName AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vFracStr  AS CHARACTER NO-UNDO.
+
+   RUN x-amtstr.p
+      (
+         INPUT iDigital
+      ,  INPUT ""
+      ,  INPUT YES
+      ,  INPUT ?
+      , OUTPUT vWordStr1
+      , OUTPUT vWordStr2
+      ) .
+
+   vWordStr1 = REPLACE(vWordStr1, "один рубль", "одна целая").
+   vWordStr1 = REPLACE(vWordStr1, "два рубля",  "две целых").
+
+   vWordStr1 = REPLACE(vWordStr1, "рубль",  "целая").
+   vWordStr1 = REPLACE(vWordStr1, "рубля",  "целых").
+   vWordStr1 = REPLACE(vWordStr1, "рублей", "целых").
+
+   IF vWordStr2 EQ ""
+   THEN DO:
+      vWordStr2 = "ноль десятых".
+      /*
+      vWordStr1 = REPLACE(vWordStr1, "целая", "").
+      vWordStr1 = REPLACE(vWordStr1, "целых", "").
+      vWordStr1 = REPLACE(vWordStr1, "целых", "").
+      vWordStr1 = TRIM(vWordStr1).
+      */
+   END.
+   ELSE DO:
+      vFracStr  = ENTRY(
+                         2
+                       , STRING(
+                                 ROUND(iDigital, 2)
+                               , "->>>>>>>>>>>>>>9.99"
+                               )
+                       , "."
+                       ) .
+      IF SUBSTRING(vFracStr, 2, 1) EQ "0" THEN
+         vFracName = "десят".
+      ELSE
+         vFracName = "сот".
+
+      IF SUBSTRING(vFracStr, 2, 1) EQ "0" THEN
+      DO:
+         vWordStr2 = REPLACE(vWordStr2, "десять",    "одна").
+         vWordStr2 = REPLACE(vWordStr2, "дцать",     "").
+         vWordStr2 = REPLACE(vWordStr2, "десят",     "").
+         vWordStr2 = REPLACE(vWordStr2, "два",       "две").
+         vWordStr2 = REPLACE(vWordStr2, "сорок",     "четыре").
+         vWordStr2 = REPLACE(vWordStr2, "девяносто", "девять").
+      END.
+
+      vWordStr2 = REPLACE(vWordStr2, "копеек",  vFracName + "ых").
+      vWordStr2 = REPLACE(vWordStr2, "копейки", vFracName + "ых").
+      vWordStr2 = REPLACE(vWordStr2, "копейка", vFracName + "ая").
+   END.
+
+   RETURN TRIM(REPLACE(vWordStr1 + " " + LC(vWordStr2), "  ", " ")).
+END FUNCTION. /* GetWordDec */
+
+/* Функция для разбора строки шаблона отчёта
+  Параметры:
+    iStr : строка шаблона отчёта с идентификаторами показателей
+           в квадратных скобках
+    iMode: 0 - получить список параметров для расчёта
+           1 - заполнить строку расчитанными параметрами
+           2 - вывести расчитанные итоги
+           3 - вывести расчитанные подитоги
+           4 - вывести МОЛ\должность
+
+   ЗАМЕЧАНИЕ - при печати таблиц длина строки вычисляется от "[" до "]".
+   В случае, если длина идентификатора больше ширины колонки длину можно указать
+   через разделитеть "|".
+   Пример: [ОКС-учет|21]. Эта длина хранится в переменной vFrm.
+
+   Также там можно указать необходимый формат.
+   Пример: [ОКС-учет|21|>>,>>>,>>>,>>>,>>9.99]. Формат хранится в vFormatV
+*/
+FUNCTION fill-str RETURNS CHARACTER
+   (
+     INPUT iStr  AS CHARACTER
+   , INPUT iMode AS INT64
+   )
+:
+
+   DEFINE VARIABLE vSplitFl AS LOGICAL   NO-UNDO.
+   DEFINE VARIABLE vTo      AS INT64     NO-UNDO.
+   DEFINE VARIABLE vFrom    AS INT64     NO-UNDO.
+   DEFINE VARIABLE vLen     AS INT64     NO-UNDO. /* Длина строки от "[" до "]"       */
+   DEFINE VARIABLE vFrm     AS INT64     NO-UNDO. /* Длина строки, ук-мая в шаблоне   */
+   DEFINE VARIABLE vCod     AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vVal     AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vRet     AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vCnt     AS INT64     NO-UNDO.
+   DEFINE VARIABLE vCnt2    AS INT64     NO-UNDO.
+   DEFINE VARIABLE vType    AS CHARACTER NO-UNDO.
+   DEFINE VARIABLE vMol     AS CHARACTER NO-UNDO. /* Номер МОЛ, который надо выводить */
+   DEFINE VARIABLE vEntry   AS CHARACTER NO-UNDO. /* Список GetSysConf(" :molrole")   */
+   DEFINE VARIABLE vFormatV AS CHARACTER NO-UNDO. /* Формат, указываемый в шаблоне    */
+   DEFINE VARIABLE vNulStr  AS LOGICAL   NO-UNDO.
+   DEFINE VARIABLE vDigital AS DECIMAL   NO-UNDO.
+   DEFINE VARIABLE vFull    AS LOGICAL   NO-UNDO. /* Писать копейки прописью */
+
+   IF iMode EQ 1 THEN
+   DO:
+      IF TRIM(iStr) EQ "" THEN
+         RETURN " ".
+
+      IF iStr MATCHES "[*(*)]" THEN
+         RETURN "".
+   END.
+
+   DO vCnt = 1 TO LENGTH(iStr):
+      ASSIGN
+         vVal = SUBSTRING(iStr, vCnt, 1)
+         .
+      IF vVal EQ "[" THEN
+      DO:
+         ASSIGN
+            vFrom = vCnt
+            vTo   = INDEX (iStr, "]", vCnt)
+            vLen  = vTo - vFrom + 1
+            vCod  = TRIM(SUBSTR(iStr, vFrom + 1, vLen - 2))
+         .
+
+/* Если в коде идентификатора указана длина строки или формат, но
+** здесь обрабатываются не только идентификаторы, но и процедуры, например,
+** [ap_ke(msfo1.2|пере;модерн)],
+** поэтому сначала проверяем действительно ли там число.
+*/
+         INT64(GetEntries(2, vCod, "|", "")) NO-ERROR.
+
+         IF NOT ERROR-STATUS:ERROR THEN
+            ASSIGN
+               vFrm     = 0
+               vFrm     = INT64(GetEntries(2, vCod, "|", ""))
+               vLen     = IF vFrm EQ 0 THEN (vTo - vFrom + 1)
+                                       ELSE vFrm
+               vFormatV =     GetEntries(3, vCod, "|", "")
+               vCod     =     GetEntries(1, vCod, "|", "")
+            .
+
+         IF iMode EQ 0 THEN
+         DO:
+            {additem.i vRet vCod}
+
+            IF NOT CAN-FIND(tt-prm WHERE tt-prm.code = vCod) THEN
+            DO:
+               CREATE tt-prm.
+               ASSIGN tt-prm.code     = vCod
+                      tt-prm.len      = vLen
+                      tt-prm.formatv  = vFormatV
+               .
+               RELEASE tt-prm.
+            END.
+         END.
+
+         ELSE
+         IF iMode EQ 1 THEN
+         DO:
+            IF mNulStr THEN
+            DO:
+               vNulStr = YES.
+               sss:
+               FOR EACH tt-val WHERE tt-val.code BEGINS "ОК":
+                  IF tt-val.val NE "0" THEN
+                  DO:
+                     vNulStr = NO.
+                     LEAVE sss.
+                  END.
+               END.
+            END.
+
+            vVal = GetPrm(vCod, vLen, vFormatV).
+         END.
+
+         ELSE
+         IF iMode EQ 2 THEN DO:
+            /* преобразовать цифры в строку прописи */
+
+            IF vCod MATCHES "*П"
+            THEN DO:
+               vFull = NO.
+               IF vCod MATCHES "*ПП"
+               THEN DO:
+                  ASSIGN
+                     vCod  = SUBSTRING(vCod, 1, LENGTH(vCod) - 1)
+                     vFull = YES
+                     .
+               END.
+
+               ASSIGN
+                  vVal     = GetSysConf("TOT:"  + SUBSTRING(vCod, 1, LENGTH(vCod) - 1))
+                  vType    = GetSysConf("TYPE:" + SUBSTRING(vCod, 1, LENGTH(vCod) - 1))
+                  vDigital = (IF vType BEGINS "D"
+                              THEN DECIMAL(vVal)
+                              ELSE INT64(  vVal))
+                  .
+               IF vCod EQ "№П" AND
+                  vVal EQ ?
+               THEN DO:
+                  ASSIGN
+                     vVal     = GetSysConf("TOTAL-REPORT:Total")
+                     vType    = "INT"
+                     vDigital = INT64(vVal)
+                     .
+                  RUN DeleteOldDataProtocol IN h_base
+                     (
+                       INPUT "TOTAL-REPORT:Total"
+                     ) .
+               END.
+
+               IF     vVal  NE ?
+                  AND vType NE ?
+               THEN DO:
+                  IF vType BEGINS "D" THEN
+                  DO:
+                     IF vCod MATCHES "..Д-*-*П" THEN
+                        vVal = GetWordDec(vDigital).
+                     ELSE
+                        vVal = GetFullWordSum(
+                                               vDigital
+                                             , (IF vFull
+                                                THEN NO
+                                                ELSE ?)
+                                             ) .
+                  END.
+                  ELSE
+                     vVal = GetWordInt(vDigital).
+               END.
+               ELSE
+                  vVal = "".
+            END.
+
+            ELSE DO:
+               ASSIGN
+                  vVal  = GetSysConf("TOT:"  + vCod)
+                  vType = GetSysConf("TYPE:" + vCod)
+               .
+
+               IF vVal NE ?
+               THEN DO:
+                  FIND FIRST tt-prm WHERE tt-prm.code EQ vCod NO-LOCK NO-ERROR.
+
+                  IF AVAIL tt-prm THEN
+                     vVal = FormatVal(vVal,
+                                      vType,
+                                      vLen,
+                                      tt-prm.formatv).
+                  ELSE
+                     vVal = FormatVal(vVal,
+                                      vType,
+                                      vLen,
+                                      "").
+               END.
+
+               ELSE
+                  vVal = FormatVal(" ",
+                                   vType,
+                                   vLen,
+                                   "").
+            END.
+         END.
+
+         ELSE
+         IF iMode EQ 3 THEN DO:
+
+            /* преобразовать сумму в строку прописи */
+            IF vCod MATCHES "*П"
+            THEN DO:
+               vFull = NO.
+               IF vCod MATCHES "*ПП"
+               THEN DO:
+                  ASSIGN
+                     vCod  = SUBSTRING(vCod, 1, LENGTH(vCod) - 1)
+                     vFull = YES
+                     .
+               END.
+
+               ASSIGN
+                  vVal     = GetSysConf("SUBTOT:"
+                                       + SUBSTR(vCod, 1, LENGTH(vCod) - 1))
+                  vType    = GetSysConf("SUBTYPE:"
+                                       + SUBSTR(vCod, 1, LENGTH(vCod) - 1))
+                  vDigital = IF vType BEGINS "D"
+                             THEN DEC(vVal)
+                             ELSE INT64(vVal)
+               .
+
+               IF     vVal  NE ?
+                  AND vType NE ?
+               THEN DO:
+                  IF vType BEGINS "D" THEN
+                  DO:
+                     IF vCod MATCHES "..Д-*-*П" THEN
+                        vVal = GetWordDec(vDigital).
+                     ELSE
+                        vVal = GetFullWordSum(
+                                               vDigital
+                                             , (IF vFull
+                                                THEN NO
+                                                ELSE ?)
+                                             ) .
+                  END.
+                  ELSE
+                     vVal = GetWordInt(vDigital).
+               END.
+               ELSE
+                  vVal = "".
+            END.
+
+            ELSE DO:
+               ASSIGN
+                  vVal  = GetSysConf("SUBTOT:"  + vCod)
+                  vType = GetSysConf("SUBTYPE:" + vCod)
+               .
+
+               IF vVal NE ?
+               THEN DO:
+                  FIND FIRST tt-prm WHERE tt-prm.code EQ vCod NO-LOCK NO-ERROR.
+                  IF AVAIL tt-prm THEN
+                     vVal = FormatVal(vVal,
+                                      vType,
+                                      vLen,
+                                      tt-prm.formatv).
+                  ELSE
+                     vVal = FormatVal(vVal,
+                                      vType,
+                                      vLen,
+                                      "").
+               END.
+
+               ELSE
+                  vVal = FormatVal(" ",
+                                   vType,
+                                   vLen,
+                                   "").
+            END.
+         END.
+
+         ELSE
+         IF iMode EQ 4 THEN DO:
+            /* преобразовать МОЛ\должность */
+
+            ASSIGN
+               vEntry = GetSysConf("in-dt:molrole")
+               vCnt2  = INT64(GetEntries(2, vCod  , "_", ""))
+               vMol   = GetEntries(vCnt2, vEntry, ",", "")
+            .
+
+/* Без этой проверки будет хвататься 0 МОЛ даже если его не было в списке */
+            IF vMol NE ""
+            THEN DO:
+               IF ENTRY(1, vCod, "_") BEGINS "ДОЛЖН" THEN
+                  vVal = GetXAttrValueEx ("employee",
+                                          shFilial + "," + vMol,
+                                          "role",
+                                          ?).
+               ELSE
+                  vVal = GetObjName("employee", shFilial + "," + vMol, NO).
+            END.
+
+            IF     vVal NE ?
+               AND vVal NE "[" THEN
+               vVal = FormatVal(vVal,
+                                vType,
+                                vLen,
+                                "").
+            ELSE
+               vVal = FormatVal(" ",
+                                vType,
+                                vLen,
+                                "").
+         END.
+
+         vCnt = vTo.
+      END.
+
+      IF iMode <> 0 THEN
+         vRet = vRet + vVal.
+   END.
+
+   IF     vNulStr
+      AND iMode EQ 1 THEN
+      vRet = "".
+
+   /* Если строка состоит только из разделителей, возвращаем пустую строку */
+   IF TRIM(REPLACE(vRet, "│", "")) EQ "" THEN
+      vRet = "".
+
+   RETURN vRet.
+END FUNCTION. /* fill-str */
+
+PROCEDURE get-user-proc-params:
+   DEFINE OUTPUT PARAMETER iParams AS CHARACTER NO-UNDO INITIAL "".
+
+   DEFINE VARIABLE vUserProcId AS INT64 NO-UNDO.
+
+   DEFINE BUFFER user-proc FOR user-proc.
+
+   vUserProcId = INT64(GetSysConf("user-proc-id")) NO-ERROR.
+   FOR FIRST user-proc
+       WHERE RECID(user-proc) EQ vUserProcId
+         AND CAN-DO("msfo1,exp-ftpl",    user-proc.procedure)
+         AND CAN-DO("*Реестр*ОС*и*НМА*", user-proc.name-proc)
+   NO-LOCK
+   :
+      iParams = user-proc.Params.
+      CASE user-proc.procedure:
+         WHEN "msfo1"    THEN sLineDelimiter = CHR(179).
+         WHEN "exp-ftpl" THEN sLineDelimiter = ";".
+      END CASE.
+   END.
+END PROCEDURE. /* get-user-proc-params */
+
+FUNCTION NeedRoundAmount RETURNS LOGICAL
+:
+   DEFINE VARIABLE vParams AS CHARACTER NO-UNDO.
+
+   RUN get-user-proc-params
+      (
+        OUTPUT vParams
+      ) .
+
+   RETURN (IF (vParams MATCHES "*СумОкр=Д*") OR
+              (vParams MATCHES "*СумОкр=Y*") OR
+              (vParams MATCHES "*СумОкр=+*")
+           THEN YES
+           ELSE NO).
+END FUNCTION. /* NeedRoundAmount */
+/* Уборка мусора по завершению отчёта. */
+PROCEDURE EndPurge:
+   /* Хэндл персистентной процедуры */
+   DEF VAR vHdl      AS HANDLE         NO-UNDO.
+   /* Хэндл удаляемой персистентной процедуры */
+   DEF VAR vDelHdl   AS HANDLE         NO-UNDO.
+
+   /* Обнуление возвращаемого результата */
+   printtext = "".
+   /* Выгружаем персистентные процедуры */
+   vHdl = SESSION:LAST-PROCEDURE.
+
+   DO WHILE VALID-HANDLE(vHdl):
+      vDelHdl = ?.
+
+      IF CAN-DO("a-obj.p,a-rl(ln).p,a-prn.p", vHdl:FILE-NAME) AND
+         vHdl:PRIVATE-DATA NE "NO-DEL"
+      THEN
+         vDelHdl = vHdl.
+
+      vHdl = vHdl:PREV-SIBLING.
+
+      IF VALID-HANDLE(vDelHdl) THEN
+         DELETE PROCEDURE(vDelHdl).
+   END.
+
+ ASSIGN
+      sNeedRoundAmount = ?
+      sLineDelimiter   = ?
+      .
+
+   RETURN.
+
+END PROCEDURE. /* EndPurge */
+IF sNeedRoundAmount EQ ? THEN
+   sNeedRoundAmount  = NeedRoundAmount().

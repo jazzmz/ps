@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.example.org/MoveData" xmlns:tns="http://www.example.org/MoveData" elementFormDefault="qualified">
+
+    <element name="MoveDataRequest">
+    	<complexType>
+    		<sequence>
+    			<element name="firstname" type="string"></element>
+    		</sequence>
+    	</complexType>
+    </element>
+    
+    <element name="MoveDataResponse">
+    	<complexType>
+    		<sequence>
+    			<element name="lastname" type="string"></element>
+    		</sequence>
+    	</complexType>
+    </element>
+</schema>

@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<bpel:process xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable" xmlns:vprop="http://docs.oasis-open.org/wsbpel/2.0/varprop" xmlns:pnlk="http://docs.oasis-open.org/wsbpel/2.0/plnktype" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ode="http://www.apache.org/ode/type/extension" xmlns:Interface="http://example.com/processes/GetData/Interface" xmlns:Database="http://example.com/processes/GetData/Database" xmlns:tns="http://www.example.org/MoveData" xmlns:this="http://example.com/processes/GetData/Get_Data" xmlns:ns="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:diag="http://example.com/processes/GetData" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns:bpmn="http://www.intalio.com/bpms" xmlns:atomic="http://ode.apache.org/atomicScope" queryLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0" bpmn:label="Get Data" name="Get_Data" bpmn:id="_IdCh8KXOEd2ops0OAH3MYQ" targetNamespace="http://example.com/processes/GetData/Get_Data">
+  <bpel:import namespace="http://example.com/processes/GetData" location="GetData.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+  <bpel:import namespace="http://example.com/processes/GetData/Get_Data" location="GetData-Get_Data.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+  <bpel:import namespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" location="../getPeople.sql/getPeople.sql.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+  <bpel:partnerLinks>
+    <bpel:partnerLink name="interfaceAndGet_DataPlkVar" partnerLinkType="diag:InterfaceAndGet_Data" myRole="Get_Data_for_Interface"/>
+    <bpel:partnerLink name="databaseAndGet_DataForGetPeoplePortPlkVar" partnerLinkType="diag:DatabaseAndGet_DataForGetPeoplePortPlk" initializePartnerRole="yes" partnerRole="Database_for_Get_Data"/>
+  </bpel:partnerLinks>
+  <bpel:variables>
+    <bpel:variable name="thisTaskRequestMsg" messageType="this:TaskRequest"/>
+    <bpel:variable name="thisTaskResponseMsg" messageType="this:TaskResponse"/>
+    <bpel:variable name="nsGetPeopleRequestMsg" messageType="ns:getPeopleInput"/>
+    <bpel:variable name="nsGetPeopleResponseMsg" messageType="ns:getPeopleOutput"/>
+  </bpel:variables>
+  <bpel:sequence>
+    <bpel:receive partnerLink="interfaceAndGet_DataPlkVar" portType="this:ForInterface" operation="Task" variable="thisTaskRequestMsg" createInstance="yes" bpmn:label="Task" name="Task" bpmn:id="_IgKucKXOEd2ops0OAH3MYQ"></bpel:receive>
+    <bpel:assign name="init-variables-Get_Data" bpmn:id="_IgKucKXOEd2ops0OAH3MYQ">
+      <bpel:copy bpmn:label="$thisTaskResponseMsg">
+        <bpel:from>
+          <bpel:literal>
+<tns:MoveDataResponse>
+  <tns:lastname></tns:lastname>
+</tns:MoveDataResponse></bpel:literal>
+        </bpel:from>
+        <bpel:to>$thisTaskResponseMsg.body</bpel:to>
+      </bpel:copy>
+      <bpel:copy bpmn:label="$nsGetPeopleRequestMsg">
+        <bpel:from>
+          <bpel:literal>
+<ns:getPeopleParameterSet>
+  <ns:connection>
+    <ns:user></ns:user>
+    <ns:password></ns:password>
+  </ns:connection>
+  <ns:execute>
+    <ns:parameters>
+      <ns:firstname></ns:firstname>
+    </ns:parameters>
+  </ns:execute>
+</ns:getPeopleParameterSet></bpel:literal>
+        </bpel:from>
+        <bpel:to>$nsGetPeopleRequestMsg.parameters</bpel:to>
+      </bpel:copy>
+    </bpel:assign>
+    <bpel:assign bpmn:label="Request people record" name="Request_people_record" bpmn:id="_amvlUKaqEd2WW8PCIurzBA">
+      <bpel:copy>
+        <bpel:from>$thisTaskRequestMsg.body/tns:firstname/text()</bpel:from>
+        <bpel:to>$nsGetPeopleRequestMsg.parameters/ns:execute/ns:parameters/ns:firstname</bpel:to>
+      </bpel:copy>
+    </bpel:assign>
+    <bpel:invoke partnerLink="databaseAndGet_DataForGetPeoplePortPlkVar" portType="ns:getPeoplePort" operation="getPeople" inputVariable="nsGetPeopleRequestMsg" outputVariable="nsGetPeopleResponseMsg" bpmn:label="Request people record" name="Request_people_record-1" bpmn:id="_amvlUKaqEd2WW8PCIurzBA"></bpel:invoke>
+    <bpel:assign bpmn:label="Message_End_Event" name="Message_End_Event" bpmn:id="_vWvCcKaqEd2WW8PCIurzBA">
+      <bpel:copy>
+        <bpel:from>$nsGetPeopleResponseMsg.parameters/ns:rows/ns:row[1]/ns:LASTNAME/text()</bpel:from>
+        <bpel:to>$thisTaskResponseMsg.body/tns:lastname</bpel:to>
+      </bpel:copy>
+    </bpel:assign>
+    <bpel:reply partnerLink="interfaceAndGet_DataPlkVar" portType="this:ForInterface" operation="Task" variable="thisTaskResponseMsg" bpmn:label="Message_End_Event" name="Message_End_Event-1" bpmn:id="_vWvCcKaqEd2WW8PCIurzBA"></bpel:reply>
+  </bpel:sequence>
+</bpel:process>

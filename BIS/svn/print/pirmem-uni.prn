@@ -1,0 +1,29 @@
+DISPLAY
+      buf_0_op.doc-num
+      theDate
+      AmtStr
+&IF {&NFORM} EQ 109 &THEN
+      ValStr
+&ENDIF
+      PlName
+      Rub
+&IF {&NFORM} EQ 109 &THEN
+      Val
+&ENDIF
+      PlLAcct
+      PlRKC
+      PlMFO
+      PlCAcct
+      PoRKC
+      PolMFO
+      PoCAcct
+      PoName
+      PoAcct
+      type-doc 
+      buf_0_op.order-pay
+      Detail
+      theKontr
+      theUser
+WITH FRAME out-mem.
+DOWN WITH FRAME out-mem.
+

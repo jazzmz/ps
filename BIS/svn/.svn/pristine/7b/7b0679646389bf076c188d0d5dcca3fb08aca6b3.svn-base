@@ -1,0 +1,48 @@
+DEF VAR mCodNVal AS CHAR NO-UNDO.
+DEF VAR mIsPolup AS LOG  NO-UNDO.
+DEF VAR mI       AS INT  NO-UNDO.
+DEF VAR m5       AS CHAR NO-UNDO.
+DEF VAR m6       AS DEC  NO-UNDO.
+DEF VAR m7       AS CHAR NO-UNDO.
+DEF VAR m8       AS DEC  NO-UNDO.
+DEF VAR m9       AS CHAR NO-UNDO.
+DEF VAR m10      AS INT  NO-UNDO.
+DEF VAR m11      AS CHAR NO-UNDO.
+DEF VAR m12      AS DEC  NO-UNDO.
+DEF VAR m13      AS CHAR NO-UNDO.
+DEF VAR m15      AS CHAR NO-UNDO.
+DEF VAR mFIO     AS CHAR EXTENT 10 NO-UNDO.
+DEF VAR m17      AS CHAR EXTENT 10 NO-UNDO.
+DEF VAR m19      AS DEC  NO-UNDO.
+DEF VAR mDocId   AS CHAR NO-UNDO.
+DEF VAR mADR     AS CHAR EXTENT 10 NO-UNDO.
+DEF VAR mDover       AS CHAR NO-UNDO.
+DEF VAR mVidOpNalV   AS CHAR NO-UNDO.
+DEF VAR msprate      AS DEC  NO-UNDO.
+DEF VAR mNameBank    AS CHAR NO-UNDO.
+DEF VAR mREGN        AS CHAR NO-UNDO.
+DEF VAR mOpTime      AS CHAR NO-UNDO.
+DEF VAR mAdres-pch   AS CHAR NO-UNDO.
+DEF VAR mAdres-kass  AS CHAR NO-UNDO.
+DEF VAR mDocNumCode  AS CHAR NO-UNDO.
+DEF VAR mDocNum      AS INT  NO-UNDO.
+DEF VAR mDocNumEdt   AS INT  NO-UNDO.
+DEF VAR mRid         AS INT  NO-UNDO.
+DEF VAR mNaznSchKas  AS CHAR NO-UNDO.
+DEF VAR mScetKomis   AS CHAR NO-UNDO.
+DEF VAR mBranchMask  AS CHAR INIT "*"
+                     FORMAT "X(30)"
+                     LABEL "Код Подразделения " NO-UNDO.
+DEF VAR mUserMask    AS CHAR INIT "*"
+                     FORMAT "X(30)"
+                     LABEL "Пользователь      " NO-UNDO.
+DEF VAR mParam       AS CHAR NO-UNDO EXTENT 2.
+DEF VAR mPrintOpNum  AS LOG  INIT FALSE NO-UNDO.
+DEF VAR mSummKon113  AS DECIMAL         NO-UNDO.
+
+DEF BUFFER acct-cr FOR acct.
+DEF BUFFER acct-db FOR acct.
+DEF BUFFER op1 FOR op.
+DEF BUFFER op-entry1 FOR op-entry.
+DEF BUFFER op-entry2 FOR op-entry.
+

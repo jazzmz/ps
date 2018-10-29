@@ -1,0 +1,10 @@
+{pirsavelog.p}
+{genpos.i
+  &incoming=yes
+  &turnover=yes
+  &outgoing=yes
+  &curin=yes
+  &curturn=yes
+  &curout=yes
+  &names=yes
+}

@@ -1,0 +1,30 @@
+<?php
+ class VitalikController extends CController
+{
+  CONST ttyDev = '/dev/null';
+
+    public function actions()
+    {
+        return array(
+            'wf'=>array(
+                'class'=>'CWebServiceAction',
+            ),
+        );
+    }
+ 
+    /**
+     * @param string dt
+     * @param string usdBuy
+     * @param string eurBuy
+     * @param string usdSell
+     * @param string eurSell
+     * @return float цена
+     * @soap
+     */
+    public function setRate($dt,$usdBuy,$eurBuy,$usdSell,$eurSell)
+    {
+	file_put_contetns('\$D,12.12.12',self::ttuUsb);
+#	file_put_contents('\$T,',self::ttuUsb);
+	return 1;
+    }
+}

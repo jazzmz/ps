@@ -1,0 +1,2332 @@
+/* 
+		Функции для работы с базой данных БИСКВИТ.
+		Поддерживаемая версия БИСКВИТ: 41d.
+		Автор: Бурягин Е.П.
+		
+		Комментарии:
+			1) Все описания функций даны в нотации языка PASCAL (ну кто его не знает ;)
+			2) Все, что помечено символом "*" (звезда) пока не реализовано.
+		
+		Разные:
+		
+		Список:
+			
+			GetParamByName_ULL(aParam:CHAR, aName:CHAR, aDef:CHAR, aDelim:CHAR): CHAR
+			========================================================================
+			| Возвращает значение параметра из строки определенного формата
+			
+			LoopReplace_ULL(source-string:CHAR, from-string:CHAR, to-string:CHAR): CHAR
+			===========================================================================
+			| Делает ВСЕ замены в строке
+
+			StrToWin_ULL(Str:CHAR): CHAR
+			============================
+			| Возвращает строку в кодировке WIN1251	
+			
+			FirstIndicateCandoIn_ULL(code:CHAR, list:CHAR, since:DATE, start:CHAR, wait:CHAR): CHAR
+			==============================================================================
+			| Find First Indicate with Internal Can-do search
+			| Возвращает первое попавшееся значение, соотвествующее маске wait из indicate 
+			| Используется внутренне can-do - это значит, что критерий в indicate может 
+			| быть маской 
+			| list - список критериев indicate через запятую
+			|        каждый элемент списка проверяется по внутреннему can-do
+			| wait - ожидаемое значение     
+			| Если не найдено, то функция вернет "?"
+			
+			GetUserInfo_ULL(code:CHAR, param:CHAR, showErrorMsg:LOGICAL): CHAR
+			==================================================================
+			| Возвращает строку формата <val1>,<val2>,...,<valN>
+			| для реквизитов param формата <par1>,<par2>,...,<parN>
+			| 
+			| 
+		
+			FIOShort_ULL(fio:CHAR, showErrorMsg:LOGICAL): CHAR
+			==================================================
+			| Преобразует Иванов Иван Иванович в Иванов И.И.
+			
+		1 класс функций. 
+		Предназначены для получения информации о счете
+		
+		Список:
+			
+			GetAcctPosValue_UAL(Acct_Number:CHAR, Currency_OUT:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			===================================================================================
+			|	Возвращает значение остатка по счету на дату по акцептированным документам.
+			
+			GetAcctClientName_UAL(Acct_Number:CHAR, ShowErrorMsg:LOGICAL): CHAR
+			====================================================================
+			| Возвращает название клиента, если счет клиентский.
+			
+			GetAcctClientID_ULL(Acct_Number:CHAR, ShowErrorMsg:LOGICAL): CHAR
+			=================================================================
+			| Возвращает идентификатор клиента в формате <ТИП>,<ID>
+			| где ТИП - {Ю,Ч,Б,В}
+			
+			GetClientInfo_ULL(Client_ID:CHAR, Info:CHAR, ShowErrorMsg:LOGICAL): CHAR
+			========================================================================
+			| Возвращает данные по клиенту
+			| Client_ID - строка формата <ТИП>,<ID>
+			| Info - строка формата <param,param,param,...>
+			|        где param - одно из значений
+			|            {name,inn,bank-code:{bic;МФО-9;...},ident:{Паспорт,...},addr:{АдрФакт,...},country}
+*/
+
+/*
+		2 класс функций (УСТАРЕВШИЕ). 
+	 	Предназначены для получения информации о кредитном договоре
+		
+		Список:
+			
+			GetCredLoanParamValue_ULL(Loan_Number:CHAR, Param_Code:INTEGER, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			===================================================================================
+			|	Возвращает значение субаналитического параметра договора на дату. 
+			|	Если договор имеет течения/линии, то процедура просматривает каждое, и значения запрашиваемого параметра
+			|	суммируются.
+			
+			GetCredLoanCommission_ULL(Loan_Number:CHAR, Commission_Code:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			=====================================================================================
+			| Возвращает значение заданной процентной ставки по договору на дату только в %.
+			| Значение процентной величины уже поделено на 100.
+			
+			GetCredLoanAcct_ULL(Loan_Number:CHAR, Account_Role:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): CHAR
+			=========================================================================
+			| Возвращает номер действующего на дату счета с заданной ролью из картотеки счетов кредитного договора 
+
+			GetCredLoanInfo_ULL(Loan_Number:CHAR, Info_Name:CHAR, ShowErrorMsg:LOGICAL): CHAR
+			=========================================================================
+			| Возвращает информацию по кредитному договору:
+			|
+			| Значение 							Возвращаемый 
+			| Info_Name							результат
+			| -------------					----------------
+			|	client_name						Наименование клиента
+			|	open_date							Дата открытия(регистрации) договора
+
+			
+		3 класс функций	С 16.02.2006 11:43
+*/
+
+/*		
+LOAN Предназначены для получения информации по кредитным и депозитным договорам. 
+		Список:
+			
+			GetLoanParamValue_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Param_Code:INTEGER, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			===================================================================================
+			|	Возвращает значение субаналитического параметра договора на дату.
+			|	Если договор имеет течения/линии, то процедура просматривает каждое, и значения запрашиваемого параметра
+			|	суммируются.
+			
+			GetLoanCommissionEx_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Commission_Code:CHAR, Date:DATE, ShowErrorMsg:LOGICAL, out Commission_Type:CHAR): DECIMAL
+			=====================================================================================
+			| Возвращает значение заданной процентной ставки по договору на дату в том виде, в каком он хранится в базе данных.
+			| Commission_Type возвращает тип значения - {%|=}
+
+			GetLoanCommission_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Commission_Code:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			=====================================================================================
+			| Возвращает значение заданной процентной ставки по договору на дату.
+			| Аналог GetLoanCommissionEx_ULL - сохранен для поддержки "старых" процедур.
+			| Значение процентной величины уже поделено на 100.
+			
+			GetLoanAcct_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Account_Role:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): CHAR
+			=========================================================================
+			| Возвращает номер действующего на дату счета с заданной ролью из картотеки счетов кредитного договора 
+
+			GetLoanInfo_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Info_Name:CHAR, ShowErrorMsg:LOGICAL): CHAR
+			=========================================================================
+			| Возвращает информацию по кредитному договору:
+			| Формат Info_Name <значение>[,<значение>[,<значение>[,...]]]
+			| Значение 							Возвращаемый 
+			| Info_Name							результат
+			| -------------					----------------
+			|	client_name						Наименование клиента
+			| client_short_name					Краткое наименование клиента
+			| client_country				Символьный код страны клиента
+			| client_address				Адрес клиента
+			|	open_date							Дата открытия(регистрации) договора
+			| end_date							Дата окончания договора (возвращает ? - если нет)
+			| risk									Процент риска
+			| gr_riska							Группа риска
+			| guarantor_name(RECID)	Наименование поручителя из n-ого договора обеспечения, n - RECID записи term-obl
+			
+			GetMainLoan_ULL(Loan_Type:CHAR, Loan_Number:CHAR, ShowErrorMsg:LOGICAL):CHAR
+			=========================================================================
+			| Возвращает номер охватывающего договора, если переданный в функцию договор является
+			| течением или кредитной линией, иначе возвращает сам себя. 
+			| Формат возвращаемого значения: <Тип_договора>,<Номер_договора>,где Тип_договора - "Кредит","Депоз" и т.д.
+			
+			GetLoanLimit_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Date:DATE, ShowErrorMsg:LOGICAL):DECIMAL
+			=================================================================================
+			| Возвращает сумму лимита выдачи/задолженности по договору.
+			
+			GetLoanNextDatePercentPayOut_ULL(Loan_Type:CHAR, Loan_Number:CHAR, Date:DATE, ShowErrorMsg:LOGICAL):DATE
+			=================================================================================
+			| Возвращает дату выплаты процентов, следующую за датой параметра Date.
+*/
+
+/*
+
+DPS	Предназначены для получения информации о договоре частного вклада 
+		
+		Список:
+		
+			GetDpsCurrentPercent_ULL(Loan_Number:CHAR, Date:CHAR, ShowErrorMsg:LOGICAL): DECIMAL
+			=======================================================================
+			| Возвращает сумму текущих процентов на дату с момента их последнего начисления
+
+			GetDpsCommission_ULL(Loan_Number:CHAR, Commission_Type:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): DECIMAL
+			=====================================================================================
+			| Возвращает значение заданной процентной ставки по договору на дату
+			| 
+			| Commission_Type
+			|	Возможные значение									Описание
+			| -------------------									---------------------
+			| "commission"												Значение основной ставки
+			| "pen-commi"													Значение штрафной ставки
+			
+			GetDpsNextDatePercentPayOut_ULL(Loan_Number:CHAR, Date:DATE, ShowErrorMsg:LOGICAL): DATE
+			===============================================================================
+			| Возвращает дату выплаты процентов, следующую за датой параметра Date.
+			
+COMM Предназначены для работы с комиссиями, не имеющими отношения к договорам 
+
+		Список:
+			
+			GetCommRateEx_ULL(CommissionName: CHAR, Currency: CHAR, MinSumma: DECIMAL, Acct: CHAR, 
+											Period: INTEGER, Date: DATE, ShowErrorMsg: LOGICAL,
+											out Commission_Type:CHAR ): DECIMAL
+			=================================================================================================
+			| Возвращает значение заданной комиссии на дату, т.е. 15% функция вернет как 15.0
+			| Commission_Type возвращает тип значения - {%|=}
+
+
+			GetCommRate_ULL(CommissionName: CHAR, Currency: CHAR, MinSumma: DECIMAL, Acct: CHAR, 
+											Period: INTEGER, Date: DATE, ShowErrorMsg: LOGICAL): DECIMAL
+			=================================================================================================
+			| Возвращает значение заданной комиссии на дату, уже поделенное на 100, т.е. 15% функция вернет как 0.15
+			
+			
+			GetSumRate_ULL(CommissionName: CHAR, Currency: CHAR, MinSumma: DECIMAL, Acct: CHAR, 
+											Period: INTEGER, Date: DATE, ShowErrorMsg: LOGICAL): DECIMAL
+			=================================================================================================
+			| Возращает расчитанное значение комиссии с суммы по счету и т.д.											
+
+
+*/
+
+
+&IF DEFINED(ulib_i)=0
+&THEN
+  &GLOBAL-DEFINE ulib_i
+
+
+/** Подгружаем функции для работы с датами. */
+{intrface.get date}
+/** Функции для работы с метасхемой */
+{intrface.get xclass}
+{intrface.get cust}
+{intrface.get dps}
+{intrface.get dpspr}
+
+
+DEF VAR MONTH_NAMES AS CHAR EXTENT 12 INIT ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябть","Ноябрь","Декабрь"] NO-UNDO.
+
+/** Предопределения, чтобы в самой библиотеке можно было использовать функции */
+FUNCTION GetDpsCommission_ULL RETURN DECIMAL (INPUT inLoan AS CHAR,	INPUT inTypeComm AS CHAR,	INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL) FORWARD.
+
+
+FUNCTION isTemplate RETURNS LOGICAL(INPUT checkSTR AS CHAR) FORWARD.     /* ФУНКЦИЯ ПРОВЕРЯЕТ СТРОКА checkSTR является ли шаблоном */
+
+
+
+
+/** Реализация */
+
+
+
+FUNCTION GetParamByName_ULL RETURNS CHAR (INPUT aParam AS CHAR, INPUT aName AS CHAR, INPUT aDef AS CHAR, INPUT aDelim AS CHAR).
+/** Вход: aParam - строка в которой ищутся параметры
+ **       aName - искомый параметр
+ **       aDef - значение по умолчанию
+ **       aDelim - разделитель параметров
+ ** Выход: значение параметра типа CHAR, либо значение по умолчанию, 
+ **        если параметр отсутствует
+*/
+
+  DEF VAR iii AS INTEGER NO-UNDO.
+
+  DO iii = 1 TO NUM-ENTRIES(aParam, aDelim):
+    IF TRIM(ENTRY(1, ENTRY(iii, aParam, aDelim), "=")) = aName THEN RETURN TRIM(ENTRY(2, ENTRY(iii, aParam, aDelim), "=")).
+  END.
+  RETURN aDef.
+END FUNCTION.
+
+
+
+FUNCTION LoopReplace_ULL RETURNS CHAR (INPUT source-string AS CHAR, INPUT from-string AS CHAR, INPUT to-string AS CHAR).
+/** Вход: source-string - строка в которой ищутся подстроки from-string
+ **       from-string - искомая для замены строка
+ **       to-string - заменяющая строка
+ ** Выход: строка, в которой все подстроки from-string заменены на to-string
+ **        В отличие от REPLACE в случае если очередная замена создает новую подстроку from-string,
+ **        то она вновь обрабатывается.
+*/
+	
+	DEF VAR outValue AS CHAR.
+	
+	outValue = source-string.
+	DO WHILE INDEX(outValue, from-string) > 0:
+		outValue = REPLACE(outValue, from-string, to-string).
+	END.
+	
+	RETURN outValue.
+	
+END FUNCTION.
+
+
+FUNCTION StrToWin_ULL RETURNS CHARACTER (INPUT arg1 AS CHARACTER).
+/* Вход: arg1:строка
+** Выход: строка в кодировке windows-1251
+*/
+	RETURN CODEPAGE-CONVERT(arg1,"1251",SESSION:CHARSET).
+END FUNCTION.
+
+
+FUNCTION FirstIndicateCandoIn_ULL RETURNS char (
+        input code as char,
+        input val as char,
+        input d as date,
+        input wait as char,
+        input start as char).
+
+   def buffer bfrDatablock for datablock.
+   def buffer bfrDataline for dataline.
+   def var result as char init "" no-undo.
+
+
+   
+   find first bfrDatablock where bfrDatablock.dataclass-id = code
+                                 and
+                                 bfrDatablock.beg-date <= d
+                                 no-lock no-error.
+   if avail bfrDatablock then do:
+     for each bfrDataline of bfrDatablock
+         where
+               bfrDataline.sym1 = start
+               and
+               can-do(bfrDataline.sym2, entry(INT(bfrDataline.sym4), val))
+         :
+
+		 /** Рекурсия - в чистом виде */
+         if bfrDataline.txt = "" then
+           result = FirstIndicateCandoIn_ULL(code, val, d, wait, bfrDataline.sym3).
+         else
+           result = bfrDataline.txt.
+           
+         /** результат = Если значение совпадает с ожидаемым */
+         if can-do(wait, result) then return result.
+ 
+     end.
+   end.
+
+END FUNCTION.         
+
+
+FUNCTION GetUserInfo_ULL RETURNS CHAR (INPUT arg1 AS CHAR,
+									   INPUT arg2 AS CHAR,
+									   INPUT arg3 AS LOGICAL).
+
+	def buffer bfrUser for _user.
+	
+	def var i as integer no-undo.
+	def var result as char no-undo.
+	
+	find first bfrUser where bfrUser._userid = arg1 no-lock no-error.
+	if avail bfrUser then do:
+		do i = 1 to num-entries(arg2):
+			if result > "" then result = result + ",".
+			if entry(i, arg2) = "fio" then do:
+				result = result + bfrUser._user-name.
+			end.
+		end.
+	end.
+	
+	RETURN result.
+
+END FUNCTION.									   
+
+FUNCTION FIOShort_ULL RETURNS CHAR (INPUT arg1 AS CHAR,
+                                    INPUT arg2 AS LOGICAL).
+    def var result as char no-undo.
+	
+	result = entry(1, arg1, " ") + " ".
+	if num-entries(arg1, " ") = 2 then do:
+		result = result + entry(2, arg1, " ").
+	end. else do:
+		result = result + SUBSTR(ENTRY(2, arg1, " "), 1, 1) + "." +
+				SUBSTR(ENTRY(3, arg1, " "), 1, 1) + ".".
+	end.
+	RETURN result.
+				
+END FUNCTION.                                    
+
+FUNCTION GetAcctPosValueEx_UAL RETURNS DECIMAL (
+		INPUT inAcct AS CHAR,
+		INPUT inCur  AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inStatus AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE VAR acctCur AS CHAR.
+		DEFINE VAR acctPos AS DECIMAL.
+		DEFINE VAR lstSince AS DATE.
+		
+		DEFINE BUFFER bfrAcct FOR acct.
+		DEFINE BUFFER bfrAcctPos FOR acct-pos.
+		DEFINE BUFFER bfrAcctCur FOR acct-cur.
+		DEFINE BUFFER bfrOpEntry FOR op-entry.
+		
+		/* Определим код валюты */
+		/* acctCur = SUBSTRING(inAcct, 6, 3). */
+		IF inCur = "" THEN inCur = "810".
+		acctCur = inCur.
+		
+		/* Проверка: существует ли счет? */
+		FIND FIRST bfrAcct WHERE
+			bfrAcct.acct = inAcct
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrAcct THEN
+			DO:
+				/* Инициализируем */
+				lstSince = bfrAcct.open-DATE.
+
+				/* Найдем остаток по счету на последний закрытый день */
+				IF acctCur = "810" THEN
+					DO:
+						FIND LAST bfrAcctPos WHERE
+							bfrAcctPos.acct = inAcct
+							AND
+							bfrAcctPos.since LE inDate
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrAcctPos THEN
+							ASSIGN 
+								acctPos = bfrAcctPos.balance
+								lstSince = bfrAcctPos.since + 1.
+					END.
+				ELSE
+					DO:
+						FIND LAST bfrAcctCur WHERE
+							bfrAcctCur.acct = inAcct
+							AND
+							bfrAcctCur.since LE inDate
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrAcctCur THEN
+							ASSIGN 
+								acctPos = bfrAcctCur.balance
+								lstSince = bfrAcctCur.since + 1.
+					END.
+				
+				outErrorStr = "Найденный остаток по счету " + inAcct + " в валюте " + acctCur + " на дату " 
+					+ STRING(inDate,"99/99/9999") + " равен " + STRING(acctPos,"->>>,>>>,>>>,>>>,>>9.99") + CHR(10).
+				
+				FOR EACH bfrOpEntry WHERE
+					bfrOpEntry.op-DATE GE lstSince
+					AND
+					bfrOpEntry.op-DATE LE inDate
+					AND
+					bfrOpEntry.acct-db = inAcct
+					AND 
+					bfrOpEntry.op-status GE inStatus
+					NO-LOCK
+					:
+							IF bfrAcct.side = "П" THEN 
+								IF acctCur = "810" THEN
+									acctPos = acctPos + bfrOpEntry.amt-rub.
+								ELSE
+									acctPos = acctPos + bfrOpEntry.amt-cur.
+							ELSE
+								IF acctCur = "810" THEN
+									acctPos = acctPos + bfrOpEntry.amt-rub.
+								ELSE
+									acctPos = acctPos + bfrOpEntry.amt-cur.
+				END.
+
+				outErrorStr = outErrorStr + "Найденная сумма проводок со статусом не ниже '" + inStatus + "' по дебету по счету в незакрытых днях " + inAcct + " в валюте " + acctCur + " на дату " 
+					+ STRING(inDate,"99/99/9999") + " изменила остаток до значения " + STRING(acctPos,"->>>,>>>,>>>,>>>,>>9.99") + CHR(10).
+
+				FOR EACH bfrOpEntry WHERE
+					bfrOpEntry.op-DATE GE lstSince
+					AND
+					bfrOpEntry.op-DATE LE inDate
+					AND
+				  bfrOpEntry.acct-cr = inAcct
+					AND 
+					bfrOpEntry.op-status GE inStatus
+				  NO-LOCK
+					:
+							IF bfrAcct.side = "П" THEN 
+								IF acctCur = "810" THEN
+									acctPos = acctPos - bfrOpEntry.amt-rub.
+								ELSE
+									acctPos = acctPos - bfrOpEntry.amt-cur.
+							ELSE
+								IF acctCur = "810" THEN
+									acctPos = acctPos - bfrOpEntry.amt-rub.
+								ELSE
+									acctPos = acctPos - bfrOpEntry.amt-cur.
+				END.
+
+				outErrorStr = outErrorStr + "Найденная сумма проводок со статусом не ниже '" + inStatus + "' по кредиту по счету в незакрытых днях " + inAcct + " в валюте " + acctCur + " на дату " 
+					+ STRING(inDate,"99/99/9999") + " изменила остаток до значения " + STRING(acctPos,"->>>,>>>,>>>,>>>,>>9.99") + CHR(10).
+
+			END.
+		ELSE
+			outErrorStr = "Cчет " + inAcct + " не найден!" + CHR(10).  
+		
+		/* Выдаем ошибки на экран */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetAcctPosValueEx_UAL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		outValue = acctPos.
+		RETURN outValue.
+
+
+		/** Конец функции GetAcctPosValueEx_UAL */
+END FUNCTION.
+
+FUNCTION GetAcctPosValue_UAL RETURNS DECIMAL (
+		INPUT inAcct AS CHAR,
+		INPUT inCur  AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		RETURN GetAcctPosValueEx_UAL(inAcct, inCur, inDate, CHR(251), inShowErrorMsg).
+		
+		/* Конец функции GetAcctPosValue_UAL */		
+END FUNCTION.
+
+FUNCTION GetAcctClientName_UAL RETURNS CHAR (
+		INPUT inAcct AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+
+		DEF BUFFER bfrAcct FOR acct.
+		DEF BUFFER bfrCustCorp FOR cust-corp.
+		DEF BUFFER bfrPerson FOR person.
+		DEF BUFFER bfrBanks FOR banks.
+		
+		/* Найдем счет */
+		FIND FIRST bfrAcct WHERE	
+			bfrAcct.acct = inAcct
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrAcct THEN
+			DO:
+				IF bfrAcct.cust-cat = "Ю" THEN
+					DO:
+						FIND FIRST bfrCustCorp WHERE
+							bfrCustCorp.cust-id = bfrAcct.cust-id
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrCustCorp THEN
+							/** outValue = bfrCustCorp.cust-stat + " " + bfrCustCorp.name-corp. */
+							outValue = bfrCustCorp.name-short.
+					END.
+				IF bfrAcct.cust-cat = "Ч" THEN
+					DO:
+						FIND FIRST bfrPerson WHERE
+							bfrPerson.person-id = bfrAcct.cust-id
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrPerson THEN
+							outValue = bfrPerson.name-LAST + " " + bfrPerson.first-names.
+					END.
+				IF bfrAcct.cust-cat = "Б" THEN
+					DO:
+						FIND FIRST bfrBanks WHERE
+							bfrBanks.bank-id = bfrAcct.cust-id
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrBanks THEN
+							outValue = outValue + bfrBanks.name.
+					END.
+			END.
+		ELSE
+			outErrorStr = "Cчет " + inAcct + " не найден!" + CHR(10).  
+			
+		/* Выдаем ошибки на экран */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetAcctClientName_UAL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+	  /* Конец функции GetAcctClientName_UAL */
+END FUNCTION.
+
+FUNCTION GetAcctClientID_ULL RETURNS CHAR (
+		INPUT inAcct AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+
+		DEF BUFFER bfrAcct FOR acct.
+
+		/* Найдем счет */
+		FIND FIRST bfrAcct WHERE	
+			bfrAcct.acct = inAcct
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrAcct THEN
+			DO:
+				outValue = bfrAcct.cust-cat + "," + (IF bfrAcct.cust-id <> ? THEN STRING(bfrAcct.cust-id) ELSE "0").
+			END.
+		ELSE
+			outErrorStr = "Cчет " + inAcct + " не найден!" + CHR(10).  
+			
+		/* Выдаем ошибки на экран */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetAcctClientID_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+	  /* Конец функции GetAcctClientName_UAL */
+END FUNCTION.
+
+
+FUNCTION GetClientInfo_ULL RETURNS CHAR (
+		INPUT inClientId AS CHAR,
+		INPUT inInfo AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR NO-UNDO.
+		DEFINE VAR outValue AS CHAR NO-UNDO.
+		DEFINE VAR outValue2 AS CHAR NO-UNDO.
+		DEFINE VAR i AS INTEGER NO-UNDO.
+		DEFINE VAR j AS INTEGER NO-UNDO.
+		DEFINE VAR tmp AS CHAR NO-UNDO.
+
+		DEF BUFFER bfrCustCorp FOR cust-corp.
+		DEF BUFFER bfrPerson FOR person.
+		DEF BUFFER bfrBanks FOR banks.
+		DEF BUFFER bfrBanksCode FOR banks-code.
+		DEF BUFFER bfrCustIdent FOR cust-ident.
+		
+			DO:
+				IF ENTRY(1, inClientID) = "Ю" THEN
+					DO:
+						FIND FIRST bfrCustCorp WHERE
+							bfrCustCorp.cust-id = INT(ENTRY(2, inClientID))
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrCustCorp THEN DO:
+							DO i = 1 TO NUM-ENTRIES(inInfo):
+								IF outValue <> "" THEN outValue = outValue + ",".
+								IF ENTRY(i, inInfo) = "name" THEN
+									/** outValue = outValue + bfrCustCorp.cust-stat + " " + bfrCustCorp.name-corp. */
+									outValue = outValue + bfrCustCorp.name-short.
+								IF ENTRY(i, inInfo) = "fullname" THEN
+								    outValue = outValue + GetXAttrValueEx("cust-corp", STRING(cust-corp.cust-id), "FullName", "").
+								IF ENTRY(i, inInfo) = "inn" THEN 
+									outValue = outValue + bfrCustCorp.inn.
+								IF ENTRY(i, inInfo) = "country" THEN 
+									outValue = outValue + bfrCustCorp.country-id.
+
+								IF (ENTRY(i, inInfo) BEGINS "addr") 
+								   AND
+								   (NUM-ENTRIES(ENTRY(i, inInfo), ":") = 2) 
+								THEN DO:
+								    outErrorStr = "debug: " + ENTRY(i, inInfo) + " ... num-entries = " + string(NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";")) + CHR(10).
+									DO j = 1 TO NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";") :
+										FIND LAST bfrCustIdent WHERE 
+												   bfrCustIdent.cust-code-type = ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") AND
+												   bfrCustIdent.cust-cat = ENTRY(1, inClientID) AND
+												   bfrCustIdent.cust-id = bfrCustCorp.cust-id
+												   NO-LOCK NO-ERROR.
+									    IF outValue2 <> "" THEN outValue2 = outValue2 + ";". 
+										if AVAIL bfrCustIdent then 
+											DO:
+												outValue2 = outValue2 + bfrCustIdent.issue.
+											END.				
+										else
+										    outErrorStr = outErrorStr + "Идент.личности " + ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") + " не найден!" + CHR(10).  
+									END.
+									outValue = outValue + outValue2.
+								END. ELSE 
+									outErrorStr = outErrorStr + "'addr' имеет неправильный формат! Должен быть 'ident:<code>;<code>;...'" + CHR(10).
+									
+							END.
+						END. ELSE 
+							outErrorStr = "Клиент " + inClientId + " не найден!" + CHR(10).  
+					END.
+				IF ENTRY(1, inClientID) = "Ч" THEN
+					DO:
+						FIND FIRST bfrPerson WHERE
+							bfrPerson.person-id = INT(ENTRY(2, inClientID))
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrPerson THEN DO:
+							DO i = 1 TO NUM-ENTRIES(inInfo):
+								IF outValue <> "" THEN outValue = outValue + ",".
+								IF ENTRY(i, inInfo) = "name" THEN
+									outValue = bfrPerson.name-last + " " + bfrPerson.first-names.
+								IF ENTRY(i, inInfo) = "inn" THEN 
+									outValue = outValue + bfrPerson.inn.
+								IF ENTRY(i, inInfo) = "country" THEN 
+									outValue = outValue + bfrPerson.country-id.
+								IF (ENTRY(i, inInfo) BEGINS "ident") 
+								   AND
+								   (NUM-ENTRIES(ENTRY(i, inInfo), ":") = 2) 
+								THEN DO:
+								    outErrorStr = "debug: " + ENTRY(i, inInfo) + " ... num-entries = " + string(NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";")) + CHR(10).
+									DO j = 1 TO NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";") :
+										FIND LAST bfrCustIdent WHERE 
+												   bfrCustIdent.cust-code-type = ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") AND
+												   bfrCustIdent.cust-cat = ENTRY(1, inClientID) AND
+												   bfrCustIdent.cust-id = bfrPerson.person-id
+												   NO-LOCK NO-ERROR.
+									    IF outValue2 <> "" THEN outValue2 = outValue2 + ";". 
+										if AVAIL bfrCustIdent then 
+											DO:
+												tmp = GetXAttrValueEx("cust-ident", 
+														          bfrCustIdent.cust-code-type + "," 
+														          + bfrCustIdent.cust-code + ","  
+																  + STRING(bfrCustIdent.cust-type-num),
+																  "Подразд", "").  
+												outValue2 = outValue2 + GetCodeName("КодДокум", bfrCustIdent.cust-code-type) + ": " + 
+														bfrCustIdent.cust-code + ". Выдан: " + 
+														REPLACE(REPLACE(bfrCustIdent.issue, CHR(10), ""), CHR(13), "") +
+														" " + tmp +	" " + STRING(bfrCustIdent.open-date, "99.99.9999").
+											END.				
+										else
+										    outErrorStr = outErrorStr + "Идент.личности " + ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") + " не найден!" + CHR(10).  
+									END.
+									outValue = outValue + outValue2.
+								END. ELSE 
+									outErrorStr = outErrorStr + "'ident' имеет неправильный формат! Должен быть 'ident:<code>;<code>;...'" + CHR(10).
+									
+								IF (ENTRY(i, inInfo) BEGINS "addr") 
+								   AND
+								   (NUM-ENTRIES(ENTRY(i, inInfo), ":") = 2) 
+								THEN DO:
+								    outErrorStr = "debug: " + ENTRY(i, inInfo) + " ... num-entries = " + string(NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";")) + CHR(10).
+									DO j = 1 TO NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";") :
+										FIND LAST bfrCustIdent WHERE 
+												   bfrCustIdent.cust-code-type = ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") AND
+												   bfrCustIdent.cust-cat = ENTRY(1, inClientID) AND
+												   bfrCustIdent.cust-id = bfrPerson.person-id
+												   NO-LOCK NO-ERROR.
+									    IF outValue2 <> "" THEN outValue2 = outValue2 + ";". 
+										if AVAIL bfrCustIdent then 
+											DO:
+												outValue2 = outValue2 + bfrCustIdent.issue.
+											END.				
+										else
+										    outErrorStr = outErrorStr + "Идент.личности " + ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") + " не найден!" + CHR(10).  
+									END.
+									outValue = outValue + outValue2.
+								END. ELSE 
+									outErrorStr = outErrorStr + "'addr' имеет неправильный формат! Должен быть 'ident:<code>;<code>;...'" + CHR(10).
+
+							END.
+						END. ELSE 
+							outErrorStr = "Клиент " + inClientId + " не найден!" + CHR(10).  
+					END.
+				IF ENTRY(1, inClientID) = "Б" THEN
+					DO:
+						FIND FIRST bfrBanks WHERE
+							bfrBanks.bank-id = INT(ENTRY(2, inClientID))
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrBanks THEN DO:
+							DO i = 1 TO NUM-ENTRIES(inInfo):
+								IF outValue <> "" THEN outValue = outValue + ",".
+								IF ENTRY(i, inInfo) = "name" THEN
+									outValue = outValue + bfrBanks.name.
+								IF ENTRY(i, inInfo) = "inn" THEN 
+									outValue = outValue + bfrBanks.inn.
+								IF ENTRY(i, inInfo) = "country" THEN 
+									outValue = outValue + bfrBanks.country-id.
+								IF (ENTRY(i, inInfo) BEGINS "bank-code") 
+								   AND
+								   (NUM-ENTRIES(ENTRY(i, inInfo), ":") = 2) 
+								THEN DO:
+								    outErrorStr = "debug: " + ENTRY(i, inInfo) + " ... num-entries = " + string(NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";")) + CHR(10).
+									DO j = 1 TO NUM-ENTRIES(ENTRY(2, ENTRY(i, inInfo), ":"), ";") :
+										FIND FIRST bfrBanksCode WHERE 
+												   bfrBanksCode.bank-id = bfrBanks.bank-id AND
+												   bfrBanksCode.bank-code-type = ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";")
+												   NO-LOCK NO-ERROR.
+									    IF outValue2 <> "" THEN outValue2 = outValue2 + ";". 
+										if AVAIL bfrBanksCode then 
+											outValue2 = outValue2 + bfrBanksCode.bank-code.
+										else
+										    outErrorStr = outErrorStr + "Код банка " + ENTRY(j, ENTRY(2, ENTRY(i, inInfo), ":"), ";") + " не найден!" + CHR(10).  
+									END.
+									outValue = outValue + outValue2.
+								END. ELSE 
+									outErrorStr = outErrorStr + "'bank-code' имеет неправильный формат! Должен быть 'bank-code:<code>;<code>;...'" + CHR(10).
+							END.
+						END. ELSE 
+							outErrorStr = "Клиент " + inClientId + " не найден!" + CHR(10).  
+							
+					END.
+			END.
+			
+		/* Выдаем ошибки на экран */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetClientInfo_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+	  /* Конец функции GetClientInfo_ULL */
+END FUNCTION.
+
+
+/* 
+
+			
+
+*/
+
+
+FUNCTION GetCredLoanParamValue_ULL RETURNS DECIMAL (
+		INPUT inLoan AS CHAR,
+		INPUT inParam AS INTEGER,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrLoanVar FOR loan-Var.
+		
+		/* Реализация */
+		/** 
+		 * Значение различных параметров хранится в различных таблицах. Так, например, текущее значение 
+		 * параметра 4 хранится в непосредственно с таблице loan в поле interest[1], а в таблицу loan-var 
+		 * заносится запись о погашении процентов. Другие значения хранятся в таблице loan-var
+		 */
+		
+		FOR EACH bfrLoan WHERE
+				bfrLoan.contract = "Кредит"
+				AND
+				(
+					bfrLoan.cont-code = inLoan
+					OR
+					bfrLoan.cont-code begins inLoan + " "
+				)
+				AND
+				bfrLoan.open-date LE inDate
+				NO-LOCK
+			:
+				IF (bfrLoan.since LT inDate) AND inShowErrorMsg THEN
+					DO:
+						outErrorStr = outErrorStr + bfrLoan.cont-code 
+								+ " пересчитан ранее " + STRING(inDate,"99/99/9999") 
+								+ " - не учитывается!" + CHR(10).
+						NEXT.
+					END.
+				IF inParam = 4 THEN
+					DO:
+						outValue = loan.interest[1].
+					END.
+				ELSE 
+					DO:
+						FIND LAST bfrLoanVar WHERE 
+							bfrLoanVar.contract = bfrLoan.contract
+							AND
+							bfrLoanVar.cont-code = bfrLoan.cont-code
+							AND
+							bfrLoanVar.since LE inDate
+							AND
+							bfrLoanVar.amt-id = inParam
+							NO-LOCK NO-ERROR.
+				
+						IF AVAIL bfrLoanVar THEN
+							outValue = outValue + balance.
+						ELSE IF inShowErrorMsg
+							THEN outErrorStr = outErrorStr + "Значение параметра " + STRING(inParam) + " договора " + bfrLoan.cont-code + " на дату " + STRING(inDate,"99/99/9999") + " не определено!" + CHR(10).
+					END.
+				
+		/* EACH bfrLoan */ 
+		END.
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetCredLoanParamValue_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+
+		/* Конец функции GetCredLoanParamValue_ULL */		
+END FUNCTION.
+
+FUNCTION GetCredLoanCommission_ULL RETURNS DECIMAL (
+		INPUT inLoan AS CHAR,
+		INPUT inComm AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE BUFFER bfrCommRate FOR comm-rate.
+		
+		/* Реализация */
+		FIND LAST bfrCommRate WHERE 
+				bfrCommRate.commission = inComm
+				AND
+				bfrCommRate.kau = "Кредит," + inLoan
+				AND
+				bfrCommRate.since LE inDate
+				NO-LOCK NO-ERROR.
+		IF AVAIL bfrCommRate THEN
+			outValue = bfrCommRate.rate-comm / 100.
+		ELSE
+			outErrorStr = "Значение комиссии " + inComm + " на дату " + STRING(inDate,"99/99/9999") + " не найдено!".
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetCredLoanCommission_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+
+		/* Конец функции GetCredLoanCommission_ULL */
+END FUNCTION.
+
+FUNCTION GetCredLoanAcct_ULL RETURNS CHAR (
+		INPUT inLoan AS CHAR,
+		INPUT inRole AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		
+		/* Обпределение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+		DEFINE BUFFER bfrLoanAcct FOR loan-acct.
+
+		/* Реализация */
+		FIND LAST bfrLoanAcct WHERE
+				bfrLoanAcct.contract = "Кредит"
+				AND
+				bfrLoanAcct.cont-code = inLoan
+				AND
+				bfrLoanAcct.acct-type = inRole
+				AND
+				bfrLoanAcct.since LE inDate
+				NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoanAcct THEN
+			outValue = bfrLoanAcct.acct.
+		ELSE
+			outErrorStr = "В картотеке счетов кредитного договора " + inLoan + " счет с ролью " 
+					+ inRole + " не найден на дату " + STRING(inDate,"99/99/9999") + "!".
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetCredLoanAcct_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+				
+		/* Конец функции GetCredLoanAcct_ULL */
+END FUNCTION.
+
+FUNCTION GetCredLoanInfo_ULL RETURNS CHAR (
+		INPUT inLoan AS CHAR,
+		INPUT inName AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrCustCorp FOR cust-corp.
+		DEFINE BUFFER bfrSigns FOR signs.
+		DEFINE BUFFER bfrPerson FOR person.
+		/* Реализация */
+		
+		FIND FIRST bfrLoan WHERE 
+			bfrLoan.contract = "Кредит"
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN
+			DO:
+				/* Дата открытия договора */
+				IF inName = "open_date" THEN
+					DO:
+						/* Дата открытия в системе может быть перекрыта датой регистрации, 
+						   значение которой хранится в доп.реквизите договора.
+						*/
+						FIND FIRST bfrSigns WHERE
+							bfrSigns.code = "ДатаСогл"
+							AND
+							bfrSigns.file-name = "loan"
+							AND
+							bfrSigns.surrogate = "Кредит," + bfrLoan.cont-code
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrSigns THEN
+							RETURN bfrSigns.code-value.
+						
+						/* Если доп.реквизита нет, то */
+						RETURN STRING(bfrLoan.open-date, "99/99/9999").
+					END.
+				/* Наименование клиента */
+				IF inName = "client_name" THEN
+					DO:
+						IF bfrLoan.cust-cat = "Ю" THEN
+							DO:
+								FIND FIRST bfrCustCorp WHERE bfrCustCorp.cust-id = bfrLoan.cust-id NO-LOCK NO-ERROR.
+								IF AVAIL bfrCustCorp THEN	
+									RETURN TRIM(bfrCustCorp.cust-stat + " " + bfrCustCorp.name-corp).
+							END.
+						IF bfrLoan.cust-cat = "Ч" THEN
+							DO:
+								FIND FIRST bfrPerson WHERE bfrPerson.person-id = bfrLoan.cust-id NO-LOCK NO-ERROR.
+								IF AVAIL bfrPerson THEN
+									RETURN bfrPerson.name-last + " " + bfrPerson.first-names.
+							END.
+					END.
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор " + inLoan + " не найден в БД!" + CHR(10).
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetCredLoanInfo_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		outValue = "".
+		RETURN outValue.
+
+		/* Конец функции GetCredLoanInfo_ULL */		
+END FUNCTION.
+
+/** 3 класс функций С 16.02.2006 11:44 */
+
+FUNCTION GetLoanParamValue_ULL RETURNS DECIMAL (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inParam AS INTEGER,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL ).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR tmpDate AS DATE.
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrLoanVar FOR loan-Var.
+		DEFINE BUFFER bfrLoanInt FOR loan-int.
+		
+		/* Реализация */
+		/** 
+		 * Значение различных параметров хранится в различных таблицах. Так, например, текущее значение 
+		 * параметра 4 хранится в непосредственно с таблице loan в поле interest[1], а в таблицу loan-var 
+		 * заносится запись о погашении процентов. Другие значения хранятся в таблице loan-var
+		 */
+		
+		FOR EACH bfrLoan WHERE
+				bfrLoan.contract = inLoanType
+				AND
+				(
+					bfrLoan.cont-code = inLoan
+					OR
+					bfrLoan.cont-code begins inLoan + " "
+				)
+				AND
+				bfrLoan.open-date LE inDate
+				AND (
+					bfrLoan.close-date = ?
+					OR
+					bfrLoan.close-date GE inDate
+					)
+				NO-LOCK
+			:
+				IF (bfrLoan.since LT inDate) THEN
+					DO:
+						IF inShowErrorMsg THEN 
+							outErrorStr = outErrorStr + bfrLoan.cont-code 
+								+ " пересчитан ранее " + STRING(inDate,"99/99/9999") 
+								+ " - не учитывается!" + CHR(10).
+						NEXT.
+					END.
+				IF inParam = 4 THEN
+					DO:
+						outValue = loan.interest[1].
+					END.
+					
+				FIND LAST bfrLoanVar WHERE 
+							bfrLoanVar.contract = bfrLoan.contract
+							AND
+							bfrLoanVar.cont-code = bfrLoan.cont-code
+							AND
+							bfrLoanVar.since LE inDate
+							AND
+							bfrLoanVar.amt-id = inParam
+							NO-LOCK NO-ERROR.
+				
+				IF AVAIL bfrLoanVar THEN 
+							DO:
+								IF inShowErrorMsg THEN 
+									outErrorStr = outErrorStr + "Значение параметра " + STRING(inParam) + " договора " + bfrLoan.cont-code + " на дату " + STRING(inDate,"99/99/9999") + " " + STRING(balance) + "." + CHR(10).
+								outValue = outValue + balance.
+								tmpDate = bfrLoanVar.since.
+							END.
+				ELSE
+							DO:
+								IF inShowErrorMsg THEN 
+									outErrorStr = outErrorStr + "Значение параметра " + STRING(inParam) + " договора " + bfrLoan.cont-code + " на дату " + STRING(inDate,"99/99/9999") + " не определено!" + CHR(10).
+								tmpDate = bfrLoan.open-date - 1.
+							END.
+						
+						FOR EACH bfrLoanInt WHERE 
+							bfrLoanInt.contract = bfrLoan.contract
+							AND
+							bfrLoanInt.cont-code = bfrLoan.cont-code
+							AND
+							bfrLoanInt.mdate GT tmpDate
+							AND
+							bfrLoanInt.mdate LE inDate
+							AND
+							bfrLoanInt.id-k = inParam
+							NO-LOCK
+							:
+							outValue = outValue - amt-rub.
+						END.
+
+						FOR EACH bfrLoanInt WHERE 
+							bfrLoanInt.contract = bfrLoan.contract
+							AND
+							bfrLoanInt.cont-code = bfrLoan.cont-code
+							AND
+							bfrLoanInt.mdate GT tmpDate
+							AND
+							bfrLoanInt.mdate LE inDate
+							AND
+							bfrLoanInt.id-d = inParam
+							NO-LOCK
+							:
+							outValue = outValue + amt-rub.
+						END.
+							
+		/* EACH bfrLoan */ 
+		END.
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetLoanParamValue_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+
+		/* Конец функции GetLoanParamValue_ULL */		
+END FUNCTION.
+
+FUNCTION GetLoanCommissionEx_ULL RETURNS DECIMAL (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inComm AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL,
+		OUTPUT outValueType AS CHAR).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR NO-UNDO.
+		DEFINE VAR outValue AS DECIMAL NO-UNDO.
+		DEFINE BUFFER bfrCommRate FOR comm-rate.
+		
+		/* Реализация */
+		FIND LAST bfrCommRate WHERE 
+				bfrCommRate.commission = inComm
+				AND
+				bfrCommRate.kau = inLoanType + "," + inLoan
+				AND
+				bfrCommRate.since LE inDate
+				NO-LOCK NO-ERROR.
+		IF AVAIL bfrCommRate THEN
+			ASSIGN
+				outValue = bfrCommRate.rate-comm
+				outValueType = (if bfrCommRate.rate-fixed then "=" else "%").
+		ELSE
+			outErrorStr = "Значение комиссии " + inComm + " на дату " + STRING(inDate,"99/99/9999") + " не найдено!".
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetLoanCommissionEx_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+
+		/* Конец функции GetLoanCommissionEx_ULL */
+END FUNCTION.
+
+FUNCTION GetLoanCommission_ULL RETURNS DECIMAL (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inComm AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE VAR outValueType AS CHAR.
+		
+		outValue = GetLoanCommissionEx_ULL(inLoanType, inLoan, inComm, inDate, inShowErrorMsg, outValueType) / 100.
+		
+		RETURN outValue.
+
+		/* Конец функции GetLoanCommission_ULL */
+END FUNCTION.
+
+FUNCTION isTemplate RETURNS LOGICAL (INPUT checkSTR AS CHAR).
+
+     /****************************************************************************************************
+       *									         *
+       *   Функция проверяет подходит ли указанная строка под определение шаблона.       *
+       *   То есть проверяет наличие в строке символов *,!, и .			         *
+       *									         *
+       *************************************************************************************************** */
+
+         IF ( INDEX(checkSTR,"*") NE 0 OR INDEX(checkSTR,"!") NE 0 OR INDEX(checkSTR,".") NE 0 OR INDEX(checkSTR,",") NE 0) THEN 
+		    RETURN TRUE.
+		 ELSE
+		    RETURN FALSE.
+
+END.
+
+FUNCTION GetLoanAcct_ULL RETURNS CHAR(
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inRole AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+/*
+
+  Автор: Маслов Д. А.
+  Примечание:
+     Переделано с целью ускорения работы процедуры.
+     Испробовано три варианта.
+           1ый вариант выполняется слишком медленно.
+           2ой вариант прерывает выполнение на 411 шаге.
+           3ий вариант хоть и корявый, но работает достаточно быстро 
+            и вроде как без ошибок.
+
+*/
+		
+		/* Обпределение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+		DEFINE BUFFER bfrLoanAcct FOR loan-acct.
+
+
+/* ****************************************************************************************************************************************************
+1ый вариант с использованием динамического буфера 
+		DEFINE VARIABLE query1 AS CHARACTER.
+		DEFINE VARIABLE bfrLoanAcct AS HANDLE NO-UNDO.
+
+		CREATE BUFFER bfrLoanAcct FOR TABLE "loan-acct".
+
+		DEFINE VARIABLE hField AS HANDLE NO-UNDO.
+
+		query1 = "WHERE <cond1> AND <cond2> AND since LE " + QUOTER(inDate).
+
+		IF isTemplate(inLoan) THEN
+				            query1 = REPLACE(query1,"<cond1>","CAN-DO(" + QUOTER(inLoan) + ",cont-code)").
+			  	    ELSE
+				            query1 = REPLACE(query1,"<cond1>","contract = " + QUOTER(inLoanType)).
+
+		IF isTemplate(inRole) THEN 
+				           query1 = REPLACE(query1,"<cond2>","CAN-DO(" + QUOTER(inRole) + ",acct-type)").
+				     ELSE
+				           query1 = REPLACE(query1,"<cond2>","acct-type=" + QUOTER(inRole)).
+
+		bfrLoanAcct:FIND-LAST(query1,NO-LOCK) NO-ERROR.
+
+		IF bfrLoanAcct:AVAILABLE THEN
+		     DO:
+				hField = bfrLoanAcct:BUFFER-FIELD("acct").
+				outValue = hField:STRING-VALUE.
+		     END.
+*******************************************************************************************************************************************************/
+
+/* *****************************************************************************************************************************************************
+2ой вариант с использованием динамического запроса
+		DEFINE BUFFER bfrLoanAcct FOR loan-acct.
+
+		/* Определяем динамический буфер */
+		DEFINE VARIABLE hQuery AS HANDLE NO-UNDO.
+		CREATE QUERY hQuery.
+
+		/* Указываем ему таблицу с которой будем работать */
+		hQuery:SET-BUFFERS(BUFFER bfrLoanAcct:HANDLE).
+
+		/* Формируем запрос к БД на основе того в каком виде переданы inLoan и inRole */
+		DEFINE VARIABLE query1 AS CHARACTER.
+		query1="FOR EACH bfrLoanAcct WHERE <cond1> AND <cond2> AND bfrLoanAcct.since LE " + QUOTER(inDate).
+
+		IF isTemplate(inLoan) THEN
+				            query1 = REPLACE(query1,"<cond1>","CAN-DO(" + QUOTER(inLoan) + ",bfrLoanAcct.cont-code)").
+			  	    ELSE
+				            query1 = REPLACE(query1,"<cond1>","bfrLoanAcct.contract = " + QUOTER(inLoanType)).
+
+		IF isTemplate(inRole) THEN 
+				           query1 = REPLACE(query1,"<cond2>","CAN-DO(" + QUOTER(inRole) + ",bfrLoanAcct.acct-type)").
+				     ELSE
+				           query1 = REPLACE(query1,"<cond2>","bfrLoanAcct.acct-type=" + QUOTER(inRole)).					
+				        					
+		/* Подготавливаем запрос */
+		hQuery:QUERY-PREPARE(query1).
+
+		/* Открываем запрос */
+		hQuery:QUERY-OPEN().
+
+		IF hQuery:NUM-RESULTS NE 0 THEN
+			DO:
+	  		/* Получаем текущую запись */
+			hQuery:GET-LAST(NO-LOCK).	
+			outValue = bfrLoanAcct.acct.
+			END.
+		ELSE
+			outErrorStr = "В картотеке счетов договора " + inLoan + " счет с ролью " 
+					+ inRole + " не найден на дату " + STRING(inDate,"99/99/9999") + "!".
+
+		hQuery:QUERY-CLOSE().
+********************************************************************************************************************************************************/
+
+/* 3ий вариант корявый, но работающий */
+
+		IF NOT isTemplate(inLoan) AND NOT isTemplate(inRole) THEN
+		    DO:
+			/* Оба переданных параметра склярные значения */
+			FIND LAST bfrLoanAcct WHERE
+				bfrLoanAcct.contract = inLoanType
+				AND
+				bfrLoanAcct.cont-code = inLoan
+				AND
+				bfrLoanAcct.acct-type = inRole
+				AND
+				bfrLoanAcct.since LE inDate
+				NO-LOCK NO-ERROR.
+		    END.
+		    ELSE
+		        DO:
+			/* Первый параметр скляр, второй шаблон */
+			IF isTemplate(inLoan) AND NOT isTemplate(inRole) THEN
+                                                    DO:
+			          FIND LAST bfrLoanAcct WHERE
+				  bfrLoanAcct.contract = inLoanType
+				  AND
+				  CAN-DO(inLoan, bfrLoanAcct.cont-code)
+				  AND
+				  bfrLoanAcct.acct-type = inRole
+				  AND
+				  bfrLoanAcct.since LE inDate
+				  NO-LOCK NO-ERROR.
+		                   END.
+		                   ELSE
+			         DO:
+			            IF NOT isTemplate(inLoan) AND isTemplate(inRole) THEN
+				 DO:
+				        /* Первый параметр шаблон, второй скляр */
+			                        FIND LAST bfrLoanAcct WHERE
+				                 bfrLoanAcct.contract = inLoanType
+				                   AND
+					   bfrLoanAcct.cont-code = inLoan
+					   AND
+					CAN-DO(inRole,bfrLoanAcct.acct-type)
+					   AND
+					bfrLoanAcct.since LE inDate
+					NO-LOCK NO-ERROR.
+				 END.
+				    ELSE
+				            DO:
+					/* Оба параметра шаблоны */
+  			                                 FIND LAST bfrLoanAcct WHERE
+				                 bfrLoanAcct.contract = inLoanType
+				                   AND
+					CAN-DO(inLoan, bfrLoanAcct.cont-code)
+					   AND
+					CAN-DO(inRole,bfrLoanAcct.acct-type)
+					   AND
+					bfrLoanAcct.since LE inDate
+					NO-LOCK NO-ERROR.					   
+				            END.
+		                          END.
+			END.
+
+		IF AVAIL bfrLoanAcct THEN
+			outValue = bfrLoanAcct.acct.
+		ELSE
+			outErrorStr = "В картотеке счетов договора " + inLoan + " счет с ролью " 
+					+ inRole + " не найден на дату " + STRING(inDate,"99/99/9999") + "!".
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetLoanAcct_ULL сообщает ***" + CHR(10) + outErrorStr 
+				              + CHR(10) + "is inLoan a mask? = " + STRING(isTemplate(inLoan)) 
+				              + CHR(10) + "is inRole a mask? = " + STRING(isTemplate(inRole)).
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+				
+		/* Конец функции GetLoanAcct_ULL */
+END FUNCTION.
+
+FUNCTION GetLoanInfo_ULL RETURNS CHAR (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inName AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS CHAR.
+		DEFINE VAR tmp AS CHAR.
+		DEFINE VAR i AS INTEGER.
+		DEFINE VAR n AS INTEGER. /** порядковый номер договора обеспечения. задается в параметре inName */
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrCustCorp FOR cust-corp.
+		DEFINE BUFFER bfrSigns FOR signs.
+		DEFINE BUFFER bfrPerson FOR person.
+		DEFINE BUFFER bfrBanks FOR banks.
+		DEFINE BUFFER bfrTermObl FOR term-obl.
+		/* Реализация */
+		
+		FIND FIRST bfrLoan WHERE 
+			bfrLoan.contract = inLoanType
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN
+			DO:
+				DO i = 1 TO NUM-ENTRIES(inName) :
+				IF outValue <> "" THEN outValue = outValue + ",".
+				/* Дата открытия договора */
+				IF ENTRY(i,inName) = "open_date" THEN
+					DO:
+						/* Дата открытия в системе может быть перекрыта датой регистрации, 
+						   значение которой хранится в доп.реквизите договора.
+						*/
+						FIND FIRST bfrSigns WHERE
+							bfrSigns.code = "ДатаСогл"
+							AND
+							bfrSigns.file-name = "loan"
+							AND
+							bfrSigns.surrogate = bfrLoan.contract + "," + bfrLoan.cont-code
+							NO-LOCK NO-ERROR.
+						IF AVAIL bfrSigns THEN
+							outValue = outValue + bfrSigns.code-value.
+						ELSE
+							/* Если доп.реквизита нет, то */
+							outValue = outValue + STRING(bfrLoan.open-date, "99/99/9999").
+					END.
+				/** Дата окончания договора */
+				IF ENTRY(i,inName) = "end_date" THEN
+					DO:
+						outValue = outValue + STRING(bfrLoan.end-date,"99/99/9999").
+					END.
+				/* Наименование клиента */
+				IF ENTRY(i,inName) BEGINS "client" THEN
+					DO:
+						IF bfrLoan.cust-cat = "Ю" THEN
+							DO:
+								FIND FIRST bfrCustCorp WHERE bfrCustCorp.cust-id = bfrLoan.cust-id NO-LOCK NO-ERROR.
+								IF AVAIL bfrCustCorp THEN	DO:
+									IF ENTRY(i,inName) = "client_name" THEN 
+										/** outValue = outValue + TRIM(bfrCustCorp.cust-stat + " " + bfrCustCorp.name-corp). */
+										outValue = outValue + bfrCustCorp.name-short.
+									IF ENTRY(i,inName) = "client_fullname" THEN
+									    outValue = outValue + GetXAttrValueEx("cust-corp", STRING(bfrCustCorp.cust-id), "FullName", "").
+									IF ENTRY(i,inName) = "client_short_name" THEN
+										outValue = outValue + TRIM(bfrCustCorp.name-short).
+									IF ENTRY(i,inName) = "client_country" THEN 
+									  outValue = outValue + bfrCustCorp.country-id.
+									IF ENTRY(i,inName) = "client_address" THEN 
+									  outValue = outValue + LoopReplace_ULL(bfrCustCorp.addr-of-low[1],",,",",").
+								END.
+							END.
+						IF bfrLoan.cust-cat = "Ч" THEN
+							DO:
+								FIND FIRST bfrPerson WHERE bfrPerson.person-id = bfrLoan.cust-id NO-LOCK NO-ERROR.
+								IF AVAIL bfrPerson THEN DO:
+									IF CAN-DO("client_name,client_short_name", ENTRY(i,inName)) THEN
+										outValue = outValue + bfrPerson.name-last + " " + bfrPerson.first-names.
+									IF ENTRY(i,inName) = "client_country" THEN
+										outValue = outValue + bfrPerson.country-id.
+									IF ENTRY(i,inName) = "client_address" THEN
+									  outValue = LoopReplace_ULL(outValue + address[1] + " " + address[2],",,",",").
+								END.
+							END.
+						IF bfrLoan.cust-cat = "Б" THEN
+							DO:
+								FIND FIRST bfrBanks WHERE bfrBanks.bank-id = bfrLoan.cust-id NO-LOCK NO-ERROR.
+								IF AVAIL bfrBanks THEN DO:
+									IF ENTRY(i,inName) = "client_name" THEN
+										outValue = outValue + bfrBanks.name.
+									IF ENTRY(i,inName) = "client_country" THEN
+										outValue = outValue + bfrBanks.country-id.
+									IF ENTRY(i, inName) = "client_address" THEN 
+									  outValue = outValue + LoopReplace_ULL(bfrBanks.law-address, ",,", ",").
+								END.
+								ELSE outErrorStr = outErrorStr + "Банк с кодом '" + STRING(bfrLoan.cust-id) 
+													+ "' не найден!" + CHR(10).
+							END.
+					END.
+				IF ENTRY(i,inName) = "risk" THEN
+					DO:
+						outValue = outValue + STRING(bfrLoan.risk).
+					END.
+				IF ENTRY(i,inName) = "gr_riska" THEN
+					DO:
+						outValue = outValue + STRING(bfrLoan.gr-riska).
+					END.
+				/** Наименование поручителя из n-ого договора обеспечения */
+				IF ENTRY(i, inName) BEGINS "guarantor_name" THEN
+					DO:
+						tmp = ENTRY(i, inName).
+						/** Проверяем синтаксис: имя_параметра(<n>) */
+						IF NUM-ENTRIES(tmp, "(") = 2 AND NUM-ENTRIES(tmp, ")") = 2 THEN
+							DO:
+								/** Возьмем индекс - порядковый номер договора обеспечения, проверяя тип индекса*/
+								n = INT(ENTRY(1,ENTRY(2, tmp, "("), ")")) NO-ERROR.
+								IF NOT ERROR-STATUS:ERROR THEN
+									DO:
+										/** Найдем обеспечение с порядковым номером n */
+										FIND FIRST bfrTermObl WHERE RECID(bfrTermObl) = n
+												NO-LOCK NO-ERROR.
+										IF AVAIL bfrTermObl THEN 
+											DO:
+												IF bfrTermObl.symbol = "Ч" THEN DO:
+													FIND FIRST bfrPerson WHERE bfrPerson.person-id = bfrTermObl.fop NO-LOCK NO-ERROR.
+													IF AVAIL bfrPerson THEN DO:
+														outValue = outValue + bfrPerson.name-last + " " + bfrPerson.first-names.
+													END.
+												END.
+												IF bfrTermObl.symbol = "Ю" THEN DO:
+													FIND FIRST bfrCustCorp WHERE bfrCustCorp.cust-id = bfrTermObl.fop NO-LOCK NO-ERROR.
+													IF AVAIL bfrCustCorp THEN	DO:
+														/* Buryagin commented at 30.09.2010 12:36
+														outValue = outValue + TRIM(bfrCustCorp.cust-stat + " " + bfrCustCorp.name-corp).
+														*/
+														outValue = outValue + TRIM(bfrCustCorp.name-short).
+													END.
+												END.
+												IF bfrTermObl.symbol = "Б" THEN DO:
+													FIND FIRST bfrBanks WHERE bfrBanks.bank-id = bfrTermObl.fop NO-LOCK NO-ERROR.
+													IF AVAIL bfrBanks THEN DO:
+														outValue = outValue + bfrBanks.name.
+													END.
+												END.
+											END.
+										ELSE
+											outErrorStr = outErrorStr + "Для договора '" + bfrLoan.contract + "." + bfrLoan.cont-code 
+													+ "' договор обеспечения с порядковым номером '" + STRING(n) + "' не найден!" + CHR(10).
+									END.
+								ELSE
+									outErrorStr = outErrorStr + "Индекс в параметре '" + tmp + "' не является целым числом!" + CHR(10).								
+							END.
+						ELSE
+							outErrorStr = outErrorStr + "Синтаксис параметра '" + tmp 
+								+ "' неверный! Должно быть: guarantor_name(n), где n - порядковый номер договора обеспечения." + CHR(10).
+					END.
+					
+				END. /* DO i = ... */
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор " + inLoan + " не найден в БД!" + CHR(10).
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetLoanInfo_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+
+		/* Конец функции GetLoanInfo_ULL */		
+END FUNCTION.
+
+FUNCTION GetMainLoan_ULL RETURN CHAR (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inShowErrorMsg AS LOGICAL).
+		/** Определение локальных переменных */
+		DEF VAR outValue AS CHAR.
+		DEF VAR outErrorStr AS CHAR.
+		DEF BUFFER bfrLoan FOR loan.
+		/** Найдем переданный договор */
+		FIND FIRST bfrLoan WHERE
+			bfrLoan.contract = inLoanType
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN
+			DO:
+				IF NUM-ENTRIES(bfrLoan.cont-code," ") > 1 THEN
+					outValue = bfrLoan.contract + "," + ENTRY(1,bfrLoan.cont-code," ").
+				ELSE
+					outValue = bfrLoan.contract + "," + bfrLoan.cont-code.
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор " + inLoanType + "," + inLoan + " не найден!" + CHR(10).
+			
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetMainLoan_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+END FUNCTION.
+
+FUNCTION GetLoanLimit_ULL RETURN DECIMAL (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		/** Определение внутренних переменных */
+		DEF VAR outErrorStr AS CHAR.
+		DEF VAR outValue AS DECIMAL.
+		DEF BUFFER bfrLoan FOR loan.
+		DEF BUFFER bfrTermObl FOR term-obl.
+		/** Найдем договор */
+		FIND FIRST bfrLoan WHERE 
+			bfrLoan.contract = inLoanType
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN 
+			DO:
+				/** Найдем какую-то фигну, которая содержит информацию о лимите */
+				FIND LAST bfrTermObl WHERE
+					bfrTermObl.contract = bfrLoan.contract
+					AND
+					bfrTermObl.cont-code = bfrLoan.cont-code
+					AND
+					bfrTermObl.end-date LE inDate
+					AND
+					bfrTermObl.idnt = 2
+					NO-LOCK NO-ERROR.
+				IF AVAIL bfrTermObl THEN
+					DO:
+						outValue = bfrTermObl.amt.
+					END.
+				ELSE
+					outErrorStr = outErrorStr + "Не найдена запись в таблице term-obl для договора " + 
+						bfrLoan.contract + "," + bfrLoan.cont-code + ", в которой хранится информация о лимите!" + CHR(10).
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор " + inLoanType + "," + inLoan + " не найден!" + CHR(10).
+
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetMainLoan_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+			
+		RETURN outValue.
+END FUNCTION.
+
+FUNCTION GetLoanNextDatePercentPayOut_ULL RETURNS DATE (
+		INPUT inLoanType AS CHAR,
+		INPUT inLoan AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DATE.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrLoanCond FOR loan-cond.
+		DEF VAR tmpDate AS DATE.
+		/** Найдем договор, переданный в функцию */
+		FIND FIRST bfrLoan WHERE 
+			bfrLoan.contract = inLoanType
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN
+			DO:
+				/** Найдем условия договора, действующие на дату параметра inDate */
+				FIND LAST bfrLoanCond WHERE 
+					bfrLoanCond.contract = bfrLoan.contract
+					AND
+					bfrLoanCond.cont-code = bfrLoan.cont-code
+					AND
+					bfrLoanCond.since LE inDate
+					NO-LOCK NO-ERROR.
+				IF AVAIL bfrLoanCond THEN
+					DO:
+						CASE bfrLoanCond.int-period :
+							WHEN "КМ[1]" OR WHEN "КМ[2]" OR WHEN "КМ[3]" OR WHEN "КМ[4]" OR WHEN "КМ[5]" OR WHEN "КМ[6]"
+													 OR WHEN "КМ[7]" OR WHEN "КМ[8]" OR WHEN "КМ[9]" OR WHEN "КМ[10]" OR WHEN "КМ[11]" 
+							THEN	
+								DO:
+									outValue = DATE(MONTH(bfrLoanCond.since),bfrLoanCond.int-date,YEAR(bfrLoanCond.since)).
+									REPEAT WHILE outValue < inDate :
+										outValue = GoMonth(outValue, INTEGER(ENTRY(1,ENTRY(2, bfrLoanCond.int-period, "["),"]"))).
+									END.
+								END.
+							WHEN "КС" THEN
+								outValue = bfrLoan.end-date.
+							/* Каждый квартал, относительно даты открытия */
+							WHEN "КК" THEN 
+								DO:
+									outValue = DATE(MONTH(bfrLoanCond.since), 1, YEAR(bfrLoanCond.since)).
+									/** outValue = GoMonth(outValue, bfrLoanCond.int-month - 1). */
+									/** 
+									  Сдвигаем дату.
+									*/  
+									REPEAT WHILE outValue < inDate 
+										OR 
+										(
+											MONTH(bfrLoan.open-date) = MONTH(outValue) 
+											AND
+											YEAR(bfrLoan.open-date) = YEAR(outValue)
+										):
+										outValue = GoMonth(outValue, 3).
+									IF bfrLoanCond.int-date = 31 THEN
+										outValue = DATE(MONTH(outValue), RE_KDAYS(MONTH(outValue),YEAR(outValue)), YEAR(outValue)).
+									ELSE
+										outValue = DATE(MONTH(outValue), bfrLoanCond.int-date, YEAR(outValue)).
+									END.
+									/** Вызываем персистентную функцию из pp-date.p */
+									/** outValue = kvart_end(inDate).		*/
+								END.
+							WHEN "КМ" THEN 
+								DO:
+									/** Вызываем персистентную функцию из pp-date.p */
+									outValue = LastMonDate(inDate).		
+								END.
+							/** Каждый календарный квартал */
+							WHEN "К" THEN 
+								DO:
+									outValue = kvart_beg(inDate).
+									
+									/** MESSAGE "1 " outValue VIEW-AS ALERT-BOX. */
+									
+									outValue = GoMonth(outValue, bfrLoanCond.int-month - 1).
+									
+									/** MESSAGE "2 " outValue VIEW-AS ALERT-BOX. */
+									
+									IF bfrLoanCond.int-date = 31 THEN
+										outValue = DATE(MONTH(outValue), RE_KDAYS(MONTH(outValue),YEAR(outValue)), YEAR(outValue)).
+									ELSE
+								    	outValue = DATE(MONTH(outValue), bfrLoanCond.int-date, YEAR(outValue)).
+									/** 
+									  Сдвигаем дату.
+									*/
+									
+									/** MESSAGE "before while " outvalue VIEW-AS ALERT-BOX. */
+									  
+									REPEAT WHILE outValue < inDate 
+										/*OR 
+										(
+											MONTH(bfrLoan.open-date) = MONTH(outValue) 
+											AND
+											YEAR(bfrLoan.open-date) = YEAR(outValue)
+										)*/
+										:
+										outValue = GoMonth(outValue, 3).
+										
+										/** MESSAGE "into cycle outvalue= " outValue VIEW-AS ALERT-BOX. */ 
+										
+										/*
+										IF bfrLoanCond.int-date = 31 THEN
+											outValue = DATE(MONTH(outValue), RE_KDAYS(MONTH(outValue),YEAR(outValue)), YEAR(outValue))
+										ELSE
+									    	outValue = DATE(MONTH(outValue), bfrLoanCond.int-date, YEAR(outValue)).
+									    */
+									END.
+								END.
+							WHEN "М" THEN 
+								DO:
+									/*outValue = DATE(MONTH(inDate),bfrLoanCond.int-date,YEAR(inDate)).*/
+									outValue = LastMonDate(inDate).
+									IF DAY(inDate) > bfrLoanCond.int-date THEN
+										outValue = GoMonth(outValue, 1).										
+								END.
+							OTHERWISE
+								outErrorStr = outErrorStr + "Неизвестный тип периода выплаты процентов!" + CHR(10).
+						END CASE.
+						/** Добавляем к дате количество дней из поля "Пробег" */
+						outValue = outValue + bfrLoanCond.delay.
+						/** Если договор должен закончиться раньше */
+						IF bfrLoan.end-date < outValue THEN outValue = bfrLoan.end-date.
+					END.
+				ELSE
+					outErrorStr = outErrorStr + "Условия договора " + bfrLoan.contract + "," + bfrLoan.cont-code
+						+ " не найдены!" + CHR(10).
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор ," + inLoan	+ " не найден!" + CHR(10).
+
+
+		/** Вывод накопившихся ошибок */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetLoanNextDatePercentPayOut_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+		
+		RETURN outValue.
+		
+END FUNCTION.
+
+
+
+FUNCTION GetDpsCurrentPersent_ULL RETURNS DECIMAL (
+		INPUT inLoan AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE VAR lastNachDate AS DATE.
+		/** Счет процентов */
+		DEFINE VAR loanAcctInt AS CHAR.
+		DEFINE VAR i AS DATE.
+		DEFINE VAR mainPeriod AS INTEGER INITIAL 365.
+		DEFINE VAR commRate AS DECIMAL.
+		DEFINE VAR loanAcct AS CHAR.
+		DEFINE VAR oldPos AS DECIMAL.
+		DEFINE VAR newPos AS DECIMAL.
+		DEF VAR beg-sub-period AS DATE.
+		DEF VAR period AS INTEGER.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrOp FOR op.
+		DEFINE BUFFER bfrOpEntry FOR op-entry.
+		/* Реализация */
+		FIND FIRST bfrLoan WHERE
+			bfrLoan.contract = "dps"
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN DO:
+			IF (bfrLoan.end-date <> ?) AND (bfrLoan.end-date < inDate) THEN
+				DO:
+					outValue = 0.
+					RETURN outValue.
+				END.
+			loanAcctInt = GetLoanAcct_ULL(bfrLoan.contract, bfrLoan.cont-code, "loan-dps-int", inDate, false).
+			IF bfrLoan.cont-type = "ДВ" THEN
+				DO:
+					lastNachDate = DATE(MONTH(inDate),1,YEAR(inDate)) - 1.
+				END.
+			ELSE
+				DO:
+					lastNachDate = bfrLoan.open-date.
+					FOR LAST bfrOpEntry WHERE
+						(
+					  	(
+					  		bfrOpEntry.acct-cr = loanAcctInt
+					  		AND
+					  		bfrOpEntry.kau-cr = bfrLoan.contract + "," + bfrLoan.cont-code + ",НачПр"
+					  	)
+					  	OR 
+					  	(
+					  		bfrOpEntry.acct-db BEGINS "7"
+					  		AND
+					  		bfrOpEntry.kau-cr BEGINS bfrLoan.contract + "," + bfrLoan.cont-code + ","
+					  	)
+					  )
+					  AND
+					  bfrOpEntry.op-date LE inDate
+					  AND
+					  bfrOpEntry.op-date GE bfrLoan.open-date
+					  NO-LOCK,
+					FIRST bfrOp OF bfrOpEntry 
+				    NO-LOCK
+					:
+						lastNachDate = bfrOp.contract-date.
+					END.
+				END.
+			IF TRUNCATE(YEAR(lastNachDate + 1) / 4,0) = YEAR(lastNachDate + 1) / 4 THEN 
+				mainPeriod = 366. ELSE mainPeriod = 365.
+			loanAcct = GetLoanAcct_ULL(bfrLoan.contract, bfrLoan.cont-code, "loan-dps-t,loan-dps-p", lastNachDate, false).
+			newPos = ABS(GetAcctPosValue_UAL(loanAcct, bfrLoan.currency, lastNachDate, false)).
+			commRate = GetDpsCommission_ULL(bfrLoan.cont-code, "commission", lastNachDate, false).
+			beg-sub-period = lastNachDate.
+			/** Rаждый день */
+			DO i = lastNachDate + 1 TO inDate - 1 :
+				oldPos = newPos.
+				newPos = ABS(GetAcctPosValue_UAL(loanAcct, bfrLoan.currency, i, false)).
+				IF (newPos <> oldPos) OR (DAY(i + 1) = 1) THEN DO:
+					IF TRUNCATE(YEAR(i) / 4,0) = (YEAR(i) / 4) THEN 
+						mainPeriod = 366. ELSE mainPeriod = 365.
+					period = i - beg-sub-period.
+					outValue = outValue + oldPos * commRate * period / mainPeriod.
+					beg-sub-period = i.
+				END.
+			END.	
+			period = inDate - beg-sub-period.
+			outValue = outValue + newPos * commRate * period / mainPeriod.
+		END.
+		RETURN outValue.
+END FUNCTION.
+			
+FUNCTION GetDpsCommission_ULL RETURN DECIMAL (
+		INPUT inLoan AS CHAR,
+		INPUT inTypeComm AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR    NO-UNDO.
+		DEFINE VAR outValue    AS DECIMAL NO-UNDO.
+		DEF VAR localMinValue  AS DECIMAL NO-UNDO.
+		
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrLoanAcct FOR loan-acct.
+		DEFINE BUFFER bfrSigns FOR signs.
+		DEFINE BUFFER bfrCommRate FOR comm-rate.
+		
+		
+		/** Реализация */
+		FIND FIRST bfrLoan WHERE
+			bfrLoan.contract = "dps"
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN DO:
+			FIND LAST bfrLoanAcct WHERE
+				bfrLoanAcct.contract = bfrLoan.contract
+				AND
+				bfrLoanAcct.cont-code = bfrLoan.cont-code
+				AND
+				CAN-DO("loan-dps-t,loan-dps-p",bfrLoanAcct.acct-type)
+				AND
+				bfrLoanAcct.since LE inDate
+				NO-LOCK NO-ERROR.
+			IF AVAIL bfrLoanAcct THEN DO:
+				FIND FIRST bfrSigns WHERE 
+					bfrSigns.code = inTypeComm
+					AND
+					file-name = "op-template"
+					AND
+					surrogate BEGINS bfrLoan.op-kind
+					NO-LOCK NO-ERROR.
+				IF AVAIL bfrSigns THEN DO:
+					localMinValue = ABS(
+							GetAcctPosValueEx_UAL(bfrLoanAcct.acct, bfrLoan.currency, 
+								(IF bfrLoan.cont-type = "ДВ" THEN inDate ELSE bfrLoanAcct.since), "Ф", false)
+							).
+					IF localMinValue = 0 THEN 
+						localMinValue = ABS(
+							GetAcctPosValueEx_UAL(bfrLoanAcct.acct, bfrLoan.currency, 
+								(IF bfrLoan.cont-type = "ДВ" THEN inDate ELSE bfrLoanAcct.since + 1), "Ф", false)
+							).
+					IF localMinValue = 0 THEN 
+						localMinValue = ABS(
+							GetAcctPosValueEx_UAL(bfrLoanAcct.acct, bfrLoan.currency, 
+								(IF bfrLoan.cont-type = "ДВ" THEN inDate ELSE bfrLoanAcct.since + 2), "Ф", false)
+							).
+					IF localMinValue = 0 THEN 
+						localMinValue = ABS(
+							GetAcctPosValueEx_UAL(bfrLoanAcct.acct, bfrLoan.currency, 
+								(IF bfrLoan.cont-type = "ДВ" THEN inDate ELSE bfrLoanAcct.since + 3), "Ф", false)
+							).		
+							
+					/** MESSAGE STRING(localMinValue) VIEW-AS ALERT-BOX. */
+					FIND LAST bfrCommRate WHERE
+						bfrCommRate.commission = bfrSigns.code-value
+						AND
+						bfrCommRate.currency = bfrLoan.currency
+						
+						AND
+						bfrCommRate.min-value LE localMinValue
+						AND
+						(
+							bfrCommRate.period = 0
+							OR
+							bfrCommRate.period LE (bfrLoan.end-date - bfrLoan.open-date)
+						)
+						AND
+						(
+							(
+								bfrCommRate.acct = "0"
+								AND 
+								bfrCommRate.since <= bfrLoan.open-date
+							)
+							OR
+							(
+								bfrCommRate.acct = bfrLoanAcct.acct
+								AND
+								bfrCommRate.since <= inDate
+							)
+						)
+						/*USE-INDEX comm-rate*/
+						NO-LOCK NO-ERROR.
+					IF AVAIL bfrCommRate THEN DO:
+						outValue = bfrCommRate.rate-comm / 100. 
+						END.
+				END.
+			END.
+		END.
+		RETURN outValue.
+END FUNCTION.
+
+FUNCTION GetDpsNextDatePercentPayOut_ULL RETURNS DATE (
+		INPUT inLoan AS CHAR,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DATE.
+		DEFINE BUFFER bfrLoan FOR loan.
+		DEFINE BUFFER bfrLoanCond FOR loan-cond.
+		DEF VAR tmpDate AS DATE.
+		/** Найдем договор, переданный в функцию */
+		FIND FIRST bfrLoan WHERE 
+			bfrLoan.contract = "dps"
+			AND
+			bfrLoan.cont-code = inLoan
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrLoan THEN
+			DO:
+				/** Найдем условия договора, действующие на дату параметра inDate */
+				FIND LAST bfrLoanCond WHERE 
+					bfrLoanCond.contract = bfrLoan.contract
+					AND
+					bfrLoanCond.cont-code = bfrLoan.cont-code
+					AND
+					bfrLoanCond.since LE inDate
+					NO-LOCK NO-ERROR.
+				IF AVAIL bfrLoanCond THEN
+					DO:
+						CASE bfrLoanCond.int-period :
+							WHEN "КМ[1]" OR WHEN "КМ[2]" OR WHEN "КМ[3]" OR WHEN "КМ[4]" OR WHEN "КМ[5]" OR WHEN "КМ[6]"
+													 OR WHEN "КМ[7]" OR WHEN "КМ[8]" OR WHEN "КМ[9]" OR WHEN "КМ[10]" OR WHEN "КМ[11]" 
+							THEN	
+								DO:
+									outValue = DATE(MONTH(bfrLoanCond.since),bfrLoanCond.int-date,YEAR(bfrLoanCond.since)).
+									REPEAT WHILE outValue < inDate :
+										outValue = GoMonth(outValue, INTEGER(ENTRY(1,ENTRY(2, bfrLoanCond.int-period, "["),"]"))).
+									END.
+								END.
+							WHEN "КС" THEN
+								outValue = bfrLoan.end-date.
+							WHEN "КК" THEN 
+								DO:
+									/** Вызываем персистентную функцию из pp-date.p */
+									outValue = kvart_end(inDate).		
+								END.
+							WHEN "КМ" THEN 
+								DO:
+									/** Вызываем персистентную функцию из pp-date.p */
+									outValue = LastMonDate(inDate).		
+								END.
+							WHEN "К" THEN 
+								DO:
+									outValue = kvart_beg(inDate).
+									outValue = GoMonth(outValue, bfrLoanCond.int-month - 1).
+									/** Формируем дату здесь и потом Таким же образом после сдвига ниже */
+									IF bfrLoanCond.int-date = 31 THEN
+										outValue = DATE(MONTH(outValue), RE_KDAYS(MONTH(outValue),YEAR(outValue)), YEAR(outValue)).
+									ELSE
+										outValue = DATE(MONTH(outValue), bfrLoanCond.int-date, YEAR(outValue)).
+									/** 
+									  Сдвигаем дату.
+									*/  
+									REPEAT WHILE outValue < inDate 
+										OR 
+										(
+											MONTH(bfrLoan.open-date) = MONTH(outValue) 
+											AND
+											YEAR(bfrLoan.open-date) = YEAR(outValue)
+										):
+										outValue = GoMonth(outValue, 3).
+									  /** Корректировка */
+									  IF bfrLoanCond.int-date = 31 THEN
+										  outValue = DATE(MONTH(outValue), RE_KDAYS(MONTH(outValue),YEAR(outValue)), YEAR(outValue)).
+									  ELSE
+										  outValue = DATE(MONTH(outValue), bfrLoanCond.int-date, YEAR(outValue)).
+									END.
+
+								END.
+							WHEN "М" THEN 
+								DO:
+									outValue = DATE(MONTH(inDate),bfrLoanCond.int-date,YEAR(inDate)).
+									/* Если найденная дата уже прошла, то двигаем дату на 1 месяц вперед */
+									IF DAY(inDate) > DAY(outValue) THEN
+										outValue = GoMonth(outValue, 1).
+									/** Сдвигаем на 1 месяц если месяц и год расчетной даты равны месяцу и году начала условий */
+									IF (MONTH(outValue) = MONTH(bfrLoanCond.since)) AND (YEAR(outValue) = YEAR(bfrLoanCond.since)) THEN
+										outValue = GoMonth(outValue, 1).
+								END.
+							OTHERWISE
+								outErrorStr = outErrorStr + "Неизвестный тип периода выплаты процентов!" + CHR(10).
+						END CASE.
+						/** Если договор должен закончиться раньше */
+						IF bfrLoan.end-date < outValue THEN outValue = bfrLoan.end-date.
+					END.
+				ELSE
+					outErrorStr = outErrorStr + "Условия договора " + bfrLoan.contract + "," + bfrLoan.cont-code
+						+ " не найдены!" + CHR(10).
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Договор dps," + inLoan	+ " не найден!" + CHR(10).
+
+
+		/** Вывод накопившихся ошибок */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetDpsNextDatePercentPayOut_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+		
+		RETURN outValue.
+		
+END FUNCTION.
+
+FUNCTION GetCommRateEx_ULL RETURNS DECIMAL (
+		INPUT inCommission AS CHAR,
+		INPUT inCurrency AS CHAR,
+		INPUT inMinSumma AS DECIMAL,
+		INPUT inAcct AS CHAR,
+		INPUT inPeriod AS INTEGER,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL,
+		OUTPUT outValueType AS CHAR).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outErrorStr AS CHAR.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE BUFFER bfrCommRate FOR comm-rate.
+
+		FIND LAST bfrCommRate WHERE
+			bfrCommRate.commission = inCommission
+			AND
+			bfrCommRate.currency = inCurrency
+			AND
+			bfrCommRate.since LE inDate
+			AND
+			bfrCommRate.min-value LE inMinSumma
+			AND
+			(
+				bfrCommRate.period = 0
+				OR
+				bfrCommRate.period LE inPeriod
+			)
+			AND
+			(
+				bfrCommRate.acct = "0"
+				OR
+				bfrCommRate.acct = inAcct
+			)
+			/*USE-INDEX comm-rate
+			В.Н.Ермилов - 19/01/2011
+			После изменений таблицы comm-rate в 65ом патче использование данного индекса стало неоптимальным!
+			*/
+			NO-LOCK NO-ERROR.
+		IF AVAIL bfrCommRate THEN DO:
+			outValue = bfrCommRate.rate-comm.
+			outValueType = (if bfrCommRate.rate-fixed then "=" else "%").
+			outErrorStr = outErrorStr + "Найденная ставка: '" + bfrCommRate.commission + "," +  
+					bfrCommRate.currency + "," + STRING(bfrCommRate.since) + "," + 
+					STRING(bfrCommRate.min-value) + "," + STRING(bfrCommRate.period) + "," + 
+					bfrCommRate.acct + "," + STRING(bfrCommRate.rate-comm) +  "," + STRING(outValue) + "," + outValueType + "'." + CHR(10).	
+			END.
+		ELSE
+			outErrorStr = outErrorStr + "Ставка комиссии '" + inCommission + "' не найдена!" + CHR(10).	
+		
+		/** Вывод накопившихся ошибок */
+		IF outErrorStr <> "" AND inShowErrorMsg THEN 
+			DO:
+				outErrorStr = "*** Функция ulib.i:GetCommRateEx_ULL сообщает ***" + CHR(10) + outErrorStr.
+				MESSAGE outErrorStr VIEW-AS ALERT-BOX.
+			END.
+		
+		RETURN outValue.
+
+END FUNCTION.
+
+
+FUNCTION GetCommRate_ULL RETURNS DECIMAL (
+		INPUT inCommission AS CHAR,
+		INPUT inCurrency AS CHAR,
+		INPUT inMinSumma AS DECIMAL,
+		INPUT inAcct AS CHAR,
+		INPUT inPeriod AS INTEGER,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+
+		/* Определение внутренних переменных */
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE VAR outValueType AS CHAR.
+		
+		outValue = GetCommRateEx_ULL(inCommission, inCurrency, inMinSumma, inAcct, inPeriod, 
+		                             inDate, inShowErrorMsg, outValueType) / 100.
+		
+		RETURN outValue.
+		
+END FUNCTION.
+
+
+FUNCTION GetSumRate_ULL RETURNS DECIMAL (
+		INPUT inCommission AS CHAR,
+		INPUT inCurrency AS CHAR,
+		INPUT inSumma AS DECIMAL,
+		INPUT inAcct AS CHAR,
+		INPUT inPeriod AS INTEGER,
+		INPUT inDate AS DATE,
+		INPUT inShowErrorMsg AS LOGICAL).
+		
+		DEFINE VAR commRate AS DECIMAL.
+		DEFINE VAR outValue AS DECIMAL.
+		DEFINE VAR outValueType AS CHAR.
+		
+		outValue = GetCommRateEx_ULL(inCommission, inCurrency, inSumma, inAcct, inPeriod, 
+		                             inDate, inShowErrorMsg, outValueType).
+		                             
+        IF outValueType = "=" THEN 
+        	RETURN outValue.
+        ELSE 
+        	RETURN inSumma * (outValue / 100).
+			
+END FUNCTION. 
+
+FUNCTION getLoanAttr RETURNS CHARACTER(INPUT inLoanType AS CHAR,
+					   INPUT inLoan AS CHAR,
+					   INPUT cFormat AS CHAR):
+
+		   /*********************************************
+		    * Функция возвращает реквизиты 	        *
+		    * договора в формате cFormat.	        *
+		    * Реквизиты должны быть в формате           *
+		    * %ИмяРеквизита			        *
+		    *********************************************
+		    *					        *
+		    * Автор: Маслов Д. А.		        *
+		    * Дата: 11:02 20.01.2011		        *
+		    * Заявка: #607 .			        *
+		    *				  	        * 
+		    *********************************************/
+
+	DEF BUFFER bfrLoan FOR loan.
+	DEF VAR cTemp AS CHARACTER NO-UNDO.  /*по заявке #1310*/
+
+	FIND FIRST bfrLoan WHERE bfrLoan.contract = inLoanType
+						       AND bfrLoan.cont-code = inLoan 
+						       NO-LOCK NO-ERROR.
+
+	IF AVAILABLE(bfrLoan) THEN 
+		DO:
+			cFormat = REPLACE(cFormat,"%cont-code",bfrLoan.cont-code).
+
+                        /*по заявке #1310*/
+
+                        cTemp = getXAttrValue("loan",inLoanType + "," + inLoan,"PirDate4Rasp").
+                        if {assigned cTemp} then cFormat = REPLACE(cFormat,"%ДатаСогл",cTemp).
+
+                        /*конец вставки по заявке #1310*/
+
+			cFormat = REPLACE(cFormat,"%ДатаСогл",getXAttrValue("loan",inLoanType + "," + inLoan,"ДатаСогл")).			
+			cFormat = REPLACE(cFormat,"%Режим",getXAttrValue("loan",inLoanType + "," + inLoan,"Режим")).			
+			cFormat = REPLACE(cFormat,"%ДатаНач",STRING(bfrLoan.open-date, "99/99/9999")).
+			cFormat = REPLACE(cFormat,"%ДатаОк",STRING(bfrLoan.end-date, "99/99/9999")).
+			cFormat = REPLACE(cFormat,"%currency",STRING(bfrLoan.currency)).
+		END.
+
+	RETURN cFormat.
+END FUNCTION.
+
+FUNCTION getMainLoanAttr RETURNS CHARACTER(INPUT inLoanType AS CHAR,
+					   INPUT inLoan AS CHAR,
+					   INPUT cFormat AS CHAR):
+
+	IF NUM-ENTRIES(inLoan," ") > 1 THEN inLoan=ENTRY(1,inLoan," ").
+	return getLoanAttr(inLoanType,inLoan,cFormat).
+END FUNCTION.
+
+/*******************************
+ * Функция возвращает имя клиента
+ * в формате принятом у нас.
+ * ООО "ОРГАНИЗАЦИЯ"
+ * Панич Петр Петрович
+ *******************************/
+
+FUNCTION getPirClName RETURNS CHARACTER (INPUT cCust-cat AS CHARACTER,INPUT cCust-id AS INT64):
+  DEF VAR clName AS CHARACTER.
+
+IF cCust-cat EQ "Ч" THEN DO:
+ RUN name_cl.p (loan.cust-cat,
+                loan.cust-id,
+                INPUT-OUTPUT clName).
+END. /* IF */
+ELSE DO:
+ RUN GetCustNameFormatted IN h_cust(loan.cust-cat,
+                loan.cust-id,
+                OUTPUT clName).
+END. /* ELSE */
+
+  RETURN clName.
+
+END FUNCTION.
+
+FUNCTION getDpsRateComm RETURNS DECIMAL(INPUT hLoan AS HANDLE,
+                                        INPUT dCurrDate AS DATE,
+                                        INPUT lType AS LOGICAL):
+    DEF VAR vCRateRID  AS ROWID             NO-UNDO.
+    DEF VAR vCommRate  AS DECIMAL   INIT ?  NO-UNDO.
+    DEF VAR vAcctStr   AS CHARACTER         NO-UNDO.
+    DEF VAR oResult    AS INT NO-UNDO.
+    DEF VAR oError     AS INT NO-UNDO.
+    DEF VAR vKau       AS CHARACTER         NO-UNDO.
+
+    DEF BUFFER bAcct FOR acct.
+
+    vKau = hLoan::contract + "," + hLoan::cont-code + "," + "ОстВклС".
+
+    RUN GetBaseAcct IN h_dps (hLoan::contract,
+                              hLoan::cont-code,
+                              dCurrDate,
+                              OUTPUT vAcctStr).
+
+
+
+{find-act.i
+   &bact = bAcct
+   &acct = "ENTRY(1, vAcctStr)"
+   &curr = "ENTRY(2, vAcctStr)"
+}
+
+
+
+RUN Calc_CommRate_1DayEx IN h_dpspr(hLoan:ROWID,
+                                    bAcct.acct,
+                                    bAcct.currency,
+                                    vKau,
+                                    TODAY,
+                                    lType,
+                                    OUTPUT vCRateRID,
+                                    OUTPUT vCommRate).
+                                    
+RETURN vCommRate.
+
+END FUNCTION.
+&ENDIF

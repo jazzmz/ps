@@ -1,0 +1,11 @@
+FUNCTION PirCalcZone3Rub RETURNS DEC(INPUT sumTransfer AS DEC,
+                                     INPUT countryRec  AS CHAR,
+                                     INPUT valTransfer AS CHAR,
+                                     INPUT isFast      AS LOG
+                                  ) IN {1}.
+
+FUNCTION PirCalcZone3Val RETURNS DEC(INPUT sumTransfer AS DEC,
+                                     INPUT countryRec  AS CHAR,
+                                     INPUT valTransfer AS CHAR,
+                                     INPUT isFast      AS LOG
+                                  ) IN {1}.

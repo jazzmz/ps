@@ -1,0 +1,8 @@
+<VirtualHost *:443>
+ ServerName svn
+  <Location /viewvc>
+  </Location>
+  SSLEngine on
+  SSLCertificateFile /etc/apache2/ssl/apache.pem
+</VirtualHost>
+

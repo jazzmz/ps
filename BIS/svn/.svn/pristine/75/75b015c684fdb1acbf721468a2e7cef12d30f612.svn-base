@@ -1,0 +1,1718 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12 Character
+&ANALYZE-RESUME
+/* Connected Databases 
+          bisquit          PROGRESS
+*/
+&Scoped-define WINDOW-NAME TERMINAL-SIMULATION
+
+
+/* Temp-Table and Buffer definitions                                    */
+DEFINE TEMP-TABLE tt-banks NO-UNDO LIKE banks
+       FIELD okato$ AS CHARACTER /* ОКАТО */
+       FIELD abwawtik$ AS CHARACTER /* АбЯщик */
+       FIELD arhiv$ AS LOGICAL /* Архив */
+       FIELD bankwemitent$ AS CHARACTER /* БанкЭмитент */
+       FIELD bik$ AS CHARACTER /* БИК */
+       FIELD blok$ AS LOGICAL /* Блок */
+       FIELD vidbanklic$ AS CHARACTER /* ВидБанкЛиц */
+       FIELD viddewat$ AS CHARACTER /* ВидДеят */
+       FIELD vidkli$ AS CHARACTER /* ВидКли */
+       FIELD gvk$ AS CHARACTER /* ГВК */
+       FIELD grawzd$ AS CHARACTER /* Гражд */
+       FIELD dataizm$ AS DATE /* ДатаИзм */
+       FIELD datakontrolwa$ AS DATE /* ДатаКонтроля */
+       FIELD dko$ AS DECIMAL /* ДкО */
+       FIELD dkowe$ AS DECIMAL /* ДкОЭ */
+       FIELD dogovor_s_mci$ AS CHARACTER /* Договор_с_МЦИ */
+       FIELD iin$ AS CHARACTER /* ИИН */
+       FIELD istoriwakl$ AS CHARACTER /* ИсторияКл */
+       FIELD klient$ AS CHARACTER /* Клиент */
+       FIELD klientuf$ AS LOGICAL /* КлиентУФ */
+       FIELD kodklienta$ AS CHARACTER /* КодКлиента */
+       FIELD kop$ AS INT64 /* КОП */
+       FIELD kopf$ AS INT64 /* КОПФ */
+       FIELD kpp$ AS CHARACTER /* КПП */
+       FIELD materinkomp$ AS CHARACTER /* МАТЕРИНкомп */
+       FIELD mbr$ AS LOGICAL /* МБР */
+       FIELD neupolbank$ AS LOGICAL /* НеУполБанк */
+       FIELD obosobpodr$ AS CHARACTER /* ОбособПодр */
+       FIELD ogrn$ AS CHARACTER /* ОГРН */
+       FIELD okato-nalog$ AS CHARACTER /* ОКАТО-НАЛОГ */
+       FIELD okvwed$ AS CHARACTER /* ОКВЭД */
+       FIELD okopf$ AS CHARACTER /* ОКОПФ */
+       FIELD ofwsor$ AS CHARACTER /* Офшор */
+       FIELD ocenkariska$ AS CHARACTER /* ОценкаРиска */
+       FIELD pokrytie$ AS LOGICAL /* Покрытие */
+       FIELD postkorresp$ AS CHARACTER /* ПостКорресп */
+       FIELD preemnik$ AS CHARACTER /* Преемник */
+       FIELD prim1$ AS CHARACTER /* Прим1 */
+       FIELD prim2$ AS CHARACTER /* Прим2 */
+       FIELD prim3$ AS CHARACTER /* Прим3 */
+       FIELD prim4$ AS CHARACTER /* Прим4 */
+       FIELD prim5$ AS CHARACTER /* Прим5 */
+       FIELD prim6$ AS CHARACTER /* Прим6 */
+       FIELD prisutorguprav$ AS CHARACTER /* ПрисутОргУправ */
+       FIELD riskotmyv$ AS CHARACTER /* РискОтмыв */
+       FIELD svedvygdrlica$ AS CHARACTER /* СведВыгДрЛица */
+       FIELD struktorg$ AS CHARACTER /* СтруктОрг */
+       FIELD subw%ekt$ AS CHARACTER /* Субъект */
+       FIELD unk$ AS DECIMAL /* УНК */
+       FIELD unkg$ AS INT64 /* УНКг */
+       FIELD ustavkap$ AS CHARACTER /* УставКап */
+       FIELD uwcastniknop$ AS CHARACTER /* УчастникНОП */
+       FIELD uwcdokgr$ AS CHARACTER /* УчДокГр */
+       FIELD uwcredorg$ AS CHARACTER /* УчредОрг */
+       FIELD fiobuhg$ AS CHARACTER /* ФИОбухг */
+       FIELD fioruk$ AS CHARACTER /* ФИОрук */
+       FIELD formsobs$ AS CHARACTER /* ФормСобс */
+       FIELD formsobs_118$ AS CHARACTER /* ФормСобс_118 */
+       FIELD bank-stat AS CHARACTER /* bank-stat */
+       FIELD branch-id AS CHARACTER /* branch-id */
+       FIELD branch-list AS CHARACTER /* branch-list */
+       FIELD brand-name AS CHARACTER /* brand-name */
+       FIELD contr_group AS CHARACTER /* contr_group */
+       FIELD contr_type AS CHARACTER /* contr_type */
+       FIELD country-id2 AS CHARACTER /* country-id2 */
+       FIELD country-id3 AS CHARACTER /* country-id3 */
+       FIELD CountryCode AS CHARACTER /* CountryCode */
+       FIELD DataLic AS DATE /* DataLic */
+       FIELD date-export AS CHARACTER /* date-export */
+       FIELD e-mail AS CHARACTER /* e-mail */
+       FIELD engl-name AS CHARACTER /* engl-name */
+       FIELD fax AS CHARACTER /* fax */
+       FIELD HistoryFields AS CHARACTER /* HistoryFields */
+       FIELD holding-id AS CHARACTER /* holding-id */
+       FIELD IndCode AS CHARACTER /* IndCode */
+       FIELD inter-region AS CHARACTER /* inter-region */
+       FIELD LegTerr AS CHARACTER /* LegTerr */
+       FIELD lic-sec AS CHARACTER /* lic-sec */
+       FIELD LocCustType AS CHARACTER /* LocCustType */
+       FIELD mess AS CHARACTER /* mess */
+       FIELD NACE AS CHARACTER /* NACE */
+       FIELD Netting AS LOGICAL /* Netting */
+       FIELD new1 AS CHARACTER /* new1 */
+       FIELD NoExport AS LOGICAL /* NoExport */
+       FIELD num_contr AS INT64 /* num_contr */
+       FIELD okonx AS CHARACTER /* okonx */
+       FIELD okpo AS CHARACTER /* okpo */
+       FIELD Prim-ID AS CHARACTER /* Prim-ID */
+       FIELD real AS CHARACTER /* real */
+       FIELD RegDate AS CHARACTER /* RegDate */
+       FIELD region AS CHARACTER /* region */
+       FIELD RegNum AS CHARACTER /* RegNum */
+       FIELD RegPlace AS CHARACTER /* RegPlace */
+       FIELD Soato AS CHARACTER /* Soato */
+       FIELD swift-address AS CHARACTER /* swift-address */
+       FIELD swift-name AS CHARACTER /* swift-name */
+       FIELD tel AS CHARACTER /* tel */
+       FIELD test1 AS CHARACTER /* test1 */
+       FIELD uer AS CHARACTER /* uer */
+       FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+       FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+       FIELD local__id       AS INT64   /* Идентификатор записи     */
+       FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+       FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+       /* Additional fields you should place here                      */
+       
+       /* Записываем ссылку на временную таблицу в специальную таблицу */
+       {ln-tthdl.i "tt-banks" "" }
+       .
+DEFINE TEMP-TABLE tt-InnBank NO-UNDO LIKE cust-ident
+       FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+       FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+       FIELD local__id       AS INT64   /* Идентификатор записи     */
+       FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+       FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+       /* Additional fields you should place here                      */
+       
+       /* Записываем ссылку на временную таблицу в специальную таблицу */
+       {ln-tthdl.i "tt-InnBank" "InnBank" }
+       .
+DEFINE TEMP-TABLE tt-MFO-9 NO-UNDO LIKE banks-code
+       FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+       FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+       FIELD local__id       AS INT64   /* Идентификатор записи     */
+       FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+       FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+       /* Additional fields you should place here                      */
+       
+       /* Записываем ссылку на временную таблицу в специальную таблицу */
+       {ln-tthdl.i "tt-MFO-9" "MFO-9" }
+       .
+DEFINE TEMP-TABLE tt-Regn NO-UNDO LIKE banks-code
+       FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+       FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+       FIELD local__id       AS INT64   /* Идентификатор записи     */
+       FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+       FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+       /* Additional fields you should place here                      */
+       
+       /* Записываем ссылку на временную таблицу в специальную таблицу */
+       {ln-tthdl.i "tt-Regn" "Regn" }
+       .
+
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS TERMINAL-SIMULATION 
+/*
+               Банковская интегрированная система БИСквит
+    Copyright: (C) 1992-2004 ТОО "Банковские информационные системы"
+     Filename: F-BANKS.P
+      Comment: <comment>
+   Parameters:
+         Uses:
+      Used by:
+      Created: 30.11.2005 16:02 ILVI    
+     Modified: 15/11/2012 ccc  (0133400) доработана обработка ИНН
+*/
+/*          This file was created with the Progress AppBuilder.      */
+/*----------------------------------------------------------------------*/
+
+/* Commented by KSV: Данный шаблон предназначен для создания экранной формы
+** осуществляющей добавление, изменение и просмотр информации об объекте
+** метасхемы БИСКВИТА без непосредственного обращения к базе данных.
+**
+** Шаги по созданию экранной формы:
+**    0. Настройте PROPATH AppBuilder на SRC каталог БИСКВИТа. ВАЖНО, чтобы
+**       служебные каталоги PROGRESS находились после каталога SRC/TOOLS.
+**       Подключитесь к базе данных БИСКВИТа. 
+**    1. Выберите пункт меню AppBuilder Tools - Procedure Settings. Далее 
+**       нажмите кнопку Temp-Table Definition, в появившемся диалоге нажмите
+**       кнопку BISQUIT и выберите класс метасхемы, объект которого будет
+**       обрабатываться формой. На основе выбранного класса в форму добавится
+**       объявления временных таблиц как для выбранного класса, так и для
+**       всех аггрегированных на нем классов.
+**    2. Разместите поля временных таблиц во фрейме. Для связи виджета с 
+**       полем из временной таблицы в форме свойств поля щелкните по кнопке 
+**       Database Field правой копкой мыши и в появившемся меню выберите 
+**       пункт Bisquit.
+**       Вы  можете создать специальные поля разделители, для этого необходимо 
+**       создать FILL-IN c идентификатором SEPARATOR# (где # - любое число от
+**       2, первый FILL-IN имеет идентифкатор без номера) и аттрибутом 
+**       VIES-AS TEXT. С помощью разделителей вы можете визуально выделять
+**       группы полей.
+**    3. Объедините поля в списки в зависимости от того в каком из режимов
+**       поле должно быть доступно для редактирования. Для добавления поля
+**       в список в диалоге его атрибутов нажмите кнопку Advanced и поставьте 
+**       галки в полях LIST-1, LIST-2 или LIST-3. Назначение списков:
+**       -  LIST-1 - поля доступные для редактирования в режиме добавления 
+**                   записи 
+**       -  LIST-2 - поля доступные для редактирования в режиме редактирования 
+**                   записи 
+**       -  LIST-3 - поля доступные для редактирования в режиме просмотра. 
+**                   (Обычно это поля, отображаемы в виджете EDITOR для 
+**                   запрещения их изменения воспользуйтесь атрибутом READ-ONLY)
+**       -  LIST-4 - поля для которых атрибут формат определяется в форме.
+**                   Для других он заполняется из метасхемы. 
+**    4. Контроль за значением полей должен быть определен на триггере LEAVE 
+**       поля, который в случае несоответствия значения требуемому должен 
+**       возвращать значение {&RET-ERROR}.
+**       Правильная конструкция триггера:
+
+   .......
+
+   IF <ОШИБКА> THEN
+   DO:
+      MESSAGE '......'
+         VIEW-AS ALERT-BOX INFO BUTTONS OK.
+      RETURN NO-APPLY {&RET-ERROR}.
+   END.
+   APPLY "LEAVE" TO FRAME {&MAIN-FRAME}. /* стандартная проверка */
+   IF RETURN-VALUE EQ {&RET-ERROR}
+      THEN RETURN NO-APPLY.
+
+**    5. Для выбора значения поля из списка должен быть опредлен триггер F1 поля
+**       (не путать с триггером на событие HELP в TTY - это разные события)
+**    6. Если в форме присутсвуют виджеты не относящиеся к полям временной
+**       таблицы, например кнопки, но которые д.б. доступны в режимах 
+**       редактирования и добавления поместите их в список LIST-4.
+**    7. Более тонкую настройку поведения формы вы можете указать в процедуре
+**       LocalEnableDisable, которая будет вызываться, в cлучае если она
+**       определена, в конце EnableDisable.
+**    8. Используйте процедуру LocalSetObject, которая будет вызываться,
+**       в cлучае если она определена, перед записью данных в БД.
+**    9. Для передачи специфических параметров процедуре экранной формы
+**       воспользуйтесб функциями библиотеки PP-TPARA.P
+**   10. Описание переменных для управления экранной формой находится в секции
+**       Definitions библиотеки bis-tty.pro 
+**   11. Описание TEMP-TABL'ов
+*/
+{globals.i}
+{intrface.get cust}     /* Библиотека для работы с клиентами. */
+{intrface.get tmess}    /* Библиотека системных сообщений     */
+
+&IF DEFINED(SESSION-REMOTE) EQ 0 &THEN
+CREATE WIDGET-POOL.
+&ENDIF
+/* ***************************  Definitions  ************************** */
+
+&GLOBAL-DEFINE MAIN-FRAME fMain
+/* Расскомментировать в случае вызова из NAVIGATE.CQR
+{navigate.cqr
+   ...
+   &UseBisTTY=YES
+   &edit=bis-tty.ef
+   ...
+}
+   Если определена &UseBisTTY - то ссылка на динамическую таблицу верхнего класса
+будет храниться в переменной IInstance.
+   Если определена &InstanceFile - то будет определена и заполнена статическая
+TEMP-TABLE tt-instance LIKE {&InstanceFile}
+
+&GLOBAL-DEFINE UseBisTTY 
+&GLOBAL-DEFINE InstanceFile ИМЯ_ТАБЛИЦЫ_ПРОГРЕСС_ДЛЯ_ВЕРХНЕГО_КЛАССА
+*/
+
+/* Для просмотра полученной mInstance в GetObject */
+/* &GLOBAL-DEFINE DEBUG-INSTANCE-GET */
+
+/* Для просмотра mInstance перед записью в базу в SetObject */
+/* &GLOBAL-DEFINE DEBUG-INSTANCE-SET */
+
+/* Безусловное включение\отключение вызова xattr-ed 
+(иначе он вызывается при наличие незаполненных обязательных реквизитов */
+/*
+&GLOBAL-DEFINE XATTR-ED-OFF
+&GLOBAL-DEFINE XATTR-ED-ON 
+*/
+
+DEFINE VARIABLE mType     AS CHARACTER  NO-UNDO.  /* тип идентиифкатора банка */
+DEFINE VARIABLE mClass    AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE mClient   AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE mTempVal  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE mTempFlg  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE mFlagUnk  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE mTmpUnk   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE mResCntry AS CHARACTER   NO-UNDO.
+
+DEFINE BUFFER bCust-Ident FOR cust-ident.
+
+&GLOBAL-DEFINE FlowFields  tt-banks.unk$
+/* проверять права на группы реквизитов */
+&GLOBAL-DEFINE CHECK-XATTR-GROUP-PERMISSION
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+
+/* ********************  Preprocessor Definitions  ******************** */
+
+&Scoped-define PROCEDURE-TYPE Window
+&Scoped-define DB-AWARE no
+
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
+&Scoped-define FRAME-NAME fMain
+
+/* Internal Tables (found by Frame, Query & Browse Queries)             */
+&Scoped-define INTERNAL-TABLES tt-banks tt-regn tt-MFO-9 tt-InnBank
+
+/* Definitions for FRAME fMain                                          */
+&Scoped-define FIELDS-IN-QUERY-fMain tt-banks.date-in tt-banks.last-date ~
+tt-banks.date-out tt-banks.unk$ tt-banks.client tt-banks.flag-rkc ~
+tt-banks.vidbanklic$ tt-banks.bank-type tt-banks.bank-stat ~
+tt-banks.short-name tt-banks.name tt-banks.country tt-banks.region ~
+tt-banks.country-id tt-banks.town-type tt-banks.town tt-banks.tax-insp ~
+tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code ~
+tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ ~
+tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define ENABLED-FIELDS-IN-QUERY-fMain tt-banks.date-in ~
+tt-banks.last-date tt-banks.date-out tt-banks.unk$ tt-banks.client ~
+tt-banks.flag-rkc tt-banks.vidbanklic$ tt-banks.bank-type ~
+tt-banks.bank-stat tt-banks.short-name tt-banks.name tt-banks.country ~
+tt-banks.region tt-banks.country-id tt-banks.town-type tt-banks.town ~
+tt-banks.tax-insp tt-banks.law-address tt-banks.mail-address ~
+tt-MFO-9.bank-code tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer ~
+tt-banks.okvwed$ tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define ENABLED-TABLES-IN-QUERY-fMain tt-banks tt-MFO-9 tt-Regn ~
+tt-InnBank
+&Scoped-define FIRST-ENABLED-TABLE-IN-QUERY-fMain tt-banks
+&Scoped-define SECOND-ENABLED-TABLE-IN-QUERY-fMain tt-MFO-9
+&Scoped-define THIRD-ENABLED-TABLE-IN-QUERY-fMain tt-Regn
+&Scoped-define FOURTH-ENABLED-TABLE-IN-QUERY-fMain tt-InnBank
+&Scoped-define QUERY-STRING-fMain FOR EACH tt-banks SHARE-LOCK, ~
+      EACH tt-regn WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK, ~
+      EACH tt-MFO-9 WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK, ~
+      EACH tt-InnBank WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK
+&Scoped-define OPEN-QUERY-fMain OPEN QUERY fMain FOR EACH tt-banks SHARE-LOCK, ~
+      EACH tt-regn WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK, ~
+      EACH tt-MFO-9 WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK, ~
+      EACH tt-InnBank WHERE TRUE /* Join to tt-banks incomplete */ SHARE-LOCK.
+&Scoped-define TABLES-IN-QUERY-fMain tt-banks tt-regn tt-MFO-9 tt-InnBank
+&Scoped-define FIRST-TABLE-IN-QUERY-fMain tt-banks
+&Scoped-define SECOND-TABLE-IN-QUERY-fMain tt-regn
+&Scoped-define THIRD-TABLE-IN-QUERY-fMain tt-MFO-9
+&Scoped-define FOURTH-TABLE-IN-QUERY-fMain tt-InnBank
+
+
+/* Standard List Definitions                                            */
+&Scoped-Define ENABLED-FIELDS tt-banks.date-in tt-banks.last-date ~
+tt-banks.date-out tt-banks.unk$ tt-banks.client tt-banks.flag-rkc ~
+tt-banks.vidbanklic$ tt-banks.bank-type tt-banks.bank-stat ~
+tt-banks.short-name tt-banks.name tt-banks.country tt-banks.region ~
+tt-banks.country-id tt-banks.town-type tt-banks.town tt-banks.tax-insp ~
+tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code ~
+tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ ~
+tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define ENABLED-TABLES tt-banks tt-MFO-9 tt-Regn tt-InnBank
+&Scoped-define FIRST-ENABLED-TABLE tt-banks
+&Scoped-define SECOND-ENABLED-TABLE tt-MFO-9
+&Scoped-define THIRD-ENABLED-TABLE tt-Regn
+&Scoped-define FOURTH-ENABLED-TABLE tt-InnBank
+&Scoped-Define DISPLAYED-FIELDS tt-banks.date-in tt-banks.last-date ~
+tt-banks.date-out tt-banks.unk$ tt-banks.client tt-banks.flag-rkc ~
+tt-banks.vidbanklic$ tt-banks.bank-type tt-banks.bank-stat ~
+tt-banks.short-name tt-banks.name tt-banks.country tt-banks.region ~
+tt-banks.country-id tt-banks.town-type tt-banks.town tt-banks.tax-insp ~
+tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code ~
+tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ ~
+tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define DISPLAYED-TABLES tt-banks tt-MFO-9 tt-Regn tt-InnBank
+&Scoped-define FIRST-DISPLAYED-TABLE tt-banks
+&Scoped-define SECOND-DISPLAYED-TABLE tt-MFO-9
+&Scoped-define THIRD-DISPLAYED-TABLE tt-Regn
+&Scoped-define FOURTH-DISPLAYED-TABLE tt-InnBank
+
+
+/* Custom List Definitions                                              */
+/* List-1,List-2,List-3,List-4,List-5,List-6                            */
+&Scoped-define List-1 tt-banks.date-in tt-banks.unk$ tt-banks.client ~
+tt-banks.flag-rkc tt-banks.vidbanklic$ tt-banks.bank-type ~
+tt-banks.bank-stat tt-banks.short-name tt-banks.name tt-banks.region ~
+tt-banks.country-id tt-banks.town-type tt-banks.town tt-banks.tax-insp ~
+tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code ~
+tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ ~
+tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define List-2 tt-banks.date-in tt-banks.date-out tt-banks.unk$ ~
+tt-banks.client tt-banks.flag-rkc tt-banks.vidbanklic$ tt-banks.bank-type ~
+tt-banks.bank-stat tt-banks.short-name tt-banks.name tt-banks.region ~
+tt-banks.country-id tt-banks.town-type tt-banks.town tt-banks.tax-insp ~
+tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code ~
+tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ ~
+tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define List-3 tt-banks.date-in tt-banks.last-date tt-banks.date-out ~
+tt-banks.unk$ tt-banks.client tt-banks.flag-rkc tt-banks.vidbanklic$ ~
+tt-banks.bank-type tt-banks.bank-stat tt-banks.short-name tt-banks.name ~
+tt-banks.country tt-banks.region tt-banks.country-id tt-banks.town-type ~
+tt-banks.town tt-banks.tax-insp tt-banks.law-address tt-banks.mail-address ~
+tt-MFO-9.bank-code tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer ~
+tt-banks.okvwed$ tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+&Scoped-define List-4 tt-banks.date-in tt-banks.bank-type ~
+tt-banks.bank-stat tt-MFO-9.bank-code tt-Regn.bank-code ~
+tt-InnBank.cust-code tt-banks.uer 
+
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+/* ***********************  Control Definitions  ********************** */
+
+/* Define the widget handle for the window                              */
+DEFINE VAR TERMINAL-SIMULATION AS WIDGET-HANDLE NO-UNDO.
+
+/* Definitions of the field level widgets                               */
+/* Query definitions                                                    */
+&ANALYZE-SUSPEND
+DEFINE QUERY fMain FOR 
+      tt-banks, 
+      tt-regn, 
+      tt-MFO-9, 
+      tt-InnBank SCROLLING.
+&ANALYZE-RESUME
+
+/* ************************  Frame Definitions  *********************** */
+
+DEFINE FRAME fMain
+     tt-banks.date-in
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 1 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 1 COL 17 COLON-ALIGNED &ENDIF
+          LABEL "Дата заведения"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.last-date
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 1 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 1 COL 63 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 13 BY 1
+          &ELSE SIZE 13 BY 1 &ENDIF
+     tt-banks.date-out
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 2 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 2 COL 17 COLON-ALIGNED &ENDIF HELP
+          "Дата ухода клиента-банка"
+          LABEL "Дата ухода" FORMAT "99/99/99"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.unk$
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 3 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 2.99 COL 17 COLON-ALIGNED &ENDIF HELP
+          ""
+          LABEL "УНК" FORMAT "999999999999999"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 15 BY 1
+          &ELSE SIZE 15 BY 1 &ENDIF
+     tt-banks.client
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 3 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 3 COL 63 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 9 BY 1
+          &ELSE SIZE 9 BY 1 &ENDIF
+     tt-banks.flag-rkc
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 4 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 4 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 9 BY 1
+          &ELSE SIZE 9 BY 1 &ENDIF
+     tt-banks.vidbanklic$
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 4 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 4 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "Вид лицензии"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.bank-type
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 5 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 5 COL 17 COLON-ALIGNED &ENDIF HELP
+          "Статус банка (Б, КБ, ФКБ, РКЦ, ...)"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 11 BY 1
+          &ELSE SIZE 11 BY 1 &ENDIF
+     tt-banks.bank-stat
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 5 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 5 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "Статус(орг-прав форма)"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.short-name
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 6 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 5.99 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 27 BY 1
+          &ELSE SIZE 27 BY 1 &ENDIF
+     tt-banks.name
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 7 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 7 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 59 BY 1
+          &ELSE SIZE 59 BY 1 &ENDIF
+    WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 80 BY 21.
+
+/* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
+DEFINE FRAME fMain
+     tt-banks.country
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 8 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 8 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 27 BY 1
+          &ELSE SIZE 27 BY 1 &ENDIF
+     tt-banks.region
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 8 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 8 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "Код региона"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.country-id
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 9 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 9 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 9 BY 1
+          &ELSE SIZE 9 BY 1 &ENDIF
+     tt-banks.town-type
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 10 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 10 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 14 BY 1
+          &ELSE SIZE 14 BY 1 &ENDIF
+     tt-banks.town
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 11 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 11 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 27 BY 1
+          &ELSE SIZE 27 BY 1 &ENDIF
+     tt-banks.tax-insp
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 12 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 12 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 18 BY 1
+          &ELSE SIZE 18 BY 1 &ENDIF
+     tt-banks.law-address
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 13 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 13 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 59 BY 1
+          &ELSE SIZE 59 BY 1 &ENDIF
+     tt-banks.mail-address
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 14 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 14 COL 17 COLON-ALIGNED &ENDIF
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 59 BY 1
+          &ELSE SIZE 59 BY 1 &ENDIF
+     tt-MFO-9.bank-code
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 15 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 15 COL 17 COLON-ALIGNED &ENDIF HELP
+          "Введите 9-значный МФО банка (если есть)"
+          LABEL "Номер МФО" FORMAT "x(9)"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 20 BY 1
+          &ELSE SIZE 20 BY 1 &ENDIF
+     tt-Regn.bank-code
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 16 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 16 COL 17 COLON-ALIGNED &ENDIF HELP
+          "Введите регистрационный номер банка (если есть)"
+          LABEL "Рег.номер"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 20 BY 1
+          &ELSE SIZE 20 BY 1 &ENDIF
+    WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 80 BY 21.
+
+/* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
+DEFINE FRAME fMain
+     tt-InnBank.cust-code
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 17 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 17 COL 17 COLON-ALIGNED &ENDIF HELP
+          "Введите ИНН банка (если есть)"
+          LABEL "ИНН"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 22 BY 1
+          &ELSE SIZE 22 BY 1 &ENDIF
+     tt-banks.uer
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 17 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 17 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "Уч.эл.расчетов"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.okvwed$
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 18 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 18 COL 17 COLON-ALIGNED &ENDIF
+          LABEL "Код ОКВЭД"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.kpp$
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 18 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 18 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "КПП"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.okonx
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 19 COL 17 COLON-ALIGNED
+          &ELSE AT ROW 19 COL 17 COLON-ALIGNED &ENDIF
+          LABEL "Код ОКОНХ"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+     tt-banks.okpo
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 19 COL 63 COLON-ALIGNED
+          &ELSE AT ROW 19 COL 63 COLON-ALIGNED &ENDIF
+          LABEL "Код ОКПО"
+          VIEW-AS FILL-IN 
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 10 BY 1
+          &ELSE SIZE 10 BY 1 &ENDIF
+    WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 80 BY 21
+        TITLE "".
+
+
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Window
+   Allow: Basic,Browse,DB-Fields,Window,Query
+   Temp-Tables and Buffers:
+      TABLE: tt-banks T "?" NO-UNDO bisquit banks
+      ADDITIONAL-FIELDS:
+          FIELD okato$ AS CHARACTER /* ОКАТО */
+          FIELD abwawtik$ AS CHARACTER /* АбЯщик */
+          FIELD arhiv$ AS LOGICAL /* Архив */
+          FIELD bankwemitent$ AS CHARACTER /* БанкЭмитент */
+          FIELD bik$ AS CHARACTER /* БИК */
+          FIELD blok$ AS LOGICAL /* Блок */
+          FIELD vidbanklic$ AS CHARACTER /* ВидБанкЛиц */
+          FIELD viddewat$ AS CHARACTER /* ВидДеят */
+          FIELD vidkli$ AS CHARACTER /* ВидКли */
+          FIELD gvk$ AS CHARACTER /* ГВК */
+          FIELD grawzd$ AS CHARACTER /* Гражд */
+          FIELD dataizm$ AS DATE /* ДатаИзм */
+          FIELD datakontrolwa$ AS DATE /* ДатаКонтроля */
+          FIELD dko$ AS DECIMAL /* ДкО */
+          FIELD dkowe$ AS DECIMAL /* ДкОЭ */
+          FIELD dogovor_s_mci$ AS CHARACTER /* Договор_с_МЦИ */
+          FIELD iin$ AS CHARACTER /* ИИН */
+          FIELD istoriwakl$ AS CHARACTER /* ИсторияКл */
+          FIELD klient$ AS CHARACTER /* Клиент */
+          FIELD klientuf$ AS LOGICAL /* КлиентУФ */
+          FIELD kodklienta$ AS CHARACTER /* КодКлиента */
+          FIELD kop$ AS INT64 /* КОП */
+          FIELD kopf$ AS INT64 /* КОПФ */
+          FIELD kpp$ AS CHARACTER /* КПП */
+          FIELD materinkomp$ AS CHARACTER /* МАТЕРИНкомп */
+          FIELD mbr$ AS LOGICAL /* МБР */
+          FIELD neupolbank$ AS LOGICAL /* НеУполБанк */
+          FIELD obosobpodr$ AS CHARACTER /* ОбособПодр */
+          FIELD ogrn$ AS CHARACTER /* ОГРН */
+          FIELD okato-nalog$ AS CHARACTER /* ОКАТО-НАЛОГ */
+          FIELD okvwed$ AS CHARACTER /* ОКВЭД */
+          FIELD okopf$ AS CHARACTER /* ОКОПФ */
+          FIELD ofwsor$ AS CHARACTER /* Офшор */
+          FIELD ocenkariska$ AS CHARACTER /* ОценкаРиска */
+          FIELD pokrytie$ AS LOGICAL /* Покрытие */
+          FIELD postkorresp$ AS CHARACTER /* ПостКорресп */
+          FIELD preemnik$ AS CHARACTER /* Преемник */
+          FIELD prim1$ AS CHARACTER /* Прим1 */
+          FIELD prim2$ AS CHARACTER /* Прим2 */
+          FIELD prim3$ AS CHARACTER /* Прим3 */
+          FIELD prim4$ AS CHARACTER /* Прим4 */
+          FIELD prim5$ AS CHARACTER /* Прим5 */
+          FIELD prim6$ AS CHARACTER /* Прим6 */
+          FIELD prisutorguprav$ AS CHARACTER /* ПрисутОргУправ */
+          FIELD riskotmyv$ AS CHARACTER /* РискОтмыв */
+          FIELD svedvygdrlica$ AS CHARACTER /* СведВыгДрЛица */
+          FIELD struktorg$ AS CHARACTER /* СтруктОрг */
+          FIELD subw%ekt$ AS CHARACTER /* Субъект */
+          FIELD unk$ AS DECIMAL /* УНК */
+          FIELD unkg$ AS INT64 /* УНКг */
+          FIELD ustavkap$ AS CHARACTER /* УставКап */
+          FIELD uwcastniknop$ AS CHARACTER /* УчастникНОП */
+          FIELD uwcdokgr$ AS CHARACTER /* УчДокГр */
+          FIELD uwcredorg$ AS CHARACTER /* УчредОрг */
+          FIELD fiobuhg$ AS CHARACTER /* ФИОбухг */
+          FIELD fioruk$ AS CHARACTER /* ФИОрук */
+          FIELD formsobs$ AS CHARACTER /* ФормСобс */
+          FIELD formsobs_118$ AS CHARACTER /* ФормСобс_118 */
+          FIELD bank-stat AS CHARACTER /* bank-stat */
+          FIELD branch-id AS CHARACTER /* branch-id */
+          FIELD branch-list AS CHARACTER /* branch-list */
+          FIELD brand-name AS CHARACTER /* brand-name */
+          FIELD contr_group AS CHARACTER /* contr_group */
+          FIELD contr_type AS CHARACTER /* contr_type */
+          FIELD country-id2 AS CHARACTER /* country-id2 */
+          FIELD country-id3 AS CHARACTER /* country-id3 */
+          FIELD CountryCode AS CHARACTER /* CountryCode */
+          FIELD DataLic AS DATE /* DataLic */
+          FIELD date-export AS CHARACTER /* date-export */
+          FIELD e-mail AS CHARACTER /* e-mail */
+          FIELD engl-name AS CHARACTER /* engl-name */
+          FIELD fax AS CHARACTER /* fax */
+          FIELD HistoryFields AS CHARACTER /* HistoryFields */
+          FIELD holding-id AS CHARACTER /* holding-id */
+          FIELD IndCode AS CHARACTER /* IndCode */
+          FIELD inter-region AS CHARACTER /* inter-region */
+          FIELD LegTerr AS CHARACTER /* LegTerr */
+          FIELD lic-sec AS CHARACTER /* lic-sec */
+          FIELD LocCustType AS CHARACTER /* LocCustType */
+          FIELD mess AS CHARACTER /* mess */
+          FIELD NACE AS CHARACTER /* NACE */
+          FIELD Netting AS LOGICAL /* Netting */
+          FIELD new1 AS CHARACTER /* new1 */
+          FIELD NoExport AS LOGICAL /* NoExport */
+          FIELD num_contr AS INT64 /* num_contr */
+          FIELD okonx AS CHARACTER /* okonx */
+          FIELD okpo AS CHARACTER /* okpo */
+          FIELD Prim-ID AS CHARACTER /* Prim-ID */
+          FIELD real AS CHARACTER /* real */
+          FIELD RegDate AS CHARACTER /* RegDate */
+          FIELD region AS CHARACTER /* region */
+          FIELD RegNum AS CHARACTER /* RegNum */
+          FIELD RegPlace AS CHARACTER /* RegPlace */
+          FIELD Soato AS CHARACTER /* Soato */
+          FIELD swift-address AS CHARACTER /* swift-address */
+          FIELD swift-name AS CHARACTER /* swift-name */
+          FIELD tel AS CHARACTER /* tel */
+          FIELD test1 AS CHARACTER /* test1 */
+          FIELD uer AS CHARACTER /* uer */
+          FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+          FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+          FIELD local__id       AS INT64   /* Идентификатор записи     */
+          FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+          FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+          /* Additional fields you should place here                      */
+          
+          /* Записываем ссылку на временную таблицу в специальную таблицу */
+          {ln-tthdl.i "tt-banks" "" }
+          
+      END-FIELDS.
+      TABLE: tt-InnBank T "?" NO-UNDO bisquit cust-ident
+      ADDITIONAL-FIELDS:
+          FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+          FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+          FIELD local__id       AS INT64   /* Идентификатор записи     */
+          FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+          FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+          /* Additional fields you should place here                      */
+          
+          /* Записываем ссылку на временную таблицу в специальную таблицу */
+          {ln-tthdl.i "tt-InnBank" "InnBank" }
+          
+      END-FIELDS.
+      TABLE: tt-MFO-9 T "?" NO-UNDO bisquit banks-code
+      ADDITIONAL-FIELDS:
+          FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+          FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+          FIELD local__id       AS INT64   /* Идентификатор записи     */
+          FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+          FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+          /* Additional fields you should place here                      */
+          
+          /* Записываем ссылку на временную таблицу в специальную таблицу */
+          {ln-tthdl.i "tt-MFO-9" "MFO-9" }
+          
+      END-FIELDS.
+      TABLE: tt-Regn T "?" NO-UNDO bisquit banks-code
+      ADDITIONAL-FIELDS:
+          FIELD local__template AS LOGICAL   /* Признак шаблон/не шаблон */
+          FIELD local__rowid    AS ROWID     /* ROWID записи в БД        */
+          FIELD local__id       AS INT64   /* Идентификатор записи     */
+          FIELD local__upid     AS INT64   /* Ссылка на запись в аггрегирующей таблице */
+          FIELD user__mode      AS INT64   /* Флаг управления записью в БД */
+          /* Additional fields you should place here                      */
+          
+          /* Записываем ссылку на временную таблицу в специальную таблицу */
+          {ln-tthdl.i "tt-Regn" "Regn" }
+          
+      END-FIELDS.
+   END-TABLES.
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+IF SESSION:DISPLAY-TYPE = "GUI":U THEN
+  CREATE WINDOW TERMINAL-SIMULATION ASSIGN
+         HIDDEN             = YES
+         TITLE              = "<insert window title>"
+         HEIGHT             = 21
+         WIDTH              = 80.43
+         MAX-HEIGHT         = 21
+         MAX-WIDTH          = 80.43
+         VIRTUAL-HEIGHT     = 21
+         VIRTUAL-WIDTH      = 80.43
+         RESIZE             = yes
+         SCROLL-BARS        = no
+         STATUS-AREA        = yes
+         BGCOLOR            = ?
+         FGCOLOR            = ?
+         KEEP-FRAME-Z-ORDER = yes
+         THREE-D            = yes
+         MESSAGE-AREA       = yes
+         SENSITIVE          = yes.
+ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
+/* END WINDOW DEFINITION                                                */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB TERMINAL-SIMULATION 
+/* ************************* Included-Libraries *********************** */
+
+{bis-tty.pro}
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
+
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+
+&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
+/* SETTINGS FOR FRAME fMain
+   FRAME-NAME                                                           */
+/* SETTINGS FOR FILL-IN tt-MFO-9.bank-code IN FRAME fMain
+   1 2 3 4 EXP-LABEL EXP-FORMAT EXP-HELP                                */
+/* SETTINGS FOR FILL-IN tt-Regn.bank-code IN FRAME fMain
+   1 2 3 4 EXP-LABEL EXP-HELP                                           */
+/* SETTINGS FOR FILL-IN tt-banks.bank-stat IN FRAME fMain
+   1 2 3 4 EXP-LABEL                                                    */
+/* SETTINGS FOR FILL-IN tt-banks.bank-type IN FRAME fMain
+   1 2 3 4 EXP-HELP                                                     */
+/* SETTINGS FOR FILL-IN tt-banks.client IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.country IN FRAME fMain
+   3                                                                    */
+/* SETTINGS FOR FILL-IN tt-banks.country-id IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-InnBank.cust-code IN FRAME fMain
+   1 2 3 4 EXP-LABEL EXP-HELP                                           */
+/* SETTINGS FOR FILL-IN tt-banks.date-in IN FRAME fMain
+   1 2 3 4 EXP-LABEL                                                    */
+/* SETTINGS FOR FILL-IN tt-banks.date-out IN FRAME fMain
+   2 3 EXP-LABEL EXP-FORMAT EXP-HELP                                    */
+/* SETTINGS FOR FILL-IN tt-banks.flag-rkc IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.kpp$ IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+/* SETTINGS FOR FILL-IN tt-banks.last-date IN FRAME fMain
+   3                                                                    */
+/* SETTINGS FOR FILL-IN tt-banks.law-address IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.mail-address IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.name IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.okonx IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+/* SETTINGS FOR FILL-IN tt-banks.okpo IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+/* SETTINGS FOR FILL-IN tt-banks.okvwed$ IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+/* SETTINGS FOR FILL-IN tt-banks.region IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+/* SETTINGS FOR FILL-IN tt-banks.short-name IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.tax-insp IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.town IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.town-type IN FRAME fMain
+   1 2 3                                                                */
+/* SETTINGS FOR FILL-IN tt-banks.uer IN FRAME fMain
+   1 2 3 4 EXP-LABEL                                                    */
+/* SETTINGS FOR FILL-IN tt-banks.unk$ IN FRAME fMain
+   1 2 3 EXP-LABEL EXP-FORMAT EXP-HELP                                  */
+/* SETTINGS FOR FILL-IN tt-banks.vidbanklic$ IN FRAME fMain
+   1 2 3 EXP-LABEL                                                      */
+IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(TERMINAL-SIMULATION)
+THEN TERMINAL-SIMULATION:HIDDEN = yes.
+
+/* _RUN-TIME-ATTRIBUTES-END */
+&ANALYZE-RESUME
+
+
+/* Setting information for Queries and Browse Widgets fields            */
+
+&ANALYZE-SUSPEND _QUERY-BLOCK FRAME fMain
+/* Query rebuild information for FRAME fMain
+     _TblList          = "Temp-Tables.tt-banks,Temp-Tables.tt-regn WHERE Temp-Tables.tt-banks ...,Temp-Tables.tt-MFO-9 WHERE Temp-Tables.tt-banks ...,Temp-Tables.tt-InnBank WHERE Temp-Tables.tt-banks ..."
+     _Query            is NOT OPENED
+*/  /* FRAME fMain */
+&ANALYZE-RESUME
+
+ 
+
+
+
+/* ************************  Control Triggers  ************************ */
+
+&Scoped-define SELF-NAME tt-MFO-9.bank-code
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-MFO-9.bank-code TERMINAL-SIMULATION
+ON F1 OF tt-MFO-9.bank-code IN FRAME fMain /* Номер МФО */
+DO:
+   mType = "МФО-9".
+   DO TRANSACTION:
+      RUN bankscod.p (INPUT-OUTPUT mType, iLevel + 1).
+   END.
+   IF     LASTKEY EQ 10 
+      AND pick-value NE ? THEN 
+       DISPLAY 
+          ENTRY(2,pick-value) @ tt-mfo-9.bank-code 
+       WITH FRAME {&FRAME-NAME}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-MFO-9.bank-code TERMINAL-SIMULATION
+ON LEAVE OF tt-MFO-9.bank-code IN FRAME fMain /* Номер МФО */
+DO:
+   {&BEG_BT_LEAVE}
+   IF SELF:SCREEN-VALUE NE "" THEN
+   DO:
+      mTempFlg = YES.
+      DECIMAL(SELF:SCREEN-VALUE) NO-ERROR.
+      IF ERROR-STATUS:ERROR
+      OR SELF:SCREEN-VALUE = "?"
+      THEN mTempFlg = NO.
+      ELSE RUN rekvchk.p("МФО-9", SELF:SCREEN-VALUE, OUTPUT mTempFlg).
+      IF NOT mTempFlg THEN DO:
+         RUN Fill-SysMes IN h_tmess ("", "", "0", "Некорректное значение Номера МФО!").
+         RETURN NO-APPLY {&RET-ERROR}.
+      END.
+      mTempVal = GetValueByQuery("banks-code",
+                                 "bank-id",
+                                 "     banks-code.bank-code-type EQ 'МФО-9'" + 
+                                 (IF tt-banks.bank-id NE 0 
+                                  THEN " AND banks-code.bank-id NE " + STRING(tt-banks.bank-id)
+                                  ELSE "") +
+                                 " AND banks-code.bank-code      EQ '" + STRING(INT64(SELF:SCREEN-VALUE), '999999999') + "'"
+                                 ).
+      IF mTempVal NE ? THEN DO:
+         RUN Fill-SysMes IN h_tmess ("", "", "0", "Банк " + 
+                                                   GetValueAttrEx("banks", mTempVal, "short-name", GetValueAttrEx("banks", mTempVal, "name", "с кодом " + mTempVal)) + 
+                                                   " имеет такой же МФО-9!").
+         RETURN NO-APPLY {&RET-ERROR}.
+      END.
+   END.
+   {&END_BT_LEAVE}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-Regn.bank-code
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-Regn.bank-code TERMINAL-SIMULATION
+ON F1 OF tt-Regn.bank-code IN FRAME fMain /* Рег.номер */
+DO:
+   mType = "REGN".
+   DO TRANSACTION:
+      RUN bankscod.p (INPUT-OUTPUT mType, iLevel + 1).
+   END.
+   IF     LASTKEY EQ 10 
+      AND pick-value NE ? THEN 
+      DISPLAY 
+         ENTRY(2,pick-value) @ tt-regn.bank-code 
+      WITH FRAME {&FRAME-NAME}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-Regn.bank-code TERMINAL-SIMULATION
+ON LEAVE OF tt-Regn.bank-code IN FRAME fMain /* Рег.номер */
+DO:
+   {&BEG_BT_LEAVE}
+   IF SELF:SCREEN-VALUE NE "" THEN
+   DO:
+      mTempVal = GetValueByQuery("banks-code",
+                                 "bank-id",
+                                 "     banks-code.bank-code-type EQ 'REGN'" +
+                                 (IF tt-banks.bank-id NE 0 
+                                  THEN " AND banks-code.bank-id NE " + STRING(tt-banks.bank-id)
+                                  ELSE "") +
+                                 " AND banks-code.bank-code      EQ '" + SELF:SCREEN-VALUE + "'"
+                                 ).
+      IF mTempVal NE ? THEN DO:
+         RUN Fill-SysMes ("", "", "0", "Банк " +
+                                       GetValueAttrEx("banks", mTempVal, "short-name", ?) +
+                                       " имеет такой же рег. номер!").
+         RETURN NO-APPLY {&RET-ERROR}.
+      END.
+   END.
+   {&END_BT_LEAVE}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-banks.client
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.client TERMINAL-SIMULATION
+ON F1 OF tt-banks.client IN FRAME fMain /* Клиент */
+DO:
+   IF iMode NE {&MOD_VIEW} THEN
+      DISPLAY 
+         NOT INPUT tt-banks.client @ tt-banks.client
+      WITH FRAME {&FRAME-NAME}. 
+END.
+
+ON ' ' OF tt-banks.client
+DO:
+   APPLY "F1" TO SELF.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-banks.country-id
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.country-id TERMINAL-SIMULATION
+ON F1 OF tt-banks.country-id IN FRAME fMain /* Символьный код */
+DO:
+   IF {assigned SELF:SCREEN-VALUE} THEN
+      RUN country#.p (SELF:SCREEN-VALUE,
+                      iLevel + 1).
+   ELSE DO:
+      DO TRANSACTION:
+         RUN count.p (iLevel + 1).
+      END.
+      IF     LASTKEY EQ 10 
+         AND pick-value NE ? THEN 
+      DO:
+         SELF:SCREEN-VALUE = pick-value.
+         DISP GetValueAttrEx("country",
+                             pick-value,
+                             "country-name",
+                             "") @ tt-banks.country
+         WITH FRAME {&FRAME-NAME}. 
+      END.
+   END.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.country-id TERMINAL-SIMULATION
+ON LEAVE OF tt-banks.country-id IN FRAME fMain /* Символьный код */
+DO:
+   {&BEG_BT_LEAVE}
+   mTempVal = GetValueAttrEx("country",
+                             SELF:SCREEN-VALUE,
+                             "country-name",
+                             ?).
+      
+   IF mTempVal EQ ? 
+   THEN DO:
+      RUN Fill-SysMes IN h_tmess ("", "", "0", "Неверно введен код страны!").
+      RETURN NO-APPLY {&RET-ERROR}.
+   END.
+   ELSE
+   DO:
+      tt-banks.country = mTempVal.
+      tt-banks.country:SCREEN-VALUE IN FRAME {&FRAME-NAME}= mTempVal.
+   END.
+   {&END_BT_LEAVE}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-InnBank.cust-code
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-InnBank.cust-code TERMINAL-SIMULATION
+ON F1 OF tt-InnBank.cust-code IN FRAME fMain /* ИНН */
+DO:
+   DEFINE VARIABLE vRes AS CHARACTER   NO-UNDO.
+
+   DO TRANSACTION:
+      RUN browseld.p ("cust-ident",
+                      "class-code" + CHR(1) + "cust-cat" + CHR(1) + "cust-code-type",
+                      "cust-bank"  + CHR(1) + "Б"        + CHR(1) + "ИНН",
+                      "",
+                      iLevel + 1).
+   END.
+   IF KEYFUNCTION (LASTKEY) NE "END-ERROR" THEN
+      SELF:SCREEN-VALUE = ENTRY (2, pick-value).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-InnBank.cust-code TERMINAL-SIMULATION
+ON LEAVE OF tt-InnBank.cust-code IN FRAME fMain /* ИНН */
+DO:
+      
+   DEFINE VAR i       AS INTEGER NO-UNDO.
+   DEFINE VAR vLen    AS INTEGER NO-UNDO.
+   DEFINE VAR isAlpha AS LOGICAL NO-UNDO.
+   DEFINE VARIABLE vFl AS LOGICAL NO-UNDO.
+   vFl = YES.
+   {&BEG_BT_LEAVE}
+   IF SELF:SCREEN-VALUE NE "" THEN
+   DO:
+     vLen = LENGTH(SELF:SCREEN-VALUE).
+     DO i = 1 TO vLen:
+      IF ASC(SUBSTRING(SELF:SCREEN-VALUE,i,1)) LT 48 OR 
+         ASC(SUBSTRING(SELF:SCREEN-VALUE,i,1)) GT 57 THEN isAlpha = YES.
+      ELSE isAlpha = NO.
+      IF isAlpha THEN LEAVE.
+     END.
+     IF isAlpha THEN
+     DO:
+       MESSAGE 'В ИНН должны быть только цифры.' VIEW-AS ALERT-BOX.
+       RETURN NO-APPLY {&RET-ERROR}.
+     END.
+     IF ((vLen NE 10) AND (vLen NE 12) AND (tt-banks.country-id:SCREEN-VALUE EQ 'RUS')) THEN
+     DO:
+       MESSAGE 'В ИНН должно быть 10 или 12 цифр, введено ' + TRIM(STRING(vLen)) + '.' 
+         VIEW-AS ALERT-BOX TITLE " Внимание ".
+       RETURN NO-APPLY {&RET-ERROR}.
+     END.
+      IF ((vLen NE 5) AND (vLen NE 10) AND (vLen NE 12) AND (tt-banks.country-id:SCREEN-VALUE NE 'RUS')) THEN
+     DO:
+       MESSAGE 'В ИНН должно быть 5, 10 или 12 цифр, введено ' + TRIM(STRING(vLen)) + '.'
+         VIEW-AS ALERT-BOX TITLE " Внимание ".
+       RETURN NO-APPLY {&RET-ERROR}.
+     END.
+     IF vLen NE 5 AND
+       NOT fValidInnSignature(SELF:SCREEN-VALUE, mTempVal) THEN DO:
+       IF vLen = 10 THEN 
+           MESSAGE ("Последняя цифра ИНН (ключ) должна быть: ~"" + mTempVal + "~"")
+             SKIP "OK - Исправить, Cancel - Пропустить"
+           VIEW-AS ALERT-BOX WARNING BUTTONS OK-CANCEL TITLE " Внимание " UPDATE vfl.
+       IF vLen = 12 THEN 
+           MESSAGE ("Последние 2 цифры ИНН (ключ) должны быть: ~"" + mTempVal + "~"")
+             SKIP "OK - Исправить, Cancel - Пропустить"
+           VIEW-AS ALERT-BOX WARNING BUTTONS OK-CANCEL TITLE " Внимание " UPDATE vfl.
+       IF vfl OR vfl EQ ? THEN 
+              RETURN NO-APPLY {&RET-ERROR}.
+     END.
+   END.
+   ELSE DO:
+      IF (tt-banks.country-id:SCREEN-VALUE EQ mResCntry)
+         AND INPUT tt-banks.client THEN DO:
+         RUN Fill-SysMes IN h_tmess ("", "", "0" , "Для банка-клиента, являющегося резидентом, необходимо указать ИНН!").
+         RETURN NO-APPLY {&RET-ERROR}.
+      END.
+   END.
+   {&END_BT_LEAVE}
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-banks.date-in
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.date-in TERMINAL-SIMULATION
+ON LEAVE OF tt-banks.date-in IN FRAME fMain /* Дата заведения */
+,tt-banks.date-out
+DO:
+   {&BEG_BT_LEAVE}
+   /* проверка вводимой даты, чтобы не возникало прогресовой ошибки */
+   DEFINE VARIABLE vdtTmpDt AS DATE NO-UNDO.
+   vdtTmpDt = DATE(SELF:SCREEN-VALUE) NO-ERROR.
+   IF ERROR-STATUS:ERROR THEN DO:
+      RUN Fill-SysMes IN h_tmess ("", "", "0", ERROR-STATUS:GET-MESSAGE(1)).
+      RETURN NO-APPLY {&RET-ERROR}.
+   END.
+
+   /* проверка соответствия дат открытия/закрытия */
+   IF INPUT tt-banks.date-out LT INPUT tt-banks.date-in THEN
+   DO:
+      RUN Fill-SysMes IN h_tmess ("", 
+                                  "", 
+                                  "0", 
+                                  "Дата заведения клиента должна быть меньше даты закрытия!").
+      RETURN NO-APPLY {&RET-ERROR}.
+   END.
+   {&END_BT_LEAVE}
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-banks.flag-rkc
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.flag-rkc TERMINAL-SIMULATION
+ON F1 OF tt-banks.flag-rkc IN FRAME fMain /* РКЦ */
+DO:
+   IF iMode NE {&MOD_VIEW} THEN
+      DISPLAY 
+         NOT INPUT tt-banks.flag-rkc @ tt-banks.flag-rkc
+      WITH FRAME {&FRAME-NAME}. 
+END.
+
+ON ' ' OF tt-banks.flag-rkc
+DO:
+   APPLY "F1" TO SELF.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME tt-banks.short-name
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.short-name TERMINAL-SIMULATION
+ON F1 OF tt-banks.short-name IN FRAME fMain /* Краткое наим-ние */
+DO:
+   IF iMode EQ {&MOD_VIEW}  THEN
+      RUN xview.p("banks",tt-banks.bank-id).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&Scoped-define SELF-NAME tt-banks.unk$
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tt-banks.unk$ TERMINAL-SIMULATION
+ON ENTRY OF tt-banks.unk$ IN FRAME fMain /* УНК */
+DO:
+   IF  iMode         EQ {&MOD_EDIT}
+   AND tt-banks.unk$ EQ ? 
+   AND mFlagUnk
+   THEN DO:
+      RUN Fill-SysMes IN h_tmess ("", "", "4", "Присвоить новое значение УНК?").
+      IF pick-value EQ "YES" THEN
+         tt-banks.unk$:SCREEN-VALUE = STRING(NewUnk("banks")).
+   END.
+END.
+ON F1 OF tt-banks.unk$ IN FRAME fMain 
+DO:
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&UNDEFINE SELF-NAME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK TERMINAL-SIMULATION 
+
+
+/* ***************************  Main Block  *************************** */
+&IF DEFINED(SESSION-REMOTE) EQ 0 &THEN
+/* Set CURRENT-WINDOW: this will parent dialog-boxes and frames.        */
+ASSIGN CURRENT-WINDOW                = {&WINDOW-NAME} 
+       THIS-PROCEDURE:CURRENT-WINDOW = {&WINDOW-NAME}.
+
+/* The CLOSE event can be used from inside or outside the procedure to  */
+/* terminate it.                                                        */
+ON CLOSE OF THIS-PROCEDURE 
+   RUN disable_UI.
+
+/* These events will close the window and terminate the procedure.      */
+/* (NOTE: this will override any user-defined triggers previously       */
+/*  defined on the window.)                                             */
+ON WINDOW-CLOSE OF {&WINDOW-NAME} DO:
+   APPLY "CLOSE":U TO THIS-PROCEDURE.
+   RETURN NO-APPLY.
+END.
+ON ENDKEY, END-ERROR OF FRAME fMain ANYWHERE DO:
+   mRetVal = IF mOnlyForm THEN
+      {&RET-ERROR}
+      ELSE 
+         "".
+   APPLY "CLOSE":U TO THIS-PROCEDURE.
+   RETURN NO-APPLY.
+END.
+&ENDIF
+/* Best default for GUI applications is...                              */
+PAUSE 0 BEFORE-HIDE.
+
+/* Now enable the interface and wait for the exit condition.            */
+/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+
+RUN StartBisTTY.
+
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+
+
+	/* #2905 */
+   IF LOGICAL(FGetSetting("PirChkOp","Pir2905","YES")) THEN 
+   DO:
+     DEF VAR oRes AS LOGICAL NO-UNDO.
+     RUN pir-updatedanket.p("banks",iSurrogate,OUTPUT oRes).
+     IF  oRes   THEN 
+       MESSAGE  "ВНИМАНИЕ!" SKIP "СРОК ОБНОВЛЕНИЯ АНКЕТЫ КЛИЕНТА!" SKIP "ПРИ ПОСЕЩЕНИИ КЛИЕНТОМ БАНКА ИНФОРМИРОВАТЬ У6 И У11" VIEW-AS ALERT-BOX.
+   END.
+
+   mResCntry = fGetSetting("КодРез",?,"RUS").
+   {getflagunk.i &class-code="'banks'" &flag-unk="mFlagUnk"}
+
+   IF mFlagUnk THEN DO:
+      mTempVal = GetXAttrEx("banks","УНК","data-format").
+      IF mTempVal NE FILL("9", LENGTH(mTempVal)) THEN DO:
+         RUN Fill-SysMes IN h_tmess ("", "", "0", "Формат УНК, заданный в метасхеме д.б. ~"999...~"!").
+         UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK.
+      END.
+   END.
+
+   /* Commented by KSV: Инициализация системных сообщений */
+   RUN Init-SysMes("","","").
+   
+   /* Commented by KSV: Корректируем вертикальную позицию фрейма */
+   iLevel = GetCorrectedLevel(FRAME fMain:HANDLE,iLevel).
+   FRAME fMain:ROW = iLevel.
+
+   /* Commented by KSV: Читаем данные */
+   RUN GetObject.
+
+   IF NUM-ENTRIES(iInstanceList,CHR(3)) GT 1 
+   THEN mClient = ENTRY(2, iInstanceList,CHR(3)) EQ 'yes'.
+   ELSE tt-banks.client.
+   
+   mClass = IF mClient 
+            THEN mFlagUnk 
+            ELSE mClient.
+
+   IF iMode EQ {&MOD_ADD}  THEN DO:
+      ASSIGN 
+         tt-banks.client  = mClass
+         tt-banks.date-in = TODAY
+      .
+   END.
+   
+   IF iMode NE {&MOD_VIEW} THEN DO:
+      ASSIGN
+         tt-banks.modified  = YES
+         tt-banks.last-date = TODAY
+      .
+      IF mFlagUnk THEN DO:
+         IF  tt-banks.unk$       EQ ? 
+         AND mClass
+         THEN DO:
+            pick-value = "YES".
+            IF iMode EQ {&MOD_EDIT} THEN
+               RUN Fill-SysMes IN h_tmess ("", "", "4", "Присвоить новое значение УНК?").
+            IF pick-value EQ "YES" THEN
+            DO:
+               tt-banks.unk$ = NewUnk("banks").
+               IF  iMode EQ {&MOD_EDIT} THEN
+                  RUN Fill-SysMes IN h_tmess ("", "", "1", "Клиенту присвоено новое значение УНК - " + STRING(tt-banks.unk$,mTempVal)).
+            END.
+         END.
+      END.
+   END.
+
+   /* Заполняем COMBO-BOX'ы данными из метасхемы */
+   RUN FillComboBox(FRAME {&MAIN-FRAME}:HANDLE).
+
+   /* Подсветка полей из LIST-5 (настроить для себя )*/
+   RUN SetColorList(FRAME {&MAIN-FRAME}:HANDLE,
+                    REPLACE("{&LIST-5}"," ",","),
+                    "bright-green").
+   
+   
+   /* Commented by KSV: Показываем экранную форму */
+   STATUS DEFAULT "".
+&IF DEFINED(SESSION-REMOTE) EQ 0 &THEN
+   RUN enable_UI.
+&ENDIF
+   /* Commented by KSV: Открываем те поля, которые разрешено изменять
+   ** в зависимости от режима открытия */
+   RUN EnableDisable.
+&IF DEFINED(SESSION-REMOTE) &THEN
+   LEAVE MAIN-BLOCK.
+&ENDIF
+
+   /* Commented by KSV: Рисуем разделители. Разделители задаются как FILL-IN
+   ** с идентификатором SEPARATOR# с атрибутом VIES-AS TEXT */
+   RUN Separator(FRAME fMain:HANDLE,"1").
+  
+   IF NOT THIS-PROCEDURE:PERSISTENT THEN
+      WAIT-FOR CLOSE OF THIS-PROCEDURE FOCUS mFirstTabItem. 
+END.
+
+/* Commented by KSV: Закрываем службу системных сообщений */
+RUN End-SysMes.
+
+&IF DEFINED(SESSION-REMOTE) = 0 &THEN
+RUN disable_ui.
+&ENDIF
+
+
+RUN EndBisTTY.
+
+/* Commented by KSV: Выгружаем библиотеки */
+{intrface.del}
+
+/* Commented by KSV: Возвращаем значение вызывающей процедуре */
+RETURN mRetVal.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+/* **********************  Internal Procedures  *********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI TERMINAL-SIMULATION  _DEFAULT-DISABLE
+PROCEDURE disable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     DISABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we clean-up the user-interface by deleting
+               dynamic widgets we have created and/or hide 
+               frames.  This procedure is usually called when
+               we are ready to "clean-up" after running.
+------------------------------------------------------------------------------*/
+  /* Hide all frames. */
+  HIDE FRAME fMain.
+  IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI TERMINAL-SIMULATION  _DEFAULT-ENABLE
+PROCEDURE enable_UI :
+/*------------------------------------------------------------------------------
+  Purpose:     ENABLE the User Interface
+  Parameters:  <none>
+  Notes:       Here we display/view/enable the widgets in the
+               user-interface.  In addition, OPEN all queries
+               associated with each FRAME and BROWSE.
+               These statements here are based on the "Other 
+               Settings" section of the widget Property Sheets.
+------------------------------------------------------------------------------*/
+  IF AVAILABLE tt-banks THEN 
+    DISPLAY tt-banks.date-in tt-banks.last-date tt-banks.date-out tt-banks.unk$ 
+          tt-banks.client tt-banks.flag-rkc tt-banks.vidbanklic$ 
+          tt-banks.bank-type tt-banks.bank-stat tt-banks.short-name 
+          tt-banks.name tt-banks.country tt-banks.region tt-banks.country-id 
+          tt-banks.town-type tt-banks.town tt-banks.tax-insp 
+          tt-banks.law-address tt-banks.mail-address tt-banks.uer 
+          tt-banks.okvwed$ tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+      WITH FRAME fMain IN WINDOW TERMINAL-SIMULATION.
+  IF AVAILABLE tt-InnBank THEN 
+    DISPLAY tt-InnBank.cust-code 
+      WITH FRAME fMain IN WINDOW TERMINAL-SIMULATION.
+  IF AVAILABLE tt-MFO-9 THEN 
+    DISPLAY tt-MFO-9.bank-code 
+      WITH FRAME fMain IN WINDOW TERMINAL-SIMULATION.
+  IF AVAILABLE tt-Regn THEN 
+    DISPLAY tt-Regn.bank-code 
+      WITH FRAME fMain IN WINDOW TERMINAL-SIMULATION.
+  ENABLE tt-banks.date-in tt-banks.last-date tt-banks.date-out tt-banks.unk$ 
+         tt-banks.client tt-banks.flag-rkc tt-banks.vidbanklic$ 
+         tt-banks.bank-type tt-banks.bank-stat tt-banks.short-name 
+         tt-banks.name tt-banks.country tt-banks.region tt-banks.country-id 
+         tt-banks.town-type tt-banks.town tt-banks.tax-insp 
+         tt-banks.law-address tt-banks.mail-address tt-MFO-9.bank-code 
+         tt-Regn.bank-code tt-InnBank.cust-code tt-banks.uer tt-banks.okvwed$ 
+         tt-banks.kpp$ tt-banks.okonx tt-banks.okpo 
+      WITH FRAME fMain IN WINDOW TERMINAL-SIMULATION.
+  {&OPEN-BROWSERS-IN-QUERY-fMain}
+  VIEW TERMINAL-SIMULATION.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE LocalEnableDisable TERMINAL-SIMULATION 
+PROCEDURE LocalEnableDisable :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+   DEFINE VARIABLE vIsNotAcct AS LOGICAL NO-UNDO.
+   
+   IF mFlagUnk THEN 
+      tt-banks.unk$:FORMAT IN FRAME {&FRAME-NAME} = mTempVal.
+   tt-banks.unk$:HIDDEN IN FRAME {&FRAME-NAME} = NOT mClass.
+
+   vIsNotAcct = YES.
+
+   IF iMode EQ {&MOD_EDIT} AND tt-banks.client THEN
+
+      FOR EACH acct WHERE acct.cust-cat   EQ "Б"
+                      AND acct.cust-id    EQ tt-banks.bank-id
+                      AND acct.close-date EQ ? NO-LOCK:
+         vIsNotAcct = NO.
+         LEAVE.
+      END.
+   tt-banks.client:SENSITIVE IN FRAME {&FRAME-NAME} = IF     iMode NE {&MOD_View}
+                                                         AND (NOT tt-banks.client OR vIsNotAcct)
+                                                      THEN YES
+                                                      ELSE NO.    
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE localSetObject TERMINAL-SIMULATION 
+PROCEDURE localSetObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   DEFINE VARIABLE hBankCode  AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE hCustIdent AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE vOk        AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE hT         AS HANDLE     NO-UNDO.
+
+   DEFINE VARIABLE vNonUniqInn AS LOGICAL     NO-UNDO.
+   DEFINE VARIABLE vCont       AS LOGICAL     NO-UNDO.
+   DEFINE VARIABLE vNum        AS INT64     NO-UNDO.
+     
+   IF GetValueAttrEx("banks-code",
+                     STRING(tt-banks.bank-id) + ',' + 'МФО-9',
+                     "bank-code",
+                     ?) NE ? THEN DO:
+      IF tt-mfo-9.bank-code EQ "" THEN DO:
+         RUN prepareInstance IN h_Data ("").
+         RUN getInstance IN h_Data (       "banks-code", 
+                                           STRING(tt-banks.bank-id) + ',' + 'МФО-9',
+                                    OUTPUT hBankCode, 
+                                    OUTPUT vOk).
+         /* если введен пустой идентиифкатор, то запись удаляем */
+         IF VALID-HANDLE (hBankCode) THEN
+            tt-mfo-9.user__mode      = {&MOD_DELETE}.
+      END.
+   END.
+   
+   IF GetValueAttrEx("banks-code",
+                     STRING(tt-banks.bank-id) + ',' + 'REGN',
+                     "bank-code",
+                     ?) NE ? THEN DO:
+      IF tt-regn.bank-code EQ "" THEN DO:
+         RUN prepareInstance IN h_Data ("").
+         RUN getInstance IN h_Data (       "banks-code", 
+                                           STRING(tt-banks.bank-id) + ',' + 'REGN',
+                                    OUTPUT hBankCode, 
+                                    OUTPUT vOk).
+         /* если введен пустой идентиифкатор, то запись удаляем */
+         IF VALID-HANDLE (hBankCode) THEN
+            tt-regn.user__mode      = {&MOD_DELETE}.
+      END.
+      ELSE
+         tt-regn.user__mode = {&MOD_EDIT}.
+   END.
+   IF GetValueAttrEx("cust-ident",
+                     "ИНН" + "," + tt-InnBank.cust-code + "," + STRING (tt-InnBank.cust-type-num), 
+                     "cust-code",
+                     ?) NE ? THEN DO:
+      IF tt-InnBank.cust-code EQ "" THEN DO:
+         RUN prepareInstance IN h_Data ("").
+         RUN getInstance IN h_Data (       "cust-ident", 
+                                           "ИНН" + "," + tt-InnBank.cust-code + "," + STRING (tt-InnBank.cust-type-num), 
+                                    OUTPUT hCustIdent, 
+                                    OUTPUT vOk).
+         /* если введен пустой идентиифкатор, то запись удаляем */
+         IF VALID-HANDLE (hCustIdent) THEN
+            tt-InnBank.user__mode      = {&MOD_DELETE}.
+      END.
+   END.
+
+
+   IF iMode EQ {&MOD_ADD} THEN DO:
+      IF tt-banks.name EQ "" THEN
+         tt-banks.name = tt-banks.short-name.
+      IF     tt-mfo-9.bank-code NE ""
+         AND SUBSTRING(tt-mfo-9.bank-code, 
+                       MAX(LENGTH(tt-mfo-9.bank-code) - 2,1), 
+                       3) EQ "000" THEN
+         tt-banks.flag-rkc = YES.
+   END.
+   
+   IF tt-mfo-9.bank-code <> "" THEN
+      tt-mfo-9.bank-code = STRING(INT64(tt-mfo-9.bank-code), "999999999").
+   
+   /* Проверка ИНН на уникальность */
+   IF (iMode EQ {&MOD_EDIT}) OR (iMode EQ {&MOD_ADD}) THEN
+   DO:
+      FIND FIRST bCust-ident WHERE bCust-ident.cust-cat       EQ "Б"
+                             AND   bCust-ident.cust-code-type EQ "ИНН"
+                             AND   bCust-ident.cust-code      EQ tt-InnBank.cust-code
+                             AND   ROWID (bCust-Ident)        NE tt-InnBank.local__rowid
+         NO-LOCK NO-ERROR.
+      IF AVAIL bCust-Ident THEN
+      DO:
+         RUN Fill-SysMes IN h_tmess ("", "", "4", "Уже есть банк с ИНН " + 
+                                                  tt-InnBank.cust-code + 
+                                                  "!~nПродолжить?").
+         IF NOT LOGICAL (pick-value) THEN
+            RETURN ERROR.
+      END.
+   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Local_GO TERMINAL-SIMULATION 
+PROCEDURE Local_GO :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   DEFINE VAR vCheckBankRek       AS LOGICAL NO-UNDO.
+   DEFINE VAR vBadMandatoryFields AS CHAR    NO-UNDO.
+   DEFINE VAR vBadWarningFields   AS CHAR    NO-UNDO.
+
+   DO WITH FRAME {&MAIN-FRAME}:
+      vCheckBankRek = (FGetSetting("ПровБанкРек",?,"Нет") = "Да").
+
+      IF NOT {assigned tt-banks.short-name:SCREEN-VALUE}
+      OR tt-banks.short-name:SCREEN-VALUE = "?"
+      THEN IF GetXattrEx(tt-banks.class-code,GetOriginalName(tt-banks.short-name:NAME),"Mandatory") = "YES"
+           OR (    vCheckBankRek
+               AND tt-banks.client)
+           THEN vBadMandatoryFields = vBadMandatoryFields + tt-banks.short-name:LABEL + "~n".
+           ELSE IF vCheckBankRek
+                THEN vBadWarningFields = vBadWarningFields + tt-banks.short-name:LABEL + "~n".
+
+      IF NOT {assigned tt-banks.vidbanklic$:SCREEN-VALUE}
+      OR tt-banks.vidbanklic$:SCREEN-VALUE = "?"
+      THEN IF GetXattrEx(tt-banks.class-code,GetOriginalName(tt-banks.vidbanklic$:NAME),"Mandatory") = "YES"
+           OR (    vCheckBankRek
+               AND tt-banks.client)
+           THEN vBadMandatoryFields = vBadMandatoryFields + tt-banks.vidbanklic$:LABEL + "~n".
+           ELSE IF vCheckBankRek
+                THEN vBadWarningFields = vBadWarningFields + tt-banks.vidbanklic$:LABEL + "~n".
+
+      IF NOT {assigned tt-banks.bank-stat:SCREEN-VALUE}
+      OR tt-banks.bank-stat:SCREEN-VALUE = "?"
+      THEN IF GetXattrEx(tt-banks.class-code,GetOriginalName(tt-banks.bank-stat:NAME),"Mandatory") = "YES"
+           OR (    vCheckBankRek
+               AND tt-banks.client)
+           THEN vBadMandatoryFields = vBadMandatoryFields + tt-banks.bank-stat:LABEL + "~n".
+           ELSE IF vCheckBankRek
+                THEN vBadWarningFields = vBadWarningFields + tt-banks.bank-stat:LABEL + "~n".
+
+   END.
+
+   IF {assigned vBadMandatoryFields} THEN DO:
+      vBadMandatoryFields = "Незаполнены поля, обязательные для заполнения:~n~n"
+                          + vBadMandatoryFields.
+      RUN Fill-SysMes IN h_tmess ("", "", "-1", vBadMandatoryFields).
+      RETURN ERROR {&RET-ERROR}.
+   END.
+   IF {assigned vBadWarningFields} THEN DO:
+      vBadWarningFields = "Рекомендуется заполнить данные поля:~n~n"
+                        + vBadWarningFields + "~nВернуться в форму ?".
+      pick-value = "yes".
+      RUN Fill-SysMes IN h_tmess ("", "", "4", vBadWarningFields).
+      IF pick-value = "yes"
+      THEN RETURN ERROR {&RET-ERROR}.
+   END.
+
+   RETURN.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE PostSetObject TERMINAL-SIMULATION 
+PROCEDURE PostSetObject :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   DEFINE VAR vCustId LIKE banks.bank-id NO-UNDO.
+
+   vCustId = INT64(GetSurrogate("banks", TO-ROWID(GetInstanceProp2(mInstance,"__rowid")))).
+
+   /* (поднято из Дойче) простановка начального статуса */
+   UpdateSigns("banks",
+               STRING(vCustId),
+               "status",
+               FGetSetting("ПовтВводКл", "НачСтатусБ", ?),
+               ?).
+
+   RUN RunClassMethod IN h_xclass("banks",
+                                  "chkupd",
+                                  "",
+                                  "",
+                                  "cust-req",
+                                  Rowid2Recid("banks",TO-ROWID(GetInstanceProp(mInstance,"__rowid")))
+                                 ).
+   IF RETURN-VALUE NE "" THEN 
+      RETURN ERROR.
+
+      {chk_frm_mand_adr.i
+         &cust-type = "'Б'"
+         &cust-id   = "vCustId"
+      }
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+

@@ -1,0 +1,418 @@
+/* Распоряжение работает по отобранным документам в оп.дне */
+
+
+{globals.i}
+{tmprecid.def}
+{ulib.i}
+{get-bankname.i}
+
+
+
+/*** ================================================================= ***/
+
+DEF VAR vLnCountInt AS INTEGER NO-UNDO. 
+DEF VAR vLnTotalInt AS INTEGER NO-UNDO. 
+
+DEF VAR oTable1 	AS  TTable NO-UNDO.
+DEF VAR oTable2 	AS  TTable NO-UNDO.
+DEF VAR oTpl 		AS  TTpl  NO-UNDO.
+
+DEF VAR oTAcct 		AS  TAcct NO-UNDO.
+DEF VAR ofunc 		AS  tfunc NO-UNDO.
+
+
+DEF VAR vOpKind		AS  CHAR INIT "nop4"   NO-UNDO.
+
+
+DEF VAR count		AS  INT INIT 0  NO-UNDO. /*1*/
+DEF VAR ClName		AS  CHAR  NO-UNDO. /*2*/
+DEF VAR TypeZad		AS  INT   NO-UNDO. /*3*/
+DEF VAR dOstKredit	AS  DEC   NO-UNDO. /*4*/
+
+DEF VAR BegPeriod	AS  DATE  NO-UNDO. /*6*/
+DEF VAR EndPeriod	AS  DATE  NO-UNDO. /*7*/
+
+DEF VAR rate		AS  DEC   NO-UNDO. /*9*/
+
+DEF VAR Amt		AS  DEC   NO-UNDO. /*10*/
+DEF VAR KfRez		AS  CHAR  NO-UNDO. /*13*/
+
+DEF VAR RaneePogash	AS  DEC INIT 0 NO-UNDO. 
+
+
+DEF VAR Sum_f10		AS  DEC   NO-UNDO.
+DEF VAR Sum_f14		AS  DEC   NO-UNDO.
+DEF VAR Total		AS  DEC   NO-UNDO.
+
+DEF VAR RaspDate	AS  DATE  NO-UNDO.
+
+DEF VAR i		AS  INT   NO-UNDO.
+DEF VAR j		AS  INT   NO-UNDO.
+
+
+DEF VAR cTmp As CHAR NO-UNDO.
+
+
+DEF BUFFER bloan-acct FOR loan-acct.
+DEF BUFFER bop-entry  FOR op-entry.
+
+
+DEF TEMP-TABLE rep NO-UNDO
+  FIELD  f02  AS  CHAR   /* ClName */
+  FIELD  f03  AS  INT
+  FIELD  f04  AS  DEC
+  FIELD  f05  AS  CHAR
+  FIELD  f06  AS  CHAR
+  FIELD  f07  AS  CHAR
+  FIELD  f08  AS  INT
+  FIELD  f09  AS  CHAR
+  FIELD  f10  AS  DEC
+  FIELD  f11  AS  CHAR
+  FIELD  f12  AS  CHAR
+  FIELD  f13  AS  CHAR
+  FIELD  f14  AS  DEC   /*RaneePogash*/
+.
+
+
+
+/*** ================================================================= ***/
+
+IF NOT CAN-FIND (FIRST tmprecid) THEN 
+DO:
+    MESSAGE "Нет ни одного выбранного документа!" VIEW-AS ALERT-BOX.
+    RETURN.
+END.
+
+{init-bar.i "Обработка документов"}
+
+FOR EACH tmprecid,
+FIRST op WHERE RECID(op) EQ tmprecid.id  
+         AND   op.op-kind = vOpKind
+NO-LOCK:
+    vLnTotalInt = vLnTotalInt + 1.
+END.
+
+
+
+/*** ================================================================= ***/
+
+oTable1 = new TTable(13).
+
+          oTable1:addRow().
+/* 1  */  oTable1:addCell("№ п/п").
+/* 2  */  oTable1:addCell("Наименование заемщика").
+/* 3  */  oTable1:addCell("Качество задолженности").
+/* 4  */  oTable1:addCell("Сумма задолженности").
+/* 5  */  oTable1:addCell("ВАЛ").
+/* 6  */  oTable1:addCell("Начало периода").
+/* 7  */  oTable1:addCell("Окончание периода").
+/* 8  */  oTable1:addCell("Кол-во дней").
+/* 9  */  oTable1:addCell("%% ставка ").
+/* 10 */  oTable1:addCell("Начисленные проценты").
+/* 11 */  oTable1:addCell("Дебет").
+/* 12 */  oTable1:addCell("Кредит").
+/* 13 */  oTable1:addCell("Коэф.резервирования").
+
+
+oTable1:addRow().
+oTable1:addCell(" ").
+oTable1:setBorder(1,oTable1:height,1,0,0,1).
+oTable1:addCell("№ договора, дата").
+oTable1:setBorder(2,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(3,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(4,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(5,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(6,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(7,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(8,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(9,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(10,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(11,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(12,oTable1:height,1,0,0,1).
+oTable1:addCell(" ").
+oTable1:setBorder(13,oTable1:height,1,0,0,1).
+
+
+oTable1:colsWidthList="5,35,23,19,3,14,17,11,10,20,20,20,19".
+
+
+DO i=1 to 2:
+  DO j=1 TO 13:
+     oTable1:setAlign(j,i,"center").
+  END.
+END.
+
+
+
+/*** ================================================================= ***/
+
+FOR EACH tmprecid,
+FIRST op WHERE RECID(op) EQ tmprecid.id 
+         AND   op.op-kind = vOpKind
+NO-LOCK:
+
+
+    {move-bar.i
+	vLnCountInt
+	vLnTotalInt
+    }
+
+    FIND FIRST op-entry WHERE op-entry.op = op.op NO-LOCK NO-ERROR.
+    IF AVAILABLE(op-entry) THEN 
+    DO:
+
+
+       FIND FIRST loan-acct WHERE  loan-acct.acct = op-entry.acct-db  AND  (loan-acct.acct-type = "КредТ" OR loan-acct.acct-type = "КредТВ")  NO-LOCK NO-ERROR.
+       IF AVAILABLE(loan-acct) THEN 
+       DO:
+
+           FIND FIRST loan WHERE loan.cont-code = loan-acct.cont-code AND loan.contract = loan-acct.contract NO-LOCK NO-ERROR.
+
+           IF loan.cust-cat eq "Ч" THEN 
+           DO:
+              FIND FIRST person WHERE person.person-id = loan.cust-id NO-LOCK NO-ERROR.
+              ClName = person.name-last + " " +  person.first-names.
+           END.
+           IF loan.cust-cat eq "Ю" THEN 
+           DO:
+	      FIND FIRST cust-corp WHERE cust-corp.cust-id = loan.cust-id NO-LOCK NO-ERROR.
+              ClName = cust-corp.name-short.
+           END.
+
+
+           dOstKredit = 0.
+
+           FOR EACH bloan-acct 
+              WHERE bloan-acct.cont-code = loan.cont-code 
+              AND   bloan-acct.acct-type = "Кредит" 
+           NO-LOCK:
+               oTAcct = new TAcct(bloan-acct.acct).
+               dOstKredit = dOstKredit + oTAcct:GetLastPos2Date(op.op-date).
+	       DELETE OBJECT oTAcct. 	
+           END.
+
+           TypeZad = IF op.details MATCHES "*просрочен*" THEN 2 ELSE 1 .
+
+           rate = GetLoanCommission_ULL(loan.contract,loan.cont-code,"%Кред",op.op-date, false).
+
+           Amt  = IF op-entry.currency = "" THEN  op-entry.amt-rub  ELSE  op-entry.amt-cur .
+
+           ofunc = new tfunc().
+           KfRez  = ENTRY(1,ofunc:getKRez(loan.cont-code, op.op-date)) + "%" .
+           DELETE OBJECT ofunc. 	
+
+           BegPeriod = MAX( DATE("11/" + STRING(MONTH(op.op-date)) + "/" + STRING(YEAR(op.op-date))) , loan.open-date) .
+
+           FIND LAST pro-obl WHERE pro-obl.contract = loan.contract AND pro-obl.cont-code = loan.cont-code NO-LOCK NO-ERROR.
+           IF AVAIL (pro-obl)  THEN
+           DO:
+              FIND FIRST bop-entry WHERE bop-entry.acct-db BEGINS "40817"  AND  bop-entry.acct-cr BEGINS "70601"  AND  bop-entry.op-date  >= (pro-obl.pr-date - 3)  NO-LOCK NO-ERROR.
+              IF  AVAIL(bop-entry)  THEN 
+                BegPeriod = MAX(BegPeriod , pro-obl.pr-date).
+           END.
+           find first loan-int where loan-int.op = op.op NO-LOCK NO-ERROR.
+           if AVAILABLE loan-int THEN EndPeriod = loan-int.mdate. 
+              ELSE
+              EndPeriod = op.op-date .
+
+
+           RaneePogash = 0 .
+
+           CREATE rep.
+           ASSIGN
+             rep.f02 = ClName + ";" + getMainLoanAttr("Кредит",loan.cont-code,"№ %cont-code от %ДатаСогл")
+             rep.f03 = TypeZad
+             rep.f04 = dOstKredit
+             rep.f05 = loan.currency
+             rep.f06 = STRING(BegPeriod,"99/99/99")
+             rep.f07 = STRING(EndPeriod,"99/99/99")
+             rep.f08 = EndPeriod - BegPeriod + 1
+             rep.f09 = STRING(rate * 100,">>9.99") + "%"
+             rep.f10 = Amt
+             rep.f11 = op-entry.acct-db
+             rep.f12 = op-entry.acct-cr
+             rep.f13 = KfRez
+             rep.f14 = RaneePogash
+           .
+
+           RaspDate = op.op-date .
+
+       END.
+       ELSE MESSAGE COLOR WHITE/RED "СЧЕТ ПО ДЕБИТУ НЕ ПРИВЯЗАН К ДОГОВОРУ С РОЛЬЮ КредТ (КредТВ)!" VIEW-AS ALERT-BOX TITLE "Ошибка".
+
+    END.
+    ELSE MESSAGE COLOR WHITE/RED "НЕ НАЙДЕНА ПРОВОДКА!" VIEW-AS ALERT-BOX TITLE "Ошибка".
+
+
+    vLnCountInt = vLnCountInt + 1.
+
+END.
+
+
+
+/* ============================================================================== */
+DEF BUFFER bufrep FOR rep.
+
+FOR EACH bufrep BY bufrep.f02 :
+
+  FIND FIRST  rep  WHERE  rep.f02 = bufrep.f02  AND  rep.f03 <> bufrep.f03  NO-LOCK NO-ERROR.
+  IF NOT AVAIL(rep) THEN
+  DO:
+
+           CREATE rep.
+           ASSIGN
+             rep.f02 = bufrep.f02
+             rep.f03 = IF bufrep.f03 = 1 THEN 2 ELSE 1
+             rep.f04 = 0
+             rep.f05 = bufrep.f05
+             rep.f06 = ""
+             rep.f07 = ""
+             rep.f08 = 0
+             rep.f09 = ""
+             rep.f10 = 0
+             rep.f11 = ""
+             rep.f12 = ""
+             rep.f13 = ""
+             rep.f14 = 0
+           .
+
+  END.
+
+END.
+
+
+
+/*** ================================================================= ***/
+
+DEF VAR HeadTbl  AS CHAR NO-UNDO.
+DEF VAR ButtTbl  AS CHAR NO-UNDO.
+
+HeadTbl =
+    FILL(" ",200) + "В Департамент 3" + CHR(10)
+  + FILL(" ",200) + cBankName + CHR(10)
+  + FILL(" ",200) + "Дата: " + STRING(RaspDate,"99/99/99") + CHR(10) + CHR(10)
+  + FILL(" ",100)  + "Р А С П О Р Я Ж Е Н И Е" + CHR(10) + CHR(10)
+  + FILL(" ",4)   + "В соответствии с Положением Банка России №39-П от 26.06.98г. О порядке начисления процентов по операциям, связанным с привлечением и размещением денежных средств банками, " + CHR(10)
+  + "и отражения указанных операций по счетам бухгалтерского учета прошу начислить на балансовых счетах проценты на задолженность по следующим кредитам:" + CHR(10) + CHR(10)
+  + FILL(" ",99)  + "Ведомость расчета процентов" + CHR(10)
+.
+
+ButtTbl = CHR(10) +
+    "Начальник Кредитного отдела                                        __________ Коноплева Елена Владимировна" + CHR(10) + CHR(10)  + CHR(10) 
+  + "Исполнитель                                                        __________ " + GetUserInfo_ULL(userid("bisquit"), "fio", false)  + CHR(10) 
+.
+
+
+
+
+/*** ================================================================= ***/
+
+{setdest.i}
+
+count = 0.
+
+FOR EACH rep BREAK BY rep.f05 BY rep.f02 BY rep.f03 :
+
+   IF FIRST-OF(rep.f05) THEN
+   DO:
+      PUT UNFORM  HeadTbl SKIP .
+      oTable1:show().
+      count = 0 .
+   END.
+
+   cTmp = IF rep.f03 = 1 THEN "Срочный ОД" ELSE "Просроченный ОД".
+
+   IF FIRST-OF(rep.f02) THEN
+   DO:
+
+      oTable2 = new TTable(13).
+      oTable2:colsWidthList="5,35,23,19,3,14,17,11,10,20,20,20,19".
+
+      count = count + 1.
+
+      Sum_f10 = rep.f10.
+      Sum_f14 = rep.f14.
+                      
+      oTable2:addRow().
+      oTable2:addCell(count).
+      oTable2:addCell(ENTRY(1,rep.f02,";")).	
+      oTable2:addCell(cTmp).
+      oTable2:addCell(STRING(rep.f04,"->>>,>>>,>>>,>>9.99")).
+      oTable2:addCell(rep.f05).
+      oTable2:addCell(rep.f06).
+      oTable2:addCell(rep.f07).
+      oTable2:addCell(rep.f08).
+      oTable2:addCell(rep.f09).
+      oTable2:addCell(STRING(rep.f10,"->>>,>>>,>>>,>>9.99")).
+      oTable2:addCell(rep.f11).
+      oTable2:addCell(rep.f12).
+      oTable2:addCell(rep.f13).
+   END.
+   ELSE
+   DO:
+
+      Sum_f10 = Sum_f10 + rep.f10.
+      Sum_f14 = Sum_f14 + rep.f14.
+
+      oTable2:addRow().
+      oTable2:addCell(" ").
+      oTable2:addCell(ENTRY(2,rep.f02,";")).	
+      oTable2:addCell(cTmp).
+      oTable2:addCell(STRING(rep.f04,"->>>,>>>,>>>,>>9.99")).
+      oTable2:addCell(rep.f05).
+      oTable2:addCell(rep.f06).
+      oTable2:addCell(rep.f07).
+      oTable2:addCell(rep.f08).
+      oTable2:addCell(rep.f09).
+      oTable2:addCell(STRING(rep.f10,"->>>,>>>,>>>,>>9.99")).
+      oTable2:addCell(rep.f11).
+      oTable2:addCell(rep.f12).
+      oTable2:addCell(rep.f13).
+
+      oTable2:show().
+      DELETE OBJECT oTable2.
+
+   END.
+
+   IF LAST-OF(rep.f02) THEN
+   DO:
+      PUT UNFORM  SKIP
+         FILL(" ",25)  STRING("Расчет процентов: " + TRIM(STRING(Sum_f10,"->>>>,>>>,>>>,>>9.99")), "X(38)")
+         FILL(" ", 5)  STRING("Ранее погашено: "   + TRIM(STRING(Sum_f14,"->>>>,>>>,>>>,>>9.99")), "X(36)")
+         FILL(" ", 5)  STRING("Итого (проценты к начисению): " + TRIM(STRING((Sum_f10 - Sum_f14),"->>>>,>>>,>>>,>>9.99")), "X(50)")
+      SKIP(2).
+      Total = Total + Sum_f10 - Sum_f14 .
+   END.
+
+
+   IF LAST-OF(rep.f05) THEN
+   DO:
+      PUT UNFORM  SKIP
+         FILL(" ",109)  STRING("Всего к начислению: " + TRIM(STRING(Total,"->>>>,>>>,>>>,>>9.99")), "X(38)")
+      SKIP.
+      PUT UNFORM  ButtTbl SKIP .
+      Total = 0.
+      PAGE.
+   END.
+
+
+END.
+
+
+
+
+{preview.i}
+
+DELETE OBJECT oTable1.
+
+

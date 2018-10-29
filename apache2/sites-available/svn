@@ -1,0 +1,25 @@
+<VirtualHost *:80>
+ ServerName svn
+ ServerAlias svn.pirbank.ru svn
+  <Location /svn/bis>
+    DAV svn
+    SVNPath /var/repos/bis
+    SVNPathAuthz off
+
+#    AuthBasicProvider ldap 
+#    AuthzLDAPAuthoritative off 
+#    AuthType Basic 
+#    AuthName "SVN Repositories" 
+
+#    AuthLDAPBindDN "CN=sys_help,OU=SYS_USERS,OU=PIRBANK,DC=pirbank,DC=ru" 
+#    AuthLDAPBindPassword "Pa$$word"
+
+    # AuthLDAPBindDN "sys_help@pirbank.ru" 
+    # AuthLDAPBindPassword "Pa$$word"
+
+#    AuthLDAPURL "ldap://dc01.pirbank.ru:389/OU=PIRBANK,DC=pirbank,DC=ru?sAMAccountName?sub?(objectClass=person)" NONE
+ #   Require valid-user
+
+  </Location>
+</VirtualHost>
+

@@ -1,0 +1,268 @@
+{pirsavelog.p}
+
+/* ========================================================================= */
+/** 
+    Copyright: ООО КБ "ПPОМИНВЕСТРАСЧЕТ", Управление автоматизации (C) 2011
+     Filename: pirexpcard.p
+      Comment: Экспорт данных в формате afx для МАСТЕРА ДОГОВОРОВ 
+		по депозитным договорам
+   Parameters: Полное имя файла экспорта
+       Launch: Из браузера вкладов
+         Uses:
+      Created: Бурягин Е.П., 20.01.2006
+	Basis: 
+     Modified: Sitov S.A., 01.03.2012, Изменения под ТЗ (от 24.02.2012).
+*/
+/* ========================================================================= */
+
+
+
+
+FUNCTION cnv RETURNS CHARACTER (INPUT arg1 AS CHARACTER).
+
+/* Вход: arg1:строка
+** Выход: строка в кодировке windows-1251
+*/
+	RETURN CODEPAGE-CONVERT(arg1,"1251",SESSION:CHARSET).
+
+END FUNCTION.
+
+FUNCTION expagr RETURNS CHARACTER (
+	INPUT arg1 AS CHAR, /* Номер договора */
+	INPUT arg2 AS CHAR, /* Дата открытия */
+	INPUT arg3 AS CHAR, /* Зата окончания */
+	INPUT arg4 AS CHAR, /* Сумма */
+	INPUT arg5 AS CHAR, /* Валюта */
+	INPUT arg6 AS CHAR  /* Процентная ставка */ 
+	).
+
+	DEFINE VARIABLE construction AS CHARACTER NO-UNDO.
+
+	construction =                "<agreement>" + CHR(13) + CHR(10).
+	construction = construction + "no=" + arg1 + CHR(13) + CHR(10).
+	construction = construction + "opendate=" + arg2 + CHR(13) + CHR(10).
+	construction = construction + "enddate=" + arg3 + CHR(13) + CHR(10).
+	construction = construction + "summa=" + arg4 + CHR(13) + CHR(10).
+	construction = construction + "currency=" + arg5 + CHR(13) + CHR(10).
+	construction = construction + "rate=" + arg6 + CHR(13) + CHR(10).
+	construction = construction + "</agreement>" + CHR(13) + CHR(10).
+	
+	RETURN construction.
+
+END FUNCTION.
+
+FUNCTION expacct RETURNS CHARACTER (INPUT arg1 AS CHAR).
+
+	DEFINE VARIABLE construction AS CHARACTER NO-UNDO.
+
+	construction =                "<acct>" + CHR(13) + CHR(10).
+	construction = construction + "no=" + arg1 + CHR(13) + CHR(10).
+	if can-do("42.01*",arg1) then 
+		construction = construction + "type=счет до востребования" + CHR(13) + CHR(10).
+	if can-do("!42.01*,42*",arg1) then 
+		construction = construction + "type=депозитный счет" + CHR(13) + CHR(10).
+	if can-do("40*",arg1) then
+		construction = construction + "type=текущий счет" + CHR(13) + CHR(10).
+	construction = construction + "</acct>" + CHR(13) + CHR(10).
+	
+	RETURN construction.
+
+END FUNCTION.
+
+FUNCTION expcli RETURNS CHARACTER (
+	INPUT arg1 AS CHAR,
+        INPUT arg2 AS CHAR,
+        INPUT arg3 AS CHAR,
+        INPUT arg4 AS CHAR,
+        INPUT arg5 AS CHAR,
+        INPUT arg6 AS CHAR,
+	INPUT arg7 AS CHAR
+	).
+
+	DEFINE VARIABLE construction AS CHARACTER NO-UNDO.
+	DEF VAR tmp AS CHAR NO-UNDO.
+	DEF VAR i AS INTEGER NO-UNDO.
+	
+	construction = 				  "<client>" + CHR(13) + CHR(10).
+	construction = construction + "fio=" + arg1 + CHR(13) + CHR(10).
+	DO i = 1 TO NUM-ENTRIES(arg2) :
+		IF TRIM(ENTRY(i, arg2)) <> "" THEN
+			DO:
+				tmp = tmp + ENTRY(i, arg2).
+				IF i < NUM-ENTRIES(arg2) THEN
+					tmp = tmp + ",".
+			END.
+	END.			
+	construction = construction + "address=" + arg2 + CHR(13) + CHR(10).
+	construction = construction + "liveaddress=" + arg7 + CHR(13) + CHR(10).
+	construction = construction + "document=" + arg3 + CHR(13) + CHR(10).
+	construction = construction + "phone=" + arg4 + CHR(13) + CHR(10).
+	construction = construction + "inn=" + arg5 + CHR(13) + CHR(10).
+	construction = construction + "resident=" + arg6 + CHR(13) + CHR(10).
+	construction = construction + "</client>" + CHR(13) + CHR(10).
+
+	RETURN construction.
+
+END FUNCTION.
+
+
+FUNCTION expstatement RETURNS CHARACTER (
+	INPUT arg1 AS CHAR,
+        INPUT arg2 AS CHAR,
+        INPUT arg3 AS CHAR
+	).
+
+	DEFINE VARIABLE construction AS CHARACTER NO-UNDO.
+
+	construction =                "<statement>" + CHR(13) + CHR(10).
+	construction = construction + "num="	+ arg1 + CHR(13) + CHR(10).
+	construction = construction + "sum=" 	+ arg2 + CHR(13) + CHR(10).
+	construction = construction + "depos="	+ arg3 + CHR(13) + CHR(10).
+	construction = construction + "</statement>" + CHR(13) + CHR(10).
+
+	RETURN construction.
+
+END FUNCTION.
+
+
+/********************************************************************** VARS */
+
+/* Глобальные определения */
+{globals.i}
+{ulib.i}
+{pir_anketa.fun}
+
+/* Входные параметры процедуры */
+DEF INPUT PARAM iParam AS CHAR NO-UNDO.
+
+/* Первый параметр */
+DEF VAR out_file_name AS CHAR NO-UNDO. 
+{tmprecid.def}        /** Используем информацию из броузера */
+
+DEF VAR account AS CHAR NO-UNDO.
+DEF VAR summa AS DECIMAL NO-UNDO. 
+DEF VAR rate AS DECIMAL NO-UNDO.
+
+DEF VAR cTfakt AS CHAR NO-UNDO.
+DEF VAR cTprop AS CHAR NO-UNDO.
+DEF VAR cTf-id AS CHAR NO-UNDO.
+DEF VAR cTp-id AS CHAR NO-UNDO.
+
+IF NUM-ENTRIES(iParam) > 0 THEN
+	out_file_name = ENTRY(1,iParam).
+ELSE
+	out_file_name = "/home2/bis/quit41d/work/buryagin/tmp/new_data.afx".
+		
+OUTPUT TO VALUE(out_file_name).
+
+PUT UNFORMATTED cnv("<data>" + CHR(13) + CHR(10)).
+
+
+/* Для первого счета, выбранного в брoузере выполняем... */
+FOR FIRST tmprecid 
+NO-LOCK,
+FIRST loan WHERE 
+      RECID(loan) EQ tmprecid.id 
+NO-LOCK 
+: 
+
+	account = GetLoanAcct_ULL(loan.contract, loan.cont-code, 'loan-dps-t', loan.open-date, false).
+	summa = ABS(GetAcctPosValueEx_UAL(account, loan.currency, loan.open-date, "Ф", false)).
+	rate = GetDpsCommission_ULL(loan.cont-code, 'commission', loan.open-date, false).
+	
+	PUT UNFORMATTED cnv(expagr(loan.cont-code, 
+				STRING(loan.open-date,"99/99/9999"), 
+				STRING(loan.end-date,"99/99/9999"),
+				STRING(summa),
+				SUBSTRING(account, 6, 3),
+				STRING(rate * 100))).
+				
+	/** Первый счет вкладной */
+	PUT UNFORMATTED cnv(expacct(account)).
+	
+	/** Второй счет текущий */
+	account = GetLoanAcct_ULL(loan.contract, loan.cont-code, 'loan-dps-out', loan.open-date, false).
+	PUT UNFORMATTED cnv(expacct(account)).
+					
+	/* Информация по клиенту */
+	IF loan.cust-cat = "Ч" THEN
+		DO:
+			FIND FIRST person WHERE
+				person.person-id = loan.cust-id
+				NO-LOCK NO-ERROR.
+			IF AVAIL person THEN
+				DO:
+            			/* #4184 по письму Балан добавлен поиск по фактическому адресу и его экспорт в мастер договоров */
+				FIND LAST cust-ident WHERE
+			                cust-ident.cust-code-type = "АдрФакт"
+			                AND (cust-ident.close-date EQ ? OR cust-ident.close-date >= gend-date) 
+			                AND cust-ident.class-code EQ 'p-cust-adr'
+			                AND cust-ident.cust-cat EQ 'Ч'
+			                AND cust-ident.cust-id EQ person.person-id
+			            NO-LOCK NO-ERROR.
+			       IF (AVAIL cust-ident) THEN DO:
+		                cTfakt = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                		       + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+			               + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+			               + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+				cTf-id = cust-ident.issue.
+				END. 
+            		       ELSE DO:
+	                       cTfakt = "".
+			       cTf-id = "".
+				END.			
+            			/* #4184 по письму Балан добавлен поиск по адресу прописки и его экспорт в мастер договоров */
+				FIND LAST cust-ident WHERE
+			                cust-ident.cust-code-type = "АдрПроп"
+			                AND (cust-ident.close-date EQ ? OR cust-ident.close-date >= gend-date) 
+			                AND cust-ident.class-code EQ 'p-cust-adr'
+			                AND cust-ident.cust-cat EQ 'Ч'
+			                AND cust-ident.cust-id EQ person.person-id
+			            NO-LOCK NO-ERROR.
+			       IF (AVAIL cust-ident) THEN DO:
+		                cTprop = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                		       + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+			               + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+			               + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+				cTp-id = cust-ident.issue.
+				END. 
+            		       ELSE DO:
+	                       cTprop = "".
+			       cTp-id = "".
+				END.	
+            			/* #4184 по письму Балан поправлена функция expcli для экспорта факт. адреса и адреса по прописке одновременно 
+					 добавлен 7й передаваемый параметр и исправлен 2й */
+					PUT UNFORMATTED cnv(expcli(person.name-last + " " + person.first-names,
+							Kladr(cTprop,cTp-id), 
+							person.document-id + ": " +	person.document + ". Выдан: " + person.issue + " " +
+							GetXAttrValueEx("person",STRING(person.person-id),"Document4Date_vid",""),
+							person.phone[1] + " " + person.phone[2],
+							person.inn,
+							(IF person.country-id = "RUS" THEN "yes" ELSE "no"),
+							Kladr(cTfakt,cTf-id)
+						)
+					).
+				END.
+		END.
+	ELSE
+		DO:
+			MESSAGE "Счет не принадлежит клиенту частному лицу!" VIEW-AS ALERT-BOX.
+			RETURN.
+		END.
+
+
+	 /* Заявление на перевод */
+	PUT UNFORMATTED cnv(expstatement(
+				"1",
+				"",
+				"depos"
+				) ).
+
+
+END.
+
+PUT UNFORMATTED cnv("</data>" + CHR(13) + CHR(10)).
+
+OUTPUT CLOSE.
+
+MESSAGE "Данные успешно экспортированы!" VIEW-AS ALERT-BOX.

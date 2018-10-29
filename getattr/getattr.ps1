@@ -1,0 +1,1 @@
+﻿Get-ADUser -Filter {SamAccountName -eq ddorkin} 

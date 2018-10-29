@@ -1,0 +1,32 @@
+<VirtualHost *:80>
+ ServerName help
+ ServerAlias help help.pirbank.ru 
+ DocumentRoot "/var/www/eventum/"
+  <Directory "/var/www/eventum/">
+                Options Indexes FollowSymLinks MultiViews
+                DirectoryIndex index.php
+                AllowOverride None
+                Order allow,deny
+                allow from all
+  </Directory>
+  <Directory "/var/www/eventum/test/">
+
+    AuthBasicProvider ldap
+    AuthBasicAuthoritative On
+
+    AuthzLDAPAuthoritative off
+
+    AuthType Basic
+
+    AuthName "LOCAL SITE VERSION 2.0"
+
+    AuthLDAPBindDN "CN=sys_help,OU=SYS_USERS,OU=PIRBANK,DC=pirbank,DC=ru"
+    AuthLDAPBindPassword Passw0rd
+
+    AuthLDAPURL "ldap://dc01.pirbank.ru:389/OU=PIRBANK,DC=pirbank,DC=ru?sAMAccountName?sub?(objectClass=*)"
+
+    Require valid-user
+
+  </Directory>
+</VirtualHost>
+

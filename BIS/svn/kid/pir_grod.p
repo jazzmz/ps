@@ -1,0 +1,520 @@
+/*
+#4156. Погашение ОД по срокам погашения для ф.125
+Никитина Ю.А. 20.11.2013
+*/
+
+{globals.i}
+{getdate.i}
+{intrface.get i254}
+{svarloan.def NEW}     /* Shared переменные модуля "Кредиты и депозиты". */
+{intrface.get tmess}   /* Инструменты обработки сообщений. */
+{intrface.get xclass}  /* Загрузка инструментария метасхемы */
+{intrface.get pogcr}
+{intrface.get loan}    /* Подключение инструментов для рассчета параметров договора */
+{pir_exf_exl.i}
+{intrface.get instrum}  /* функции работы с финансовыми инструментами */
+
+def var PrRisk    as DEC     NO-UNDO.
+def var GrRisk    as int     NO-UNDO.
+def var summ-t    as DEC     NO-UNDO.
+def var liamt     as DEC     init 0 NO-UNDO.
+def var toamt     as DEC     init 0 NO-UNDO.
+def var loan_cr   as DEC     NO-UNDO.
+def var loan_db   as DEC     NO-UNDO.
+DEF VAR proc-name AS CHAR    NO-UNDO.
+DEF VAR POS 	  as char    NO-UNDO.
+DEF VAR period 	  as int     NO-UNDO.
+DEF VAR i 	  as int     NO-UNDO.
+DEF VAR j 	  as int     NO-UNDO.
+DEF VAR istr 	  as int     NO-UNDO.
+DEF VAR nend-date as date    NO-UNDO.
+DEF VAR outfile   as char    NO-UNDO.
+DEF VAR sumod_cur as dec     NO-UNDO.
+DEF VAR sumod_k   as dec     NO-UNDO.
+DEF VAR sumgr     as dec     NO-UNDO.
+DEF VAR lend-date as date    NO-UNDO.
+DEF VAR flag      as logical NO-UNDO.
+
+DEF VAR srok 	  as dec  extent 10 NO-UNDO.
+DEF VAR srokv	  as dec  extent 10 NO-UNDO.
+DEF VAR srokk	  as dec  extent 10 NO-UNDO.
+DEF VAR	cXL       as char EXTENT 20 NO-UNDO.
+
+DEF VAR oTable  AS TTable2    	NO-UNDO.
+DEF VAR oTpl 	AS TTpl 	NO-UNDO.
+DEF VAR oClient AS TClient    	NO-UNDO.
+
+def temp-table mTermObl no-undo
+   field ContCode as char
+   field Contract as char
+   field Currency as char
+   field enddate  as date
+   field amtrub   as dec
+   field kk       as dec 
+   field prrisk   as dec 
+.
+
+def temp-table mTermObl2 no-undo
+   field ContCode as char
+   field Contract as char
+   field Currency as char
+   field enddate  as dec extent 10 
+   field kk       as dec 
+   field prrisk   as dec 
+   field name     as char
+   field acct_o   as char
+   field sumod    as dec
+   field rezras   as dec
+   field sum_rez  as dec
+.
+
+DEFINE NEW SHARED STREAM err.
+
+def buffer bLoan for loan.
+
+/* построим график платежей ОД */
+for each loan where loan.contract eq "Кредит"
+   and (loan.close-date eq ? or loan.close-date GE end-date)
+   and loan.open-date LT end-date
+   and can-do("!MM*,!НО*,!1/12*,!пк*,*",loan.cont-code) 
+   and loan.cont-type ne "Течение"
+   no-lock :
+
+   PrRisk = LnRsrvRate(loan.contract, loan.cont-code, end-date). /* коэф. резервирования */
+   GrRisk = LnGetGrRiska(PrRisk, end-date).                      /* категория качества */
+   /* в ПОСе */
+   POS = LnInBagOnDate(loan.contract,loan.cont-code,end-date - 1).
+   /* если в Посе, то КК будет другая*/	
+   if POS ne ? then GrRisk = PsGetGrRiska(PrRisk,loan.cust-cat,end-date - 1) .
+
+   if GrRisk = 1 or GrRisk = 2 then do:
+      /* если договор открыт, то запишем в mTermObl непогашенный остаток по графику платежей */
+      if loan.close-date eq ? then do:
+         RUN SetSysConf IN h_base ("NoProtocol","YES").
+         RUN SetSysConf IN h_base ("PUT-TO-TMESS","").
+         {setdest.i &stream="stream err" &filename='_spool_recalc.tmp' &append = "APPEND"}
+         {get_meth.i  'Calc' 'loanclc'}
+         RUN VALUE(proc-name + ".p") (loan.contract,loan.cont-code,end-date - 1).
+
+         RUN DeleteOldDataProtocol IN h_base ("PUT-TO-TMESS").
+         RUN DeleteOldDataProtocol IN h_base ("NoProtocol").
+
+         /* если договор не на просрочке */
+         if loan.end-date GE end-date then do:
+            /* дата окончания или пролонгации договора */
+            lend-date = loan.end-date.
+            find first pro-obl where pro-obl.cont-code eq loan.cont-code and pro-obl.pr-date GT end-date - 1 no-lock no-error.
+            if avail pro-obl then lend-date = pro-obl.end-date. 
+            flag = false.
+
+            for each term-obl where term-obl.cont-code eq Loan.cont-code and term-obl.contract eq Loan.contract
+               and term-obl.end-date GE end-date 
+               and term-obl.end-date LE lend-date
+               and term-obl.idnt eq 3
+               no-lock:
+               find first mTermObl where mtermobl.contcode eq entry(1,term-obl.cont-code," ") and mtermobl.contract eq term-obl.contract 
+                  and mtermobl.enddate eq term-obl.end-date
+                  no-lock no-error.
+               if not avail mTermObl then do:
+                  create mTermObl.
+                  ASSIGN
+                     mTermObl.ContCode = entry(1,term-obl.cont-code," ")
+                     mTermObl.contract = term-obl.contract
+                     mTermObl.currency = term-obl.currency
+                     mTermObl.enddate = term-obl.end-date
+                  .
+               end.
+               RUN summ-t.p(OUTPUT summ-t,loan.Contract,loan.Cont-Code,RECID(term-obl),end-date - 1).
+               mTermObl.amtrub = mTermObl.amtrub + summ-t.
+               flag = true.
+            end.
+            /* если после пролонгации график изменился, то ждем по окончании договора погашения ОД */
+            if not flag then do:
+               find first mTermObl where mtermobl.contcode eq entry(1,loan.cont-code," ") and mtermobl.contract eq loan.contract 
+                  and mtermobl.enddate eq lend-date
+                  no-lock no-error.
+               if not avail mTermObl then do:
+                  create mTermObl.
+                  ASSIGN
+                     mTermObl.ContCode = entry(1,loan.cont-code," ")
+                     mTermObl.contract = loan.contract
+                     mTermObl.currency = loan.currency
+                     mTermObl.enddate = lend-date
+                  .
+               end.
+               find last loan-var OF loan WHERE loan-var.amt-id EQ 0
+                  AND loan-var.since LT end-date
+                  NO-LOCK no-error.
+               if avail loan-var then do:
+                  mTermObl.amtrub = mTermObl.amtrub + loan-var.balance.
+               end.
+            end.
+         end.
+         /* если договор на просрочке */
+         else do:
+            find first mTermObl where mtermobl.contcode eq entry(1,loan.cont-code," ") and mtermobl.contract eq loan.contract 
+               and mtermobl.enddate eq loan.end-date
+               no-lock no-error.
+            if not avail mTermObl then do:
+               create mTermObl.
+               ASSIGN
+                  mTermObl.ContCode = entry(1,Loan.cont-code," ")
+                  mTermObl.contract = loan.contract
+                  mTermObl.currency = loan.currency
+                  mTermObl.enddate = loan.end-date
+               .
+            end.
+            find last loan-var OF loan WHERE loan-var.amt-id EQ 7
+               AND loan-var.since LT end-date
+               NO-LOCK no-error.
+            if avail loan-var then do:
+               mTermObl.amtrub = mTermObl.amtrub + loan-var.balance.
+            end.
+            else do:
+               RUN "STNDRT_PARAM" (loan.contract,
+                                   loan.cont-code,
+                                   7,
+                                   enddate,
+                                   OUTPUT summ-t,
+                                   OUTPUT loan_cr,
+                                   OUTPUT loan_db).
+               mTermObl.amtrub = mTermObl.amtrub + summ-t.
+            end.
+         end.
+      end.
+      /* если договор закрыт, но на отчетную дату договор был открыт, то построим график платежей */
+      if loan.close-date GE end-date then do:
+         /* посчитаем все что погасили с начала договора на начала периода */
+         liamt = 0.
+         for each loan-int of loan where loan-int.id-d eq 2 and loan-int.id-k eq 0 
+            and loan-int.mdate LT end-date and loan-int.mdate GE loan.open-date
+            no-lock:
+            liamt = liamt + loan-int.amt-rub.
+         end.
+         /* посчитаем плановые платежи */
+         toamt = 0.
+         for each term-obl of loan where term-obl.end-date LT end-date and term-obl.end-date GE loan.open-date 
+            and term-obl.idnt EQ 3
+            no-lock:
+            toamt = toamt + term-obl.amt-rub.
+         end.
+         /* получаем переплату или недоплату или 0. */
+         summ-t = liamt - toamt.
+	 /* если все гасилось вовремя и без досрочного погашения, тогда берем плановый платеж. 
+            если договоре не на просрочке был на момент отчетности */ 
+         for each term-obl of loan where term-obl.idnt eq 3
+            and term-obl.end-date GE end-date
+            no-lock:
+            find first mTermObl where mtermobl.contcode eq entry(1,term-obl.cont-code," ") and mtermobl.contract eq term-obl.contract 
+               and mtermobl.enddate eq term-obl.end-date
+               no-lock no-error.
+            if not avail mTermObl then do:
+               create mTermObl.
+               ASSIGN
+                  mTermObl.ContCode = entry(1,term-obl.cont-code," ")
+                  mTermObl.contract = term-obl.contract
+                  mTermObl.currency = term-obl.currency
+                  mTermObl.enddate = term-obl.end-date
+               .
+               if summ-t eq 0 then
+                  mTermObl.amtrub = term-obl.amt-rub.
+               /* если было досрочно погашение */
+               if summ-t GT 0 then do:
+                  summ-t = summ-t - term-obl.amt-rub.
+                  if summ-t GE 0 then mTermObl.amtrub = 0.
+                  if summ-t LT 0 then do:
+                     mTermObl.amtrub = abs(summ-t).
+                     summ-t = 0.
+                  end.
+               end.
+            end.
+            else do:
+               if summ-t eq 0 then
+                  mTermObl.amtrub = mTermObl.amtrub + term-obl.amt-rub.
+               /* если было досрочно погашение */
+               if summ-t GT 0 then do:
+                  summ-t = summ-t - term-obl.amt-rub.
+                  if summ-t GE 0 then mTermObl.amtrub = 0.
+                  if summ-t LT 0 then do:
+                     mTermObl.amtrub = abs(summ-t).
+                     summ-t = 0.
+                  end.
+               end.
+            end.
+         end.
+         /* если договор был на просрочке. то графика не будет после отчетной даты. */
+         if loan.end-date LT end-date then do:
+            find last loan-var OF loan WHERE loan-var.amt-id EQ 7
+               AND loan-var.since LT end-date
+               NO-LOCK no-error.
+            if avail loan-var then do:
+               find first mTermObl where mtermobl.contcode eq entry(1,loan.cont-code," ") and mtermobl.contract eq loan.contract 
+                  and mtermobl.enddate eq loan-var.since
+                  no-lock no-error.
+               if not avail mTermObl then do:
+                  create mTermObl.
+                  ASSIGN
+                     mTermObl.ContCode = entry(1,loan.cont-code," ")
+                     mTermObl.contract = loan.contract
+                     mTermObl.currency = loan.currency
+                     mTermObl.enddate = loan-var.since
+                  .
+               end.
+               mTermObl.amtrub = mTermObl.amtrub + loan-var.balance.
+            end.
+         end.
+      end.
+   end.
+end.
+
+/* раскидаем по срокам составленный график платежей и допишем информацию по договору */
+for each mTermObl no-lock by mTermObl.contcode:
+   find first mtermObl2 where mtermObl2.contcode eq mtermObl.contcode and mtermObl2.contract eq mtermObl.contract no-lock no-error.
+   if not avail mTermObl2 then do:
+      create mTermObl2.
+      ASSIGN
+         mTermObl2.ContCode = mTermObl.ContCode
+         mTermObl2.contract = mTermObl.contract
+         mTermObl2.currency = mTermObl.currency
+      .
+      find first loan where loan.cont-code eq mTermObl.ContCode and loan.contract eq mTermObl.contract no-lock no-error.
+      /* определяем клиента */
+      oClient = NEW TClient(loan.cust-cat,loan.cust-id).
+      mTermObl2.name = oClient:name-short.
+      DELETE OBJECT oClient.
+      /* определяем счет основго долга.  */
+      find last loan-acct of loan where loan-acct.acct-type eq  "Кредит"
+         AND loan-acct.since LE end-date 
+         no-lock no-error.
+      if avail loan-acct then do:
+         mTermObl2.acct_o = loan-acct.acct.
+      end.
+      /* определяем задолженность */
+      for each bloan where bloan.cont-code begins mTermObl.ContCode + " " and bloan.contract eq mTermObl.contract 
+         and bloan.cont-type ne "Течение"
+         and (bloan.close-date eq ? or bloan.close-date GE end-date)
+         no-lock:
+         PrRisk = LnRsrvRate(bloan.contract, bloan.cont-code, end-date). /* коэф. резервирования */
+         GrRisk = LnGetGrRiska(PrRisk, end-date).                      /* категория качества */
+         /* в ПОСе */
+         POS = LnInBagOnDate(bloan.contract,bloan.cont-code,end-date - 1).
+         /* если в Посе, то КК будет другая*/	
+         if POS ne ? then GrRisk = PsGetGrRiska(PrRisk,bloan.cust-cat,end-date - 1) .
+         if GrRisk = 1 or GrRisk = 2 then do:
+            mTermObl2.kk       = GrRisk.
+            mTermObl2.prrisk   = PrRisk.
+            if bloan.end-date GE end-date then do:
+               RUN SetSysConf IN h_base ("NoProtocol","YES").
+               RUN SetSysConf IN h_base ("PUT-TO-TMESS","").
+               {setdest.i &stream="stream err" &filename='_spool_recalc.tmp' &append = "APPEND"}
+               {get_meth.i  'Calc' 'loanclc'}
+               RUN VALUE(proc-name + ".p") (bloan.contract,bloan.cont-code,end-date).
+               /* нюанс по поводу енддейт. если нужен не погаш. остатко из график платежей, то нужно пересчитывать на енддейт - 1
+                  если нужно значение лоан вар, то нужно смотреть по енддейт просто.  */
+
+               RUN DeleteOldDataProtocol IN h_base ("PUT-TO-TMESS").
+               RUN DeleteOldDataProtocol IN h_base ("NoProtocol").
+               find last loan-var OF bloan WHERE loan-var.amt-id EQ 0 
+                  AND loan-var.since LT end-date
+                  NO-LOCK no-error.
+               if avail loan-var then do:
+                  mTermObl2.sumod = mTermObl2.sumod + loan-var.balance.
+               end.
+            end.
+            else do:
+               find last loan-var OF bloan WHERE loan-var.amt-id EQ 7
+                  AND loan-var.since LT end-date
+                  NO-LOCK no-error.
+               if avail loan-var then do:
+                  mTermObl2.sumod = mTermObl2.sumod + loan-var.balance.
+               end.
+            end.
+         end.
+      end.
+      /* резерв расчетный */
+      mTermObl2.rezras = round(mTermObl2.sumod * mTermObl2.prrisk / 100,2).
+      /* сумма задолженности минус резерв */
+      mTermObl2.sum_rez = mTermObl2.sumod - mTermObl2.rezras.
+   end.
+   period = mTermObl.enddate - end-date + 1.
+   /* сумма за минусом резерва */
+   sumgr = mTermObl.amtrub - round(mTermObl.amtrub * mTermObl2.prrisk / 100,2).
+   if Period le 1 then mTermObl2.enddate[1] = mTermObl2.enddate[1] + sumgr.
+   if Period gt 1 and Period le 5 then mTermObl2.enddate[2] = mTermObl2.enddate[2] + sumgr.
+   if Period gt 5 and Period le 10 then mTermObl2.enddate[3] = mTermObl2.enddate[3] + sumgr.
+   if Period gt 10 and Period le 20 then mTermObl2.enddate[4] = mTermObl2.enddate[4] + sumgr.
+   if Period gt 20 and Period le 30 then mTermObl2.enddate[5] = mTermObl2.enddate[5] + sumgr.
+   if Period gt 30 and Period le 90 then mTermObl2.enddate[6] = mTermObl2.enddate[6] + sumgr.
+   if Period gt 90 and Period le 180 then mTermObl2.enddate[7] = mTermObl2.enddate[7] + sumgr.
+   if Period gt 180 and Period le 270 then mTermObl2.enddate[8] = mTermObl2.enddate[8] + sumgr.
+   if Period gt 270 and Period le 365 then mTermObl2.enddate[9] = mTermObl2.enddate[9] + sumgr.
+   if Period gt 365 then mTermObl2.enddate[10] = mTermObl2.enddate[10] + sumgr.
+end.
+
+j = 1.
+istr = 0.
+for each mTermObl2 where mTermObl2.sumod ne 0 no-lock break by mTermObl2.kk by mTermObl2.currency by mTermObl2.contcode:
+/*   do i = 1 to 10:*/
+      ACCUMULATE mTermObl2.enddate[1] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[2] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[3] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[4] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[5] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[6] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[7] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[8] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[9] (TOTAL BY mTermObl2.currency).
+      ACCUMULATE mTermObl2.enddate[10] (TOTAL BY mTermObl2.currency).
+/*   end.*/
+   ACCUMULATE mTermObl2.sumod (TOTAL BY mTermObl2.currency).
+   istr = istr + 1.
+   if LENGTH(cXL[j]) > 30000 then j = j + 1.
+   cXL[j] = cXL[j] + XLRowInFormat(45,"s80") + XLCell(string(istr)) + XLCell(mTermObl2.contcode) 
+                   + XLCell(if mTermObl2.currency eq "" then "810" else mTermObl2.currency) 
+                   + XLCell(mTermObl2.name)
+                   + XLCellInFormat(mTermObl2.acct_o,"s68")
+                   + XLCellInFormat(string(mTermObl2.kk,">>9.99"),"s68")
+                   + XLCellInFormat(string(mTermObl2.prrisk,">>9.99") + "%","s68")
+                   + XLNumECellInFormat(mTermObl2.sumod,"s69")
+                   + XLNumECellInFormat(mTermObl2.rezras,"s69")
+                   + XLNumECellInFormat(mTermObl2.sum_rez,"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[1],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[2],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[3],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[4],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[5],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[6],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[7],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[8],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[9],"s69")
+                   + XLNumECellInFormat(mTermObl2.enddate[10],"s69")
+                   + XLRowEnd().
+   if last-of(mTermObl2.currency) then do:
+/*      do i = 1 to 10:*/
+         srok[1] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[1].
+         srok[2] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[2].
+         srok[3] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[3].
+         srok[4] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[4].
+         srok[5] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[5].
+         srok[6] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[6].
+         srok[7] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[7].
+         srok[8] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[8].
+         srok[9] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[9].
+         srok[10] = ACCUM TOTAL BY mTermObl2.currency mTermObl2.enddate[10].
+/*      end.*/
+      sumod_cur = ACCUM TOTAL BY mTermObl2.currency mTermObl2.sumod.
+      if LENGTH(cXL[j]) > 30000 then j = j + 1.
+      cXL[j] = cXL[j] + XLRowInFormat(45,"s80") + XLEmptyCell() 
+                      + XLCell("ИТОГО по " + (if mTermObl2.currency eq "" then "810" else mTermObl2.currency) + " по " + string(mTermObl2.kk) + " категории качества") 
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLEmptyCell() 
+                      + XLNumECellInFormat(sumod_cur,"s69")
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLNumECellInFormat(srok[1],"s69")
+                      + XLNumECellInFormat(srok[2],"s69")
+                      + XLNumECellInFormat(srok[3],"s69")
+                      + XLNumECellInFormat(srok[4],"s69")
+                      + XLNumECellInFormat(srok[5],"s69")
+                      + XLNumECellInFormat(srok[6],"s69")
+                      + XLNumECellInFormat(srok[7],"s69")
+                      + XLNumECellInFormat(srok[8],"s69")
+                      + XLNumECellInFormat(srok[9],"s69")
+                      + XLNumECellInFormat(srok[10],"s69")
+                      + XLRowEnd().
+
+      /* запишем сумму в рублях для итого по КК */
+      if mTermObl2.currency eq "" then do:
+          do i = 1 to 10:
+            srokk[i] = srokk[i] + srok[i].
+         end.
+         sumod_k = sumod_k + sumod_cur. 
+      end.
+      if mTermObl2.currency ne "" then do:
+         nend-date = end-date - 1.
+         do while {holiday.i nend-date} :
+            nend-date = nend-date - 1.
+         end.
+         do i = 1 to 10:
+            srokv[i] = CurToCurWork("Учетный",mTermObl2.currency,"",nend-date,srok[i]).
+            /* запишем сумму в рублях для итого по КК */
+            srokk[i] = srokk[i] + srokv[i].
+         end.
+         sumod_cur = CurToCurWork("Учетный",mTermObl2.currency,"",nend-date,sumod_cur).
+         sumod_k = sumod_k + sumod_cur. 
+         if LENGTH(cXL[j]) > 30000 then j = j + 1.
+         cXL[j] = cXL[j] + XLRowInFormat(45,"s80") + XLEmptyCell() 
+                         + XLCell("ИТОГО (в рублях) по " + mTermObl2.currency + " по " + string(mTermObl2.kk) + " категории качества") 
+                         + XLEmptyCell() 
+                         + XLEmptyCell()
+                         + XLEmptyCell() 
+                         + XLEmptyCell()
+                         + XLEmptyCell() 
+                         + XLNumECellInFormat(sumod_cur,"s69")
+                         + XLEmptyCell() 
+                         + XLEmptyCell()
+                         + XLNumECellInFormat(srokv[1],"s69")
+                         + XLNumECellInFormat(srokv[2],"s69")
+                         + XLNumECellInFormat(srokv[3],"s69")
+                         + XLNumECellInFormat(srokv[4],"s69")
+                         + XLNumECellInFormat(srokv[5],"s69")
+                         + XLNumECellInFormat(srokv[6],"s69")
+                         + XLNumECellInFormat(srokv[7],"s69")
+                         + XLNumECellInFormat(srokv[8],"s69")
+                         + XLNumECellInFormat(srokv[9],"s69")
+                         + XLNumECellInFormat(srokv[10],"s69")
+                         + XLRowEnd().
+      end.
+   end.
+ 
+   if last-of(mTermObl2.kk) then do:
+      if LENGTH(cXL[j]) > 30000 then j = j + 1.
+      cXL[j] = cXL[j] + XLRowInFormat(45,"s80") + XLEmptyCell() 
+                      + XLCell("ВСЕГО в рублях по " + string(mTermObl2.kk) + " категории качества") 
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLEmptyCell() 
+                      + XLEmptyCell()
+                      + XLNumECellInFormat(srokk[1],"s69")
+                      + XLNumECellInFormat(srokk[2],"s69")
+                      + XLNumECellInFormat(srokk[3],"s69")
+                      + XLNumECellInFormat(srokk[4],"s69")
+                      + XLNumECellInFormat(srokk[5],"s69")
+                      + XLNumECellInFormat(srokk[6],"s69")
+                      + XLNumECellInFormat(srokk[7],"s69")
+                      + XLNumECellInFormat(srokk[8],"s69")
+                      + XLNumECellInFormat(srokk[9],"s69")
+                      + XLNumECellInFormat(srokk[10],"s69")
+                      + XLRowEnd().
+      do i = 1 to 10:
+         srokk[i] = 0.
+      end.
+      sumod_k = 0.
+   end.
+/*   message mTermObl2.contcode mTermObl2.enddate[1] mTermObl2.enddate[2] mTermObl2.enddate[3] mTermObl2.enddate[4] mTermObl2.enddate[5]
+   mTermObl2.enddate[6] mTermObl2.enddate[7] mTermObl2.enddate[8] mTermObl2.enddate[9] mTermObl2.enddate[10] view-as alert-box.
+*/
+end.
+
+oTpl = new TTpl("pir_grod.tpl").
+/*oTpl = new TTpl("pirvircredit.tpl").*/
+oTpl:addAnchorValue("Date",end-date).
+do j = 1 to 20:
+   if cXL[j] ne "" then oTpl:addAnchorValue("TABLE" + string(j),cXL[j]).
+   else oTpl:addAnchorValue("TABLE" + string(j),"").
+end.
+
+outfile = ("/home2/bis/quit41d/imp-exp/users/" + LC(UserID("bisquit")) + "/125_credit_od.xls").
+/*outfile = "./125_credit_od.xls".*/
+OUTPUT TO VALUE(outfile). /*CONVERT TARGET "UTF-8"*/
+   oTpl:show().
+OUTPUT CLOSE.
+MESSAGE "Расчет сохранен в " SKIP outfile VIEW-AS ALERT-BOX.
+DELETE OBJECT oTpl.

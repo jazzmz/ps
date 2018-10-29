@@ -1,0 +1,174 @@
+&IF DEFINED(LAZERPRN_LIB) EQ 0 &THEN
+&GLOBAL-DEFINE LAZERPRN_LIB YES
+
+DEFINE VAR buf-str         AS CHARACTER INITIAL "" NO-UNDO.
+DEFINE VAR initial_str     AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VAR reset_str       AS CHARACTER INITIAL ?  NO-UNDO.
+DEFINE VAR vPrintersPCL    AS CHARACTER INITIAL "" NO-UNDO.
+DEFINE {&WHAT_STREAM} STREAM macro-file.
+
+DEFINE VARIABLE mIsGraphic AS LOGICAL NO-UNDO.
+
+{0401060.prg}
+
+&IF defined(ELIT_POL) EQ 0 &THEN
+   &SCOP ELIT_POL NO
+&ENDIF
+
+&IF DEFINED(PRINTER_COLS) EQ 0 &THEN
+   &SCOP PRINTER_COLS 80
+&ENDIF
+
+PROCEDURE PUT_PCL_STR:
+   DEFINE INPUT         PARAMETER in-X      AS INTEGER     NO-UNDO.
+   DEFINE INPUT         PARAMETER in-Y      AS INTEGER     NO-UNDO.
+   DEFINE INPUT         PARAMETER in-str    AS CHARACTER   NO-UNDO.
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+   in-str = IF in-str EQ ? THEN "" ELSE in-str.
+   out-str = out-str +
+             CHR(27) + "*p"  + STRING(in-X) + "X" +
+             CHR(27) + "*p"  + STRING(in-Y) + "Y" + " " +
+             in-str.
+END PROCEDURE.
+
+PROCEDURE INIT-OUT-FORM:
+   DEFINE INPUT         PARAMETER name-form AS CHARACTER   NO-UNDO.
+   DEFINE INPUT         PARAMETER CountCopy AS INTEGER     NO-UNDO.
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+
+   out-str = out-str +
+             CHR(27) + "&f"   + name-form + "Y" +
+             CHR(27) + "&f3X" +
+             CHR(27) + "&l"   + string(CountCopy) + "X"
+   .
+END PROCEDURE.
+
+PROCEDURE SET-600-DPI:
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+
+   out-str = out-str +
+             CHR(27) + "*t600R" + CHR(27) + "&u600D"
+   .
+END PROCEDURE.
+
+PROCEDURE GET-INFO-PRINTER:
+   DEFINE BUFFER xprinter FOR printer.
+   FIND LAST xprinter WHERE xprinter.printer   EQ  usr-printer
+                         AND xprinter.page-cols LE {&PRINTER_COLS}
+                                               NO-LOCK NO-ERROR.
+   IF AVAIL(xprinter) THEN DO:
+      IF xprinter.init-string       <> ?  AND
+         TRIM(xprinter.init-string) <> "" THEN
+      initial_str = vf_xcode(xprinter.init-string).
+      IF xprinter.reset-string       <> ?  AND
+         TRIM(xprinter.reset-string) <> "" THEN
+      reset_str = vf_xcode(xprinter.reset-string).
+   END.
+END PROCEDURE.
+
+PROCEDURE INITIAL_PRINTER:
+   IF initial_str NE ? AND initial_str NE "" THEN
+   PUT STREAM macro-file UNFORMATTED
+   initial_str.
+END PROCEDURE.
+
+PROCEDURE RESET_PRINTER:
+   IF reset_str NE ? AND reset_str NE "" THEN
+   PUT STREAM macro-file UNFORMATTED
+   reset_str.
+END PROCEDURE.
+
+PROCEDURE PRINT_COMPRESSED:
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+   out-str = out-str +
+             chr(27) + chr(38) + chr(107) + chr(50) + chr(83).
+END PROCEDURE.
+
+PROCEDURE PRINT_PITCH:
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+   out-str = out-str +
+             chr(27) + chr(38) + chr(107) + chr(48) + chr(83).
+END PROCEDURE.
+
+PROCEDURE PRINT_ELITE:
+   DEFINE INPUT-OUTPUT  PARAMETER out-str   AS CHARACTER   NO-UNDO.
+   out-str = out-str +
+             chr(27) + chr(38) + chr(107) + chr(52) + chr(83).
+END PROCEDURE.
+&ENDIF
+
+vPrintersPCL = FGetSetting("Принтер", "PCL", "").
+
+IF (vPrintersPCL EQ "" AND 
+    usr-printer BEGINS "+") OR
+   (vPrintersPCL NE "" AND CAN-DO(vPrintersPCL,usr-printer)) THEN DO:
+
+&IF DEFINED(WHAT_STREAM) EQ 0 &THEN
+   IF PackagePrint THEN DO:
+&IF DEFINED(STREAMFILE) EQ 0 &THEN
+      OUTPUT STREAM macro-file TO "_macro.tmp" APPEND.
+&ELSE
+      OUTPUT STREAM macro-file TO {&STREAMFILE}.
+&ENDIF
+   END.
+   ELSE DO:
+&IF DEFINED(STREAMFILE) EQ 0 &THEN
+      OUTPUT STREAM macro-file TO "_macro.tmp".
+&ELSE
+      OUTPUT STREAM macro-file TO {&STREAMFILE}.
+&ENDIF
+   END.
+&ENDIF
+   buf-str = "".
+   RUN GET-INFO-PRINTER.
+   RUN INITIAL_PRINTER.
+   mIsGraphic = YES.
+
+   {{&DATARETURN} &SET_DATA=YES &FORM-DOC = {&FORM-DOC} {&*}}
+
+   &IF DEFINED(FORM-DOC1) &THEN
+      IF TRUNCATE(DocCount / 2,0) NE 0 THEN DO:
+         RUN INIT-OUT-FORM("{&FORM-DOC1}",TRUNCATE(DocCount / 2,0),INPUT-OUTPUT buf-str).
+         RUN SET-600-DPI(INPUT-OUTPUT buf-str).
+         {{&DATARETURN}  &PRINT    = YES
+                         &OFFSET   = NO
+                         &ELIT_POL = {&ELIT_POL}
+                         &FORM-DOC = {&FORM-DOC}
+                         {&*}}
+         {{&DATARETURN}  &PRINT    = YES
+                         &ELIT_POL = {&ELIT_POL}
+                         &OFFSET   = YES
+                         &FORM-DOC = {&FORM-DOC}
+                         {&*}}
+      END.
+      IF DocCount MODULO 2 NE 0 THEN DO:
+         RUN INIT-OUT-FORM("{&FORM-DOC}",DocCount MODULO 2,INPUT-OUTPUT buf-str).
+         RUN SET-600-DPI(INPUT-OUTPUT buf-str).
+         {{&DATARETURN} &PRINT    = YES
+                        &ELIT_POL = {&ELIT_POL}
+                        &OFFSET   = NO
+                        &FORM-DOC = {&FORM-DOC}
+                        {&*}}
+      END.
+   &ELSE
+      RUN INIT-OUT-FORM("{&FORM-DOC}",DocCount,INPUT-OUTPUT buf-str).
+      RUN SET-600-DPI(INPUT-OUTPUT buf-str).
+      {{&DATARETURN}  &PRINT    = YES
+                      &ELIT_POL = {&ELIT_POL}
+                      &OFFSET   = NO
+                      &FORM-DOC = {&FORM-DOC}
+                      {&*}}
+   &ENDIF
+
+   PUT STREAM macro-file UNFORMATTED buf-str.
+
+   {pirpp-uni-sign.i {&*}}                                /* добавление подписей если надо           */
+
+   PUT STREAM macro-file UNFORMATTED CHR(12).
+   RUN RESET_PRINTER.
+&IF DEFINED(WHAT_STREAM) EQ 0 &THEN
+   OUTPUT STREAM macro-file CLOSE.
+&ENDIF
+END.
+ELSE
+   mIsGraphic = NO.

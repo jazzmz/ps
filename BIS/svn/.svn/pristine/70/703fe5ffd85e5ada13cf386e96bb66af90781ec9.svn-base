@@ -1,0 +1,41 @@
+/**************************
+ * Транзакция вызова	  *
+ * SOAP функции отката    *
+ * документов.		  *
+ **************************
+ *			  *
+ * Автор : Маслов Д. А.   *
+ * Заявка: #790           *
+ * Дата  : 19.10.11       *
+ *                        *
+ **************************/
+
+DEF INPUT PARAMETER opdate	 AS LONGCHAR NO-UNDO.
+DEF INPUT PARAMETER expn	 AS LONGCHAR NO-UNDO.
+
+
+
+DEF VAR hGD         AS HANDLE        NO-UNDO.
+DEF VAR hWebService AS HANDLE        NO-UNDO.
+DEF VAR lRes        AS LOGICAL       NO-UNDO.
+DEF VAR hpt         AS HANDLE        NO-UNDO.
+
+DEF VAR details     AS LONGCHAR      NO-UNDO.
+
+CREATE SERVER hWebService.
+/*hWebService:CONNECT("-WSDL http://localwww2/wf/def ").*/
+/* Извините, но это пиздец. Гончаров А.Е. */
+hWebService:CONNECT("-WSDL " + OS-GETENV("EARCH") + " ") NO-ERROR.
+
+
+IF NOT hWebService:CONNECTED() THEN DO:
+ MESSAGE "Ошибка! Невозможно подключиться к системе хранения!" VIEW-AS ALERT-BOX.
+ RETURN.
+END.
+
+RUN WfControllerPortType SET hpt ON SERVER hWebService.
+
+RUN delDocByDateEn IN hpt (opdate,{cpc expn},OUTPUT lRes) NO-ERROR.
+
+hWebService:DISCONNECT().
+DELETE OBJECT hWebService.

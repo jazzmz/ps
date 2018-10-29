@@ -1,0 +1,95 @@
+/* ========================================================================= */
+/** 
+    Copyright: ООО ПИР Банк, Управление автоматизации (C) 2013
+     Filename: pir-u102-codevo.p
+      Comment: Процедура определяет, какой код VO должен стоять
+		Критери заданы в настроечных параметрах PirU102codeVO
+		Предполагается, что в дальнейшем правила заполнения кода VO будут собираться тут
+   Parameters: 
+       Launch: запускается с параметрами из парсерных функций, из других процедур
+      Created: Sitov S.A., 2013-10-16
+	Basis: #3950
+     Modified: <Кто> <Когда [F7]> (Локальный код для поиска <уникальный_код>) 
+               <Описание изменения>                                           
+*/
+/* ========================================================================= */
+
+
+{globals.i}
+
+
+
+DEF INPUT  PARAM vAcctDb	AS  CHAR  NO-UNDO.
+DEF INPUT  PARAM vAcctCr	AS  CHAR  NO-UNDO.
+DEF INPUT  PARAM vVal		AS  CHAR  NO-UNDO.
+DEF INPUT  PARAM vSomething	AS  CHAR  NO-UNDO.
+
+DEF OUTPUT PARAM oVOCode	AS  CHAR INIT "" NO-UNDO. 
+
+
+DEF VAR  np_db		AS  CHAR  NO-UNDO. 
+DEF VAR  np_cr		AS  CHAR  NO-UNDO.  
+DEF VAR  np_val		AS  CHAR  NO-UNDO.
+DEF VAR  np_res		AS  CHAR  NO-UNDO.
+
+
+
+
+		/*** Заявка #3950-1 ***/
+   IF oVOCode = "" THEN
+   DO:
+      np_db  =  FGetSetting("PirU102codeVO", "Pir3950_1db" , "").
+      np_cr  =  FGetSetting("PirU102codeVO", "Pir3950_1cr" , ""). 
+      np_val =  FGetSetting("PirU102codeVO", "Pir3950_1val", ""). 
+      np_res =  FGetSetting("PirU102codeVO", "Pir3950_1res", ""). 
+   
+      IF  CAN-DO(np_db , vAcctDb )  AND  CAN-DO(np_cr , vAcctCr )  AND  CAN-DO(np_val, vVal )
+      THEN
+	oVOCode = np_res.
+   END.
+
+
+		/*** Заявка #3950-2 ***/
+   IF oVOCode = "" THEN
+   DO:
+      np_db  =  FGetSetting("PirU102codeVO", "Pir3950_2db" , "").
+      np_cr  =  FGetSetting("PirU102codeVO", "Pir3950_2cr" , ""). 
+      np_val =  FGetSetting("PirU102codeVO", "Pir3950_2val", ""). 
+      np_res =  FGetSetting("PirU102codeVO", "Pir3950_2res", ""). 
+   
+      IF  CAN-DO(np_db , vAcctDb )  AND  CAN-DO(np_cr , vAcctCr )  AND  CAN-DO(np_val, vVal )
+      THEN
+	oVOCode = np_res.
+   END.
+
+
+		/*** Заявка #3950-3 ***/
+   IF oVOCode = "" THEN
+   DO:
+      np_db  =  FGetSetting("PirU102codeVO", "Pir3950_3db" , "").
+      np_cr  =  FGetSetting("PirU102codeVO", "Pir3950_3cr" , ""). 
+      np_val =  FGetSetting("PirU102codeVO", "Pir3950_3val", ""). 
+      np_res =  FGetSetting("PirU102codeVO", "Pir3950_3res", ""). 
+   
+      IF  CAN-DO(np_db , vAcctDb )  AND  CAN-DO(np_cr , vAcctCr )  AND  CAN-DO(np_val, vVal )
+      THEN
+	oVOCode = np_res.
+   END.
+
+
+		/*** Заявка #3950-4 ***/
+   IF oVOCode = "" THEN
+   DO:
+      np_db  =  FGetSetting("PirU102codeVO", "Pir3950_4db" , "").
+      np_cr  =  FGetSetting("PirU102codeVO", "Pir3950_4cr" , ""). 
+      np_val =  FGetSetting("PirU102codeVO", "Pir3950_4val", ""). 
+      np_res =  FGetSetting("PirU102codeVO", "Pir3950_4res", ""). 
+   
+      IF  CAN-DO(np_db , vAcctDb )  AND  CAN-DO(np_cr , vAcctCr )  AND  CAN-DO(np_val, vVal )
+      THEN
+	oVOCode = np_res.
+   END.
+
+/* message "oVOCode = " oVOCode view-as alert-box. 
+*/
+

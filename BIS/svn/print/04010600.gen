@@ -1,0 +1,358 @@
+/* Платежное поручение */
+&IF "{&OFFSET}" EQ "NO" &THEN
+      &SCOP OFFSET_VAL 0
+&ELSE
+      &SCOP OFFSET_VAL 1000
+&ENDIF
+
+&SCOP KOEF 2
+
+&IF DEFINED(SET_DATA) &THEN
+   DEF VAR kpppl AS CHAR NO-UNDO.
+   DEF VAR kpppo AS CHAR NO-UNDO.
+   
+   FIND FIRST doc-type
+      WHERE doc-type.doc-type EQ (IF flReplDocType THEN vReplDocType ELSE op.doc-type) /* #2895 */
+      NO-LOCK NO-ERROR .
+      
+   IF AVAIL op THEN
+      detail[1] = op.details.
+   ELSE
+      detail[1] = detail[1] + " " +
+                  detail[2] + " " +
+                  detail[3] + " " +
+                  detail[4] + " " +
+                  detail[5].
+
+
+   DO i = 1 TO 5:
+      PlatName[i] = plName[i].
+   END.
+
+   IF plName[1] BEGINS "ИНН" THEN
+   DO:
+      i = 4.
+      
+      DO WHILE LOOKUP(SUBSTRING(platName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      /*****************************************
+       *                                       *
+       * Автор : Маслов Д. А. Maslov D. A.     *
+       * Заявка: #879                          *
+       *                                       *
+       *****************************************/
+      ASSIGN
+         innpl       = trim(substring(plName[1],5,i - 5))
+         /*platName[1] = substring(platName[1],i)*/
+      . 
+   END. /* IF plName[1] BEGINS "ИНН" */
+
+&IF {&FORM-DOC} NE 60 &THEN
+   IF platName[1] BEGINS "КПП" THEN
+   DO:
+      i = 4.
+
+      DO WHILE LOOKUP(SUBSTRING(platName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      ASSIGN
+         kpppl       = trim(substring(platName[1],5,i - 5))
+         platName[1] = substring(platName[1],i)
+      . 
+   END. /* IF platName[1] BEGINS "КПП" */
+&ENDIF
+
+   platName[1] = platName[1] + " " +
+                 platName[2] + " " +
+                 platName[3] + " " +
+                 platName[4] + " " +
+                 platName[5].
+
+   DO i = 1 TO 5:
+    PolName[i] = poName[i].
+   END.
+/* Строки ниже (c IF по END) комментирую по заявке #1555 */
+/* Собственно, вообще непонятно, зачем вырезать из поля "Получатель" что-либо.  */
+/* Гончаров А.Е. */
+
+
+/*
+   IF poName[1] BEGINS "ИНН" THEN
+   DO:
+
+      i = 4.
+
+      DO WHILE lookup(substring(polName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      ASSIGN
+         innpo      = trim(substring(polName[1],5,i - 5))
+         polName[1] = substring(polName[1],i)
+      .
+   END. /* IF poName[1] BEGINS "ИНН" */
+*/
+
+
+&IF {&FORM-DOC} NE 60 &THEN
+   IF polName[1] BEGINS "КПП" THEN
+   DO:
+      i = 4.
+
+      DO WHILE LOOKUP(SUBSTRING(polName[1],i,1)," ,0,1,2,3,4,5,6,7,8,9") > 0 :
+         i = i + 1.
+      END.
+
+      ASSIGN
+         kpppo      = trim(substring(polName[1],5,i - 5))
+         polName[1] = substring(polName[1],i)
+      . 
+   END. /* IF polName[1] BEGINS "КПП" */
+&ENDIF
+
+   polName[1] = polName[1] + " " +
+                polName[2] + " " +
+                polName[3] + " " +
+                polName[4] + " " +
+                polName[5].
+
+   IF {&ELIT_POL} THEN
+   DO:
+      {wordwrap.i &s=PolName &n=5 &l=47}
+   END.
+   ELSE
+   DO:
+      {wordwrap.i &s=PolName &n=5 &l=35}
+   END.
+   {wordwrap.i &s=PlatName &n=5 &l=35}
+   {wordwrap.i &s=Detail &n=5 &l=71}
+
+   plrkc[1] = plrkc[1] + " " + plrkc[2].
+   porkc[1] = porkc[1] + " " + porkc[2].
+
+   {wordwrap.i &s=PlRkc &n=2 &l=35}
+   {wordwrap.i &s=PoRkc &n=2 &l=35}
+
+   ASSIGN
+      PlatName[5] = substring(platname[5], 1,35)
+      PlRkc[2]     = substring(PlRkc[2],   1,35)
+      polname[5]  = substring(polname[5],  1,IF {&ELIT_POL} THEN 47 ELSE 35)
+      PoRkc[2]     = substring(PoRkc[2],   1,35)
+      amtstr[1]    = amtstr[1] + " " +
+                     amtstr[2] + " " +
+                     amtstr[3].
+   .
+
+   {wordwrap.i &s=AmtStr &n=3 &l=63}
+
+&ENDIF
+&IF DEFINED(PRINT) &THEN
+&IF {&FORM-DOC} EQ 60 &THEN  
+
+RUN PUT_PCL_STR(187 * {&KOEF},  ( 20  +  {&OFFSET_VAL} ) * {&KOEF},
+                   (IF op.ins-date EQ ? THEN ""
+                                        ELSE string(op.ins-date, "99.99.9999")
+                   ),                                                                   INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(850 * {&KOEF},  ( 200 +  {&OFFSET_VAL} ) * {&KOEF}, trim(op.doc-num),INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1141 * {&KOEF}, ( 197 +  {&OFFSET_VAL} ) * {&KOEF}, trim(theDate),   INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 310 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 360 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 410 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[3],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1700 * {&KOEF}, ( 197 +  {&OFFSET_VAL} ) * {&KOEF}, trim(paytype),   INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 485 +  {&OFFSET_VAL} ) * {&KOEF}, trim(rub),       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  ( 485 +  {&OFFSET_VAL} ) * {&KOEF}, innpl,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 533 +  {&OFFSET_VAL} ) * {&KOEF}, platname[1],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 583 +  {&OFFSET_VAL} ) * {&KOEF}, platname[2],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 633 +  {&OFFSET_VAL} ) * {&KOEF}, platname[3],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 683 +  {&OFFSET_VAL} ) * {&KOEF}, platname[4],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 733 +  {&OFFSET_VAL} ) * {&KOEF}, platname[5],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 665 +  {&OFFSET_VAL} ) * {&KOEF}, pllacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 840 +  {&OFFSET_VAL} ) * {&KOEF}, plrkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 890 +  {&OFFSET_VAL} ) * {&KOEF}, plrkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 843 +  {&OFFSET_VAL} ) * {&KOEF}, plmfo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 900 +  {&OFFSET_VAL} ) * {&KOEF}, plCAcct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1017 + {&OFFSET_VAL} ) * {&KOEF}, porkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1067 + {&OFFSET_VAL} ) * {&KOEF}, porkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1018 + {&OFFSET_VAL} ) * {&KOEF}, pomfo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1073 + {&OFFSET_VAL} ) * {&KOEF}, pocacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, poacct,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, innpo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1240 + {&OFFSET_VAL} ) * {&KOEF}, polname[1],      INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1290 + {&OFFSET_VAL} ) * {&KOEF}, polname[2],      INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1340 + {&OFFSET_VAL} ) * {&KOEF}, polname[3],      INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1390 + {&OFFSET_VAL} ) * {&KOEF}, polname[4],      INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1440 + {&OFFSET_VAL} ) * {&KOEF}, polname[5],      INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1375 + {&OFFSET_VAL} ) * {&KOEF},
+                   (IF avail(doc-type) THEN doc-type.digital
+                                       ELSE "er"),              INPUT-OUTPUT buf-str).
+
+   IF INTEGER(op.order-pay) GT 0 THEN
+      RUN PUT_PCL_STR(1975 * {&KOEF}, ( 1433 + {&OFFSET_VAL} ) * {&KOEF}, STRING(INTEGER(op.order-pay)),
+                                                                INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1590 + {&OFFSET_VAL} ) * {&KOEF}, detail[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1640 + {&OFFSET_VAL} ) * {&KOEF}, detail[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1690 + {&OFFSET_VAL} ) * {&KOEF}, detail[3],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1740 + {&OFFSET_VAL} ) * {&KOEF}, detail[4],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1790 + {&OFFSET_VAL} ) * {&KOEF}, detail[5],       INPUT-OUTPUT buf-str).
+/*!!! 3 !!!*/
+
+  RUN PUT_PCL_STR(1975 * {&KOEF}, ( 1483 + {&OFFSET_VAL} ) * {&KOEF}, mPPDate,         INPUT-OUTPUT buf-str).
+
+&ELSE
+
+/*Указание 1256*/   
+  RUN PUT_PCL_STR(187 * {&KOEF},  ( 20 + {&OFFSET_VAL} ) * {&KOEF},
+                   (IF op.ins-date EQ ? THEN ""
+                                        ELSE string(op.ins-date, "99.99.9999")
+                   ),
+                                                                INPUT-OUTPUT buf-str).
+/*******************************
+ * Дата "Списано со счета"     *
+ * Заявка: #875                *
+ ********************************/
+   RUN PUT_PCL_STR(850 * {&KOEF},  ( 20 +   {&OFFSET_VAL} ) * {&KOEF}, mSpisPl,         INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(850 * {&KOEF},  ( 200 +  {&OFFSET_VAL} ) * {&KOEF}, trim(op.doc-num),INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1141 * {&KOEF}, ( 197 +  {&OFFSET_VAL} ) * {&KOEF}, trim(theDate),   INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 310 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 360 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(380 * {&KOEF},  ( 410 +  {&OFFSET_VAL} ) * {&KOEF}, amtstr[3],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1700 * {&KOEF}, ( 197 +  {&OFFSET_VAL} ) * {&KOEF}, trim(paytype),   INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 485 +  {&OFFSET_VAL} ) * {&KOEF}, trim(rub),       INPUT-OUTPUT buf-str).
+
+
+  /*****************************************
+   *                                      *
+   * Автор: Маслов Д. А. Maslov D. A.     *
+   * По заявке: #879                      *
+   *                                      *
+   ****************************************/
+
+  /* RUN PUT_PCL_STR(245,  485 +  {&OFFSET_VAL}, innpl,           INPUT-OUTPUT buf-str).*/
+
+   RUN PUT_PCL_STR(825,  485 +  {&OFFSET_VAL}, kpppl,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  ( 485 +  {&OFFSET_VAL} ) * {&KOEF}, PlINN,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(825 * {&KOEF},  ( 485 +  {&OFFSET_VAL} ) * {&KOEF}, PlKPP,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 555 +  {&OFFSET_VAL} ) * {&KOEF}, platname[1],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 605 +  {&OFFSET_VAL} ) * {&KOEF}, platname[2],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 655 +  {&OFFSET_VAL} ) * {&KOEF}, platname[3],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 705 +  {&OFFSET_VAL} ) * {&KOEF}, platname[4],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 755 +  {&OFFSET_VAL} ) * {&KOEF}, platname[5],     INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 665 +  {&OFFSET_VAL} ) * {&KOEF}, pllacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 840 +  {&OFFSET_VAL} ) * {&KOEF}, plrkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 890 +  {&OFFSET_VAL} ) * {&KOEF}, plrkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 843 +  {&OFFSET_VAL} ) * {&KOEF}, plmfo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 900 +  {&OFFSET_VAL} ) * {&KOEF}, plCAcct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1017 + {&OFFSET_VAL} ) * {&KOEF}, porkc[1],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1067 + {&OFFSET_VAL} ) * {&KOEF}, porkc[2],        INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1018 + {&OFFSET_VAL} ) * {&KOEF}, pomfo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1073 + {&OFFSET_VAL} ) * {&KOEF}, pocacct,         INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, poacct,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, innpo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(825 * {&KOEF},  ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, kpppo,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(245 * {&KOEF},  ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, PoINN,           INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(825 * {&KOEF},  ( 1193 + {&OFFSET_VAL} ) * {&KOEF}, PoKPP,           INPUT-OUTPUT buf-str).
+
+/*   RUN PUT_PCL_STR(1975 * {&KOEF}, ( 1483 + {&OFFSET_VAL} ) * {&KOEF}, mPPDate,         INPUT-OUTPUT buf-str).*/
+
+   IF {&ELIT_POL} THEN
+   DO:
+      RUN PRINT_ELITE(                                             INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(140 * {&KOEF},  ( 1260 + {&OFFSET_VAL} ) * {&KOEF}, polname[1],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(140 * {&KOEF},  ( 1310 + {&OFFSET_VAL} ) * {&KOEF}, polname[2],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(140 * {&KOEF},  ( 1360 + {&OFFSET_VAL} ) * {&KOEF}, polname[3],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(140 * {&KOEF},  ( 1410 + {&OFFSET_VAL} ) * {&KOEF}, polname[4],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(140 * {&KOEF},  ( 1460 + {&OFFSET_VAL} ) * {&KOEF}, polname[5],      INPUT-OUTPUT buf-str).
+      RUN PRINT_PITCH(                                             INPUT-OUTPUT buf-str).
+   END.
+   ELSE
+   DO:
+      RUN PUT_PCL_STR(130 * {&KOEF},  ( 1260 + {&OFFSET_VAL} ) * {&KOEF}, polname[1],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(130 * {&KOEF},  ( 1310 + {&OFFSET_VAL} ) * {&KOEF}, polname[2],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(130 * {&KOEF},  ( 1360 + {&OFFSET_VAL} ) * {&KOEF}, polname[3],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(130 * {&KOEF},  ( 1410 + {&OFFSET_VAL} ) * {&KOEF}, polname[4],      INPUT-OUTPUT buf-str).
+      RUN PUT_PCL_STR(130 * {&KOEF},  ( 1460 + {&OFFSET_VAL} ) * {&KOEF}, polname[5],      INPUT-OUTPUT buf-str).
+   END.
+   RUN PUT_PCL_STR(1505 * {&KOEF}, ( 1375 + {&OFFSET_VAL} ) * {&KOEF},
+                   (IF avail(doc-type) THEN doc-type.digital
+                                       ELSE "er"),              INPUT-OUTPUT buf-str).
+
+   IF INTEGER(op.order-pay) GT 0 THEN
+      RUN PUT_PCL_STR(1975 * {&KOEF}, ( 1433 + {&OFFSET_VAL} ) * {&KOEF}, STRING(INTEGER(op.order-pay)),
+                                                                INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1605 + {&OFFSET_VAL} ) * {&KOEF}, detail[1],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1655 + {&OFFSET_VAL} ) * {&KOEF}, detail[2],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1705 + {&OFFSET_VAL} ) * {&KOEF}, detail[3],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1755 + {&OFFSET_VAL} ) * {&KOEF}, detail[4],       INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(130 * {&KOEF},  ( 1805 + {&OFFSET_VAL} ) * {&KOEF}, detail[5],       INPUT-OUTPUT buf-str).
+
+   /*Новые поля*/
+   RUN PUT_PCL_STR(2185 * {&KOEF}, ( 197  + {&OFFSET_VAL} ) * {&KOEF}, mPokST,          INPUT-OUTPUT buf-str).
+   RUN PRINT_ELITE(                                             INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(150 * {&KOEF},  ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mKBK,            INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(690 * {&KOEF},  ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mOKATO,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1030 * {&KOEF}, ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mPokOp,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1157 * {&KOEF}, ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mPokNP,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1440 * {&KOEF}, ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mPokND,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(1855 * {&KOEF}, ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mPokDD,          INPUT-OUTPUT buf-str).
+   RUN PUT_PCL_STR(2170 * {&KOEF}, ( 1545 + {&OFFSET_VAL} ) * {&KOEF}, mPokTP,          INPUT-OUTPUT buf-str).
+   RUN PRINT_PITCH(                                             INPUT-OUTPUT buf-str).
+
+
+&IF defined(RECSTAMP) NE 0 &THEN
+   RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2155 + {&OFFSET_VAL} ) * {&KOEF}, theDate,         INPUT-OUTPUT buf-str).
+
+    RUN PRINT_COMPRESSED(                                    INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2205 + {&OFFSET_VAL} ) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+&ELSEIF defined(BKSTAMP) NE 0 &THEN
+/**************************
+ * Если выводим штамп БК
+ **************************/
+   RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2375 + {&OFFSET_VAL} ) * {&KOEF}, STRING(op.op-date,"99.99.9999"),         INPUT-OUTPUT buf-str).
+
+    RUN PRINT_COMPRESSED(                                    INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2425 + {&OFFSET_VAL} ) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+
+/* 15.01.2013 Обнаружено задвоение дат. Нижеследующую строку убираем */
+
+/* RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2375 + {&OFFSET_VAL} ) * {&KOEF}, STRING(op.op-date, "99.99.9999"),     INPUT-OUTPUT buf-str). */
+/********************************
+ * Дата "Списано со счета"      *
+ * Заявка: #875                 *
+ * Убираю, что бы не было       *
+ * задвоения.                   *
+ * Эта дата выводится выше для  *
+ * ПП.                          *
+ ********************************/
+/*RUN PUT_PCL_STR(850  * {&KOEF}, ( 20   + {&OFFSET_VAL} ) * {&KOEF}, STRING(op.op-date, "99.99.9999"),     INPUT-OUTPUT buf-str).*/
+
+&ELSEIF defined(RIGHTSTAMP) NE 0 &THEN
+
+     RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2375 + {&OFFSET_VAL} ) * {&KOEF}, STRING(op.op-date,"99.99.9999"),INPUT-OUTPUT buf-str).
+
+    RUN PRINT_COMPRESSED(                                    INPUT-OUTPUT buf-str).
+
+     RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2425 + {&OFFSET_VAL} ) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+&ELSEIF defined(MCISTAMP) NE 0 &THEN
+   RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2375 + {&OFFSET_VAL} ) * {&KOEF}, STRING(op.op-date, "99.99.9999"), INPUT-OUTPUT buf-str).
+
+RUN PRINT_COMPRESSED(                                    INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2425 + {&OFFSET_VAL} ) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+&ELSEIF defined(WITHOUT_ST) EQ 0 &THEN
+   RUN PUT_PCL_STR(1745 * {&KOEF}, ( 2255 + {&OFFSET_VAL} ) * {&KOEF}, theDate,         INPUT-OUTPUT buf-str).
+
+    RUN PRINT_COMPRESSED(                                    INPUT-OUTPUT buf-str).
+
+   RUN PUT_PCL_STR(1550 * {&KOEF}, ( 2305 + {&OFFSET_VAL} ) * {&KOEF}, theUser,         INPUT-OUTPUT buf-str).
+&ENDIF
+   
+&ENDIF
+
+&ENDIF

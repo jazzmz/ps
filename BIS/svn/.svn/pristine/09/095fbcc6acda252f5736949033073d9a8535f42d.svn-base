@@ -1,0 +1,21 @@
+&IF "{&PRINT}" EQ "YES" &THEN
+
+str = "" + CHR(10).
+
+FOR EACH rep2 WHERE rep2.id >= beg-row AND rep2.id <= end-row:
+
+	/** отступы */
+	rep2.str2 = REPLACE(rep2.str2, "#tab", left-space).
+
+	str = str + rep2.str2 + CHR(10).
+END.
+
+
+RUN PUT_PCL_STR(10, 10, str, INPUT-OUTPUT buf-str).
+/*
+RUN PUT_PCL_STR(300, 4600, theUser, INPUT-OUTPUT buf-str).	
+RUN PUT_PCL_STR(300, 4700, STRING(doc.doc-date, "99.99.9999") + "г.", INPUT-OUTPUT buf-str).	
+RUN PUT_PCL_STR(2600, 4300, theKontr, INPUT-OUTPUT buf-str).	
+*/
+
+&ENDIF

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PledgeNotificationToNotary version="2.0"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<NotificationNotaryAddress>
+		<DistrictName>нотариальный округ юг</DistrictName>
+		<NotaryName>Семенов Петр Петрович</NotaryName>
+	</NotificationNotaryAddress>
+	<NotificationData version="2.0">
+		<FormUZ1>
+			<PersonalProperties>
+				<PersonalProperty>
+					<VehicleProperty>
+						<VIN>22333444455555000</VIN>
+						<Description>Автомобиль</Description>
+					</VehicleProperty>
+				</PersonalProperty>
+			</PersonalProperties>
+			<Pledgors>
+				<Pledgor>
+					<PrivatePerson>
+						<Name>
+							<Last>Петров</Last>
+							<First>Иван</First>
+							<Middle>Петрович</Middle>
+						</Name>
+						<BirthDate>1985-04-05</BirthDate>
+						<PersonDocument>
+							<Code>21</Code>
+							<Name>Паспорт гражданина Российской Федерации</Name>
+							<SeriesNumber>01 23 450987</SeriesNumber>
+						</PersonDocument>
+						<PersonAddress>
+							<AddressRF registration="true">
+								<RegionCode>77</RegionCode>
+								<Region>Москва г</Region>
+								<Street>1-й Архивный пер</Street>
+								<House>2</House>
+							</AddressRF>
+						</PersonAddress>
+						<Email>Petrov@email.com</Email>
+					</PrivatePerson>
+				</Pledgor>
+			</Pledgors>
+			<Pledgee>
+			       <Pledgee>
+					<Organization>
+							<NameFull>ООО ПИР Банк</NameFull>
+							<OGRN>1027739735100</OGRN>
+							<INN>7830002293</INN>
+							<Address>
+								<RegionCode>77</RegionCode>
+								<Region>Москва г</Region>
+								<Street>Новинский пер</Street>
+								<House>3</House>
+							</Address>
+							<Email>dbashmakov@pirbank.ru</Email>
+					</Organization>
+             				<PrivatePerson>
+	        			        <Name>
+		            		        	<Last>Башмаков</Last>
+			         		        <First>Дмитрий</First>
+				          	        <Middle>Валерьевич</Middle>
+				                </Name>
+				                <Email>dbashmakov@pirbank.ru</Email>
+				        </PrivatePerson>
+				</Pledgee>
+			</Pledgee>
+			<PledgeContract>
+				<Name>Договор залога автомобиля</Name>
+				<Date>2013-12-13</Date>
+				<Number>75-13/1</Number>
+				<TermOfContract>2015-04-11</TermOfContract>
+			</PledgeContract>
+			<NotificationApplicant>
+				<Role>2</Role>
+				<PrivatePerson>
+				  <Name>
+					<Last>Башмаков</Last>
+					<First>Дмитрий</First>
+					<Middle>Валерьевич</Middle>
+				  </Name>
+				  <Email>dbashmakov@pirbank.ru</Email>
+				</PrivatePerson>
+			</NotificationApplicant>
+		</FormUZ1>
+	</NotificationData>
+</PledgeNotificationToNotary>

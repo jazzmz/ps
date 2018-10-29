@@ -1,0 +1,11 @@
+OriginalFileName	V201FF000001_20130531_130005
+ReceiveDateTime	20130610135542
+Name check result	OK
+Decryption result	OK
+Extract result	OK
+Signature check result	FAIL
+Format check result	NO DATA
+AcceptedRecords	0
+LoadedRecords	0
+RejectedRecords	1
+RejectFile	V201FF000001_20130531_130005_reject

@@ -1,0 +1,13 @@
+<VirtualHost *:80>
+ ServerName lib
+ ServerAlias lib lib.pirbank.ru 
+ DocumentRoot "/var/www/mediawiki/"
+  <Directory "/var/www/mediawiki/">
+                Options Indexes FollowSymLinks MultiViews
+                DirectoryIndex index.php
+                AllowOverride None
+                Order allow,deny
+                allow from all
+  </Directory>
+</VirtualHost>
+

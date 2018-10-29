@@ -1,0 +1,51 @@
+DEFINE TEMP-TABLE tt-header
+    FIELD type      AS   CHARACTER
+    FIELD form-code AS   CHARACTER
+    FIELD author    AS   CHARACTER
+    FIELD date      AS   DATE
+    FIELD acct      LIKE acct.acct
+    FIELD currency  LIKE acct.currency
+
+    INDEX primary
+    IS PRIMARY UNIQUE
+        acct
+        currency
+.
+
+DEFINE TEMP-TABLE tt-journal-rec
+    FIELD c-acct   LIKE acct.acct
+    FIELD doc-num  LIKE op.doc-num
+    FIELD acct     LIKE acct.acct
+    FIELD doc-code LIKE doc-type.digital
+    FIELD amt      LIKE op-entry.amt-rub
+    FIELD symbol   LIKE op-entry.symbol
+    FIELD alt-amt  LIKE op-entry.amt-rub
+/*PIR*/ FIELD user-insp LIKE op.user-inspector
+.
+
+DEFINE TEMP-TABLE tt-totals-rec
+    FIELD c-acct  LIKE acct.acct
+    FIELD amt     LIKE op-entry.amt-rub
+    FIELD symbol  LIKE op-entry.symbol
+    FIELD alt-amt LIKE op-entry.amt-rub
+
+    INDEX primary
+    IS PRIMARY UNIQUE
+        c-acct
+        symbol
+.
+
+
+
+DEFINE TEMP-TABLE tt-pirtotals-rec
+    FIELD c-acct  LIKE acct.acct
+    FIELD amt     LIKE op-entry.amt-rub
+    FIELD user-insp  LIKE op.user-inspector
+    FIELD alt-amt LIKE op-entry.amt-rub
+
+
+    INDEX primary
+    IS PRIMARY UNIQUE
+        c-acct
+        user-insp
+.

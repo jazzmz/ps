@@ -1,0 +1,94 @@
+/*
+                ­ª®¢áª ï ¨­â¥£à¨à®¢ ­­ ï á¨áâ¥¬  ˆ‘ª¢¨â
+    Copyright: (C) 1992-2003 ’ŽŽ " ­ª®¢áª¨¥ ¨­ä®à¬ æ¨®­­ë¥ á¨áâ¥¬ë"
+     Filename: POSNEW.REP
+      Comment: Š®¤ ¯ ª¥â­®£® á®§¤ ­¨ï ®âç¥â 
+   Parameters:
+         Uses:
+      Used BY:
+       CREATE: 02/10/2003 NIK
+     Modified:
+*/
+
+{chkacces.i}
+{sh-defs.i}
+{wordwrap.def}
+
+{intrface.get acct}
+
+DEF VAR per       AS CHAR     FORMAT "x(20)"             NO-UNDO.
+DEF VAR i         AS INT64                             NO-UNDO.
+DEF VAR name      AS CHAR     FORMAT "x(40)" EXTENT 10   NO-UNDO.
+DEF VAR n3        AS CHAR     FORMAT "x(7)"              NO-UNDO.
+DEF VAR new-cur   LIKE currency.currency                 NO-UNDO.
+DEF VAR vLastMoveDate AS DATE FORMAT "99/99/9999"        NO-UNDO.
+DEF VAR vBSectCode    AS CHAR                            NO-UNDO.
+
+DEF VAR fl-sect   AS log                                 NO-UNDO.
+DEF VAR fl-acct0  AS log                                 NO-UNDO.
+DEF VAR fl-acct1  AS log                                 NO-UNDO.
+DEF VAR fl-bal    AS log                                 NO-UNDO.
+DEF VAR xresult   AS dec                                 NO-UNDO.
+
+DEF BUFFER b-acct0   FOR code.
+DEF BUFFER b-acct1   FOR code.
+DEF BUFFER b-sect    FOR code.
+DEF BUFFER b-signs   FOR signs.
+
+/*============================================================================*/
+sh-branch-id = dept.branch.
+{tmpplan.i &ed=end-date}
+
+RUN stdhdr_p.p (OUTPUT xResult,
+                       beg-date,
+                       end-date,
+                       "142," + vNumPril + ",{&in-LA-NCN1}," + vHdrPril + ",no").
+
+RUN MakeReport.                                  /* ”®à¬¨à®¢ ­¨¥ ®âç¥â        */
+
+{intrface.del acct}
+{signatur.i &no-mp = yes}
+/*----------------------------------------------------------------------------*/
+/*                                                                            */
+/*----------------------------------------------------------------------------*/
+PROCEDURE MakeReport:
+
+   FOR EACH code WHERE
+            code.class EQ "acct-cat"
+        AND code.code BEGINS in-acct-cat
+        AND lookup(code.code,"b,t,o,d,f") > 0
+            NO-LOCK
+            break BY code.val:
+
+      IF NOT FIRST(code.val) THEN page.
+
+      PUT UNFORMATTED space(50) TRIM(code.val) + ". " + TRIM(code.name) SKIP(1).
+
+      PUT UNFORMATTED
+         "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿" skip
+         "³  ®¬¥à áç¥â   ³                     ³                                        ³  „ â     ³Š®¤ ¢ «îâ³                  Žáâ âª¨                    ³" skip
+         "ÃÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄ´        ®¬¥à        ³                ¨¬¥­®¢ ­¨¥             ³¯à¥¤ë¤ãé¥©³(¤à £®æ¥-ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´" skip
+         "³¯¥à¢®£®³¢â®à®£®³   «¨æ¥¢®£®  áç¥â    ³            áç¥â®¢ ¨ à §¤¥«®¢           ³ ®¯¥à æ¨¨ ³  ­­ëå   ³ ¢ àã¡«ïå, ¨­.¢ «. ¨ ³¢ ¨­. ¢ «îâ¥ - ¢ áã¬¬¥ ³" skip
+         "³¯®àï¤ª ³¯®àï¤ª ³                     ³                 ¡ « ­á                 ³ ¯® áç¥âã ³¬¥â ««®¢)³  ¤à £. ¬¥â ««ë ¢    ³á®®â¢¥âáâ¢ãîé¥© ¢ «îâë ³" skip
+         "³       ³       ³                     ³                                        ³          ³         ³ àã¡«¥¢®¬ íª¢¨¢ «¥­â¥³¨ ¢ ¤à £.¬¥â «« å - ¢  ³" skip
+         "³       ³       ³                     ³                                        ³          ³         ³                     ³­ âãà «ì­ëå ¯®ª § â¥«ïå³" skip
+         "ÀÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ" skip.
+
+      CASE code.code:
+         WHEN "t" OR WHEN "b" OR WHEN "o" THEN DO:
+            {posnew1s.i &1=" " &2=" ªâ¨¢ã"  &3=a &4=+ &5="              €  Š  ’  ˆ  ‚"   &6=">>>>>>>>>>>>>>9.99 Šà" &7="-" &type=b &acct1=yes {&*}}
+            {posnew1s.i &1="¯" &2="¯ áá¨¢ã" &3=p &4=- &5="               €  ‘  ‘  ˆ  ‚" &6=">>>>>>>>>>>>>>9.99 „¡" &7=" " &type=b &acct1=yes {&*}}
+         END.
+         WHEN "f" THEN DO:
+            {posnew1s.i &1=" " &2=" ªâ¨¢ã"  &3=a &4=+ &5="              €  Š  ’  ˆ  ‚"   &6=">>>>>>>>>>>>>>9.99 Šà" &7="-" &type=f &acct0=yes {&*}}
+            {posnew1s.i &1="¯" &2="¯ áá¨¢ã" &3=p &4=- &5="               €  ‘  ‘  ˆ  ‚" &6=">>>>>>>>>>>>>>9.99 „¡" &7=" " &type=f &acct0=yes {&*}}
+         END.
+         WHEN "d" THEN DO:
+            {posnew1s.i &1=" " &2=" ªâ¨¢ã"  &3=a &4=+ &5="              €  Š  ’  ˆ  ‚"   &6=">>>>>>>>>>>>>>9.99 Šà" &7="-" &type=d {&*}}
+            {posnew1s.i &1="¯" &2="¯ áá¨¢ã" &3=p &4=- &5="               €  ‘  ‘  ˆ  ‚" &6=">>>>>>>>>>>>>>9.99 „¡" &7=" " &type=d {&*}}
+         END.
+      END CASE.
+   END.                                          /* FOR EACH code WHERE       */
+
+END PROCEDURE.
+/******************************************************************************/

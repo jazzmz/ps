@@ -1,0 +1,73 @@
+/* ООО "ПИР Банк" Управление автоматизации 2013г.	*/
+/* Считаем РИБУ 					*/
+/* Что это такое - спросите у ПОДФТ.			*/
+/* Гончаров А.Е. 28.03.2013			       	*/ 
+/* #2667						*/
+/* Оценка проводится путем сопоставления объемов 	*/
+/* подозрительных операций (рублевая оценка) к объему 	*/
+/* операций проведенных Клиентами Банка за 		*/
+/* соответствующий период (РИБУ = сумма операций 	*/
+/* по коду 6001 (руб.) / Общую cумму операций Кл. 	*/
+/* за отчетный	период по балансу (руб.)).		*/
+/* Банк использует многоуровневую систему оценки уровня */
+/* РИБУ:						*/
+/* Низкий        - РИБУ до 2%;				*/ 
+/* Повышенный    - РИБУ от 2 до 3%;			*/
+/* Высокий       - РИБУ выше 3%.			*/
+                
+{globals.i}
+{getdates.i}
+{gdate.i}
+{setdest.i}
+
+def var accum_total as decimal init 0 no-undo.
+def var accum_6001 as decimal init 0 no-undo.
+def var vLnCountInt as integer init 0 no-undo.
+def var count_6001 as integer init 0 no-undo.
+def var vLnTotalInt as integer init 0 no-undo.
+def var iSuspicious as char no-undo.
+def var iRatio as decimal no-undo.
+def var iRIBU as char no-undo.
+
+/* beg-date = date(month(01/01/01), day(01/01/01), year(end-date)). /* Начало отчётного года */ */
+
+put screen col 1 row 25 "Инициализация..." .
+
+for each op where op.op-date GE beg-date and op.op-date LE end-date and op.acct-cat EQ "b" NO-LOCK:
+	vLnTotalInt = vLnTotalInt + 1.
+end.
+
+put screen col 1 row 25 "                     " .
+{init-bar.i "Обрабатываю данные..."}
+
+for each op where op.op-date GE beg-date and op.op-date LE end-date and op.acct-cat EQ "b" NO-LOCK:
+	{move-bar.i
+	     vLnCountInt
+	     vLnTotalInt
+	}
+	iSuspicious = GetXAttrValueEX("op",STRING(op.op),"ПодозДокумент", ?).
+	for each op-entry where op-entry.op = op.op NO-LOCK,
+		first acct where (acct.acct = op-entry.acct-db) or (acct.acct = op-entry.acct-cr) and cust-cat NE "В" NO-LOCK: 
+		accum_total = accum_total + op-entry.amt-rub.
+		if can-do (iSuspicious, "6001") then do:
+			accum_6001 = accum_6001 + op-entry.amt-rub.
+			count_6001 = count_6001 + 1.
+		end.
+        end.
+	vLnCountInt = vLnCountInt + 1.
+end.
+
+iRatio = accum_6001 / accum_total * 100.
+put unformatted "Всего проводок: " string(vLnCountInt) skip
+				"Подозрительных проводк (шт.): " string(count_6001) skip
+				"Подозрительных проводок на сумму: " string(accum_6001) skip
+				"Общая сумма проводок: " string(accum_total) skip
+				"Отношение: " string(iRatio) "%" skip.
+
+if iRatio < 2 then iRIBU = "Низкий".
+if iRatio GE 2 and iRatio LE 3 then iRIBU = "Повышенный".
+if iRatio > 3 then iRIBU = "Высокий".
+
+put unformatted "РИБУ: " iRIBU skip.
+
+{preview.i}

@@ -1,0 +1,56 @@
+<VirtualHost *:443>
+ ServerName svn
+  <Location /svn/bis>
+    DAV svn
+    SVNPath /var/repos/bis
+    SVNPathAuthz off
+
+   AuthBasicProvider ldap 
+   AuthBasicAuthoritative On 
+
+    AuthzLDAPAuthoritative off 
+
+    AuthType Basic 
+
+    AuthName "SVN Repositories" 
+
+    #AuthLDAPBindDN "CN=sys_help,OU=SYS_USERS,OU=PIRBANK,DC=pirbank,DC=ru" 
+
+     AuthLDAPBindDN "sys_help@pirbank.ru" 
+     AuthLDAPBindPassword Passw0rd
+ 
+    AuthLDAPURL "ldap://dc01.pirbank.ru:389/OU=PIRBANK,DC=pirbank,DC=ru?sAMAccountName?sub?(objectClass=*)" NONE 
+         
+    Require valid-user 
+
+  </Location>
+
+ <Location /svn/win-env>
+    DAV svn
+    SVNPath /var/repos/win-env
+    SVNPathAuthz off
+
+   AuthBasicProvider ldap
+    AuthBasicAuthoritative On
+
+    AuthzLDAPAuthoritative off
+
+    AuthType Basic
+
+    AuthName "SVN Repositories"
+
+    AuthLDAPBindDN "CN=sys_help,OU=SYS_USERS,OU=PIRBANK,DC=pirbank,DC=ru"
+    AuthLDAPBindPassword Passw0rd
+
+    AuthLDAPURL "ldap://dc01.pirbank.ru:389/OU=PIRBANK,DC=pirbank,DC=ru?sAMAccountName?sub?(objectClass=*)"
+
+    Require valid-user
+
+  </Location>
+
+  SSLEngine on
+  SSLCertificateFile /etc/apache2/ssl/apache.pem
+# Add this once there is a real (non self-signed) certificate.
+#  SSLCertificateKeyFile /etc/apache2/ssl/server.key
+</VirtualHost>
+

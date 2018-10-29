@@ -1,0 +1,29 @@
+/* ------------------------------------------------------
+     File: $RCSfile$ $Revision$ $Date$
+     Copyright: ООО КБ "Пpоминвестрасчет"
+     Базируется: 
+     Причина: 
+     Что делает: ПОДФТ Контроль при модификации документа
+     Как работает: см. документацию - Алгоритм 1
+     Параметры:
+     Место запуска: все объявления используются в pir-chkop-6.i 
+     Автор: $Author$ 
+     Изменения: $Log$
+------------------------------------------------------ */
+
+def var podft_class as char no-undo.
+def var podft_sum1 as dec no-undo.
+def var podft_sum1_check as char no-undo.
+def var podft_old_acct_db as char no-undo.
+def var podft_old_acct_cr as char no-undo.
+def var podft_new_acct_db as char no-undo.
+def var podft_new_acct_cr as char no-undo.
+
+def buffer podft-op-entry for op-entry.
+
+/** для справки-уведомления ПОДФТ нужна переменная,
+    в которую pir-chkop-6.i будет собирать данные о документе.
+*/
+&IF DEFINED(CLOSEDAY) &THEN
+DEF VAR podft_need AS LOGICAL NO-UNDO.
+&ENDIF

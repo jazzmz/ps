@@ -1,0 +1,4 @@
+create table people(ID int,username varchar(50), firstname varchar(50),lastname varchar(50), email varchar(50), phone varchar(10)) ;
+
+insert into people values(1,'ram123','ramesh','sugandh','ram@test.com','9876767898');
+insert into people values(2,'test345','karthik','sharma','karthik@test.com','883838948');

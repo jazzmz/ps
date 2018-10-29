@@ -1,0 +1,49 @@
+/** используется в 
+   
+   pir-chkop.p - pir-chkop-8-2.i
+   extrpars.fun - PirCAF_2281U()
+
+*/
+
+DEF VAR point-sum AS DECIMAL NO-UNDO.
+DEF VAR error2281 AS LOGICAL NO-UNDO.
+DEF VAR format-name-send-inn AS CHAR EXTENT 4 NO-UNDO.
+DEF VAR format-name-send-lt AS CHAR EXTENT 4 NO-UNDO.
+DEF VAR format-name-send-ge AS CHAR EXTENT 4 NO-UNDO.
+
+DEF VAR current-format-name-send AS CHAR NO-UNDO.
+DEF VAR current-i AS INT NO-UNDO.
+DEF VAR char-div AS CHAR NO-UNDO.
+
+DEF VAR vINN-SENDcl AS DECIMAL NO-UNDO.
+DEF VAR vINN-SENDdoc AS DECIMAL NO-UNDO.
+
+
+
+char-div = FGetSetting("Pir2281U", "Pir2281UCDiv", "//").
+
+/** пороговая сумма от которой зависит содержание поля плательщик */
+point-sum = DEC(FGetSetting("Pir2281U", "Pir2281USum1", "0")).
+error2281 = IF(FGetSetting("Pir2281U", "Pir2281UErr",?)) = "NO" THEN FALSE ELSE TRUE.
+
+/** платеж внешний */
+format-name-send-inn[1] = "ФИО".
+format-name-send-lt[1] = "ФИО".
+format-name-send-ge[1] = "ФИО " + char-div + " Адрес " + char-div.
+
+ 
+/** платеж внутренний */
+format-name-send-inn[2] = "ФИО".
+format-name-send-lt[2] = "ФИО".
+format-name-send-ge[2] = "ФИО".
+				 
+/** перевод без открытия внешний */
+format-name-send-inn[3] = "Банк " + char-div + " ФИО " + char-div + " ИНН клиента " + char-div.
+format-name-send-lt[3] = "Банк " + char-div + " ФИО " + char-div + "".
+format-name-send-ge[3] = "Банк " + char-div + " ФИО " + char-div + " Адрес клиента " + char-div.
+				 
+/** перевод без открытия внутренний */
+format-name-send-inn[4] = "Банк " + char-div + " ФИО " + char-div + " ИНН клиента " + char-div.
+format-name-send-lt[4] = "Банк " + char-div + " ФИО " + char-div.
+format-name-send-ge[4] = "Банк " + char-div + " ФИО " + char-div.
+

@@ -1,0 +1,489 @@
+/*
+                Банковская интегрированная система БИСквит
+    Copyright:  (C) 1992-1997 ТОО "Банковские информационные системы"
+     Filename:  F115_V1948.P
+      Comment:
+      Created:  17/12/07 yuss
+     Modified:  29.02.08 ler 89147 - Новый KLIKO по ф.115 1948-У  01.02.08.
+*/
+/******************************************************************************/
+DEF OUTPUT PARAM xResult AS dec         NO-UNDO.
+DEF INPUT  PARAM beg     AS DATE        NO-UNDO.
+DEF INPUT  PARAM dob     AS DATE        NO-UNDO.
+DEF INPUT  PARAM str     AS CHAR        NO-UNDO.
+
+DEF VAR mRaz      AS CHAR NO-UNDO.                /* Раздел    */
+DEF VAR mDc       AS CHAR NO-UNDO.                /* DataClass */
+DEF VAR mFml      AS CHAR NO-UNDO.                /* formula   */
+DEF VAR odata-id LIKE DataBlock.Data-Id NO-UNDO.
+DEF VAR i        AS INT64 NO-UNDO.
+DEF VAR vIInt    AS INT64 NO-UNDO.
+DEF VAR vI1Int   AS INT64 NO-UNDO.
+DEF VAR vI2Int   AS INT64 NO-UNDO.
+DEF VAR vTmpInt  AS INT64 NO-UNDO.                /* formula   */
+DEF VAR vTmpDate AS DATE    NO-UNDO.                /* formula   */
+DEF VAR vTmpLog  AS LOGICAL NO-UNDO.                /* formula   */
+DEF VAR j        AS INT64 NO-UNDO.
+DEF VAR mTmpFml  AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mTmpTxt  AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mTmp1Txt AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mTmp2Txt AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mEmptyTxt AS CHAR NO-UNDO.               /* formula   */
+DEF VAR vName    AS CHAR    EXTENT 10    NO-UNDO.
+DEF VAR vLenName AS INT64 NO-UNDO.
+DEF VAR mVal4    AS DECIMAL NO-UNDO.
+DEF VAR mVal7    AS DECIMAL NO-UNDO.
+DEF VAR mCherta1 AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mCherta  AS CHAR NO-UNDO.                /* formula   */
+DEF VAR mMaxPPInt AS INT64 NO-UNDO.
+DEF VAR mFormatPP AS CHAR NO-UNDO.               /* formula   */
+DEF VAR mOuTPutFormat-1 AS CHAR NO-UNDO.               /* formula   */
+DEF VAR mDopChar AS CHAR NO-UNDO INIT "─".               /* formula   */
+DEF VAR mDop1Char AS CHAR NO-UNDO INIT " ".               /* formula   */
+def var summ_all as dec  init 0 no-undo.
+
+{globals.i}
+{intrface.get xclass}
+{intrface.get strng}
+{norm.i}
+{wordwrap.def }
+
+DEFINE TEMP-TABLE ttFml NO-UNDO
+   FIELD var-id  AS CHARACTER
+   FIELD fml    AS CHARACTER
+   FIELD itog   AS LOGICAL
+   FIELD name   AS CHARACTER
+   FIELD pp     AS CHARACTER
+   FIELD Gr     AS DECIMAL EXTENT 19
+   INDEX indx1 var-id
+.
+
+DEFINE BUFFER ttFml-itog FOR ttFml.
+
+DEFINE TEMP-TABLE ttGrX NO-UNDO
+   FIELD pp    AS CHARACTER
+   FIELD Gr    AS LOGICAL EXTENT 19
+   INDEX indx1 pp
+.
+
+DEFINE BUFFER f115-DataClass FOR DataClass.
+
+ASSIGN
+   mRaz     = TRIM(GetEntries(1, str, "|",""))
+   mDc      = GetEntries(2, str, "|","")
+   mFml     = GetEntries(3, str, "|","")
+   printRes = NO
+   mOuTPutFormat-1 = REPLACE(OuTPutFormat,">>9",">9")
+.
+DO vIInt = 4 TO NUM-ENTRIES(str,"|"):
+   ASSIGN
+      mTmp1Txt = ENTRY(vIInt,str,"|")
+      mTmp2Txt = REPLACE(ENTRY(2,mTmp1Txt,">"),";",",") /* список PP */
+      mTmp1Txt = REPLACE(ENTRY(1,mTmp1Txt,">"),";",",") /* список X= */
+      mTmp1Txt = REPLACE(mTmp1Txt,"X=","")              /* список X= */
+   .
+   DO vI1Int = 1 TO NUM-ENTRIES(mTmp2Txt):
+      CREATE ttGrX.
+      ASSIGN
+         ttGrX.pp = ENTRY(vI1Int,mTmp2Txt)
+      .
+      DO vI2Int = 1 TO NUM-ENTRIES(mTmp1Txt):
+         ttGrX.Gr [INTEGER(ENTRY(vI2Int,mTmp1Txt))] = YES.
+      END.
+   END.
+
+END.
+
+RUN sv-get.p (mDc,
+              sh-branch-id,
+              beg, dob,
+              OUTPUT odata-id).
+
+IF odata-id EQ ? THEN DO:
+   RUN normdbg IN h_debug (0,"Ошибка","Невозможно рассчитать данные по классу ~"" + mDc + "~"!").
+   RETURN.
+END.
+
+FIND FIRST DataBlock WHERE
+           DataBlock.Data-Id EQ odata-id NO-LOCK.
+
+FIND FIRST f115-DataClass WHERE f115-DataClass.DataClass-id = entry(1,DataBlock.DataClass-id,'@') NO-LOCK NO-ERROR.
+
+{for_form.i &withnew=yes &DataClass="f115-DataClass" }
+
+   IF CAN-DO(mFml,formula.var-id) THEN
+   DO:
+      CREATE ttFml.
+      CASE mRaz:
+         WHEN "r1" THEN
+            ASSIGN
+               ttFml.pp    = GetEntries(1,formula.var-name," ","")
+               ttFml.name  = SUBSTR(formula.var-name,INDEX(formula.var-name," ") + 1)
+               ttFml.var-id = formula.var-id
+               ttFml.fml   = formula.var-id
+               mMaxPPInt   = MAX(mMaxPPInt,LENGTH(ttFml.pp))
+            .
+         WHEN "r2" OR WHEN "r3" OR WHEN "s1" OR WHEN "s2" THEN do:
+            ASSIGN
+               ttFml.pp    = (IF mRaz BEGINS "s" THEN ("   " + SUBSTR(mRaz,2,1) + ".") ELSE "")
+                           + TRIM(REPLACE(REPLACE(formula.var-id,REPLACE(mFml,"*",""),""),"_","."))
+               ttFml.name  = GetEntries(2,formula.var-name,"!","")
+               ttFml.var-id = formula.var-id
+               ttFml.fml   = formula.var-id
+               mMaxPPInt   = MAX(mMaxPPInt,LENGTH(ttFml.pp))
+            .
+	end.
+      END CASE.
+
+      IF ttFml.fml NE "" THEN
+      DO:
+         mTmpFml    = TRIM(REPLACE(formula.formula,CHR(126),"")).
+         ttFml.itog = (ENTRY(1,mTmpFml) EQ "") OR
+                      (mDc EQ "rp115t" AND INDEX(mTmpFml,"=") EQ 0).
+         IF ttFml.itog THEN
+            ttFml.fml  = IF ENTRY(1,mTmpFml) EQ ""
+                         THEN (IF NUM-ENTRIES(mTmpFml) > 1 THEN ENTRY(2,mTmpFml) + "," ELSE "") + TRIM(ttFml.fml) + "*"
+                         ELSE mTmpFml.
+         ELSE
+            ttFml.fml  = TRIM(ttFml.fml).
+
+      END.
+   END. /* IF formula.var-id BEGINS mFml THEN */
+END.
+
+CASE mRaz:
+   WHEN "s31" OR WHEN "s32" OR WHEN "r1412" OR WHEN "r14121" THEN
+   DO:
+      {empty ttFml}
+      CREATE ttFml.
+      ASSIGN
+         ttFml.pp    = ""
+         ttFml.fml   = mFml
+         mMaxPPInt   = 0
+      .
+   END.
+END CASE.
+
+CASE mRaz:
+   WHEN "r1" OR WHEN "r1412" OR WHEN "r14121" THEN
+      ASSIGN
+         mDopChar = ""
+         mDop1Char = ""
+      .
+END CASE.
+
+FOR EACH DataLine OF DataBlock NO-LOCK :
+
+   FOR EACH ttFml WHERE NOT ttFml.itog :
+
+      IF (ttFml.fml EQ TRIM((IF mDc EQ "rspr115" THEN DataLine.Sym3 ELSE DataLine.Sym1))) OR
+         ((mRaz BEGINS "s3" OR mRaz BEGINS "r1412") AND
+           CAN-DO(ttFml.fml,DataLine.Sym1))         THEN
+      DO:
+         CASE mRaz:
+            WHEN "r1" THEN
+            DO:
+               ASSIGN
+                  vTmpInt       = INT64(DataLine.sym2)
+                  ttFml.Gr [03] = ttFml.Gr [03] + DataLine.Val [1]
+                  ttFml.Gr [vTmpInt + 3] = ttFml.Gr [vTmpInt + 3] + DataLine.Val [1]
+                  ttFml.Gr [09] = ttFml.Gr [09] + DataLine.Val [05]
+                  ttFml.Gr [10] = ttFml.Gr [10] + DataLine.Val [06]
+                  ttFml.Gr [11] = ttFml.Gr [11] + DataLine.Val [07]
+                  ttFml.Gr [12] = ttFml.Gr [12] + DataLine.Val [08]
+                  ttFml.Gr [13] = ttFml.Gr [13] + DataLine.Val [09]
+                  ttFml.Gr [14] = ttFml.Gr [14] + DataLine.Val [10]
+               .
+               IF vTmpInt  > 1 THEN
+                  ASSIGN
+                     ttFml.Gr [15] = ttFml.Gr [15] + DataLine.Val [11]
+                     ttFml.Gr [vTmpInt + 14] = ttFml.Gr [vTmpInt + 14] + DataLine.Val [11]
+                  .
+            END.
+            WHEN "r2" OR WHEN "r3" THEN
+               ASSIGN
+                  ttFml.Gr [03] = ttFml.Gr [03] + DataLine.Val [4]
+                  ttFml.Gr [04] = ttFml.Gr [04] + DataLine.Val [7]
+               .
+            WHEN "s1" THEN
+               ASSIGN
+                  ttFml.Gr [03] = ttFml.Gr [03] + DataLine.Val [1]
+               .
+ 
+            WHEN "s2" THEN
+               ASSIGN
+                  ttFml.Gr [03] = ttFml.Gr [03] + DataLine.Val [2]
+               .
+            WHEN "s31" THEN
+               ASSIGN
+                  vTmpInt       = INT64(DataLine.sym2)
+                  ttFml.Gr [03] = ttFml.Gr [03] + (IF vTmpInt > 2 THEN DataLine.Val [9] ELSE 0)
+               .
+            WHEN "s32" THEN
+               ASSIGN
+                  vTmpInt       = INT64(DataLine.sym2)
+                  ttFml.Gr [03] = ttFml.Gr [03] + (IF vTmpInt > 2 THEN DataLine.Val [10] ELSE 0)
+               .
+            WHEN "r1412" OR WHEN "r14121" THEN
+            DO:
+               IF mRaz = "r14121" THEN
+                  ASSIGN
+                     vTmpDate = DATE(ENTRY(2,DataLine.sym3))
+                     vTmpLog  = (beg <= DATE(ENTRY(2,DataLine.sym3))) AND
+                                (DATE(ENTRY(2,DataLine.sym3)) <= dob)
+                  .
+               ELSE
+                  vTmpLog = YES.
+
+               IF vTmpLog THEN
+               DO:
+                  ASSIGN
+                     vTmpInt       = INT64(SUBSTR(ENTRY(2,DataLine.sym3,"-"),1,1))
+                     ttFml.Gr [03] = ttFml.Gr [03] + DataLine.Val [1]
+                     ttFml.Gr [vTmpInt + 3] = ttFml.Gr [vTmpInt + 3] + DataLine.Val [1]
+                     ttFml.Gr [13] = ttFml.Gr [13] + DataLine.Val [09]
+                     ttFml.Gr [14] = ttFml.Gr [14] + DataLine.Val [10]
+                  .
+                  IF vTmpInt > 1 THEN
+                     ASSIGN
+                        ttFml.Gr [15] = ttFml.Gr [15] + DataLine.Val [11]
+                        ttFml.Gr [vTmpInt + 14] = ttFml.Gr [vTmpInt + 14] + DataLine.Val [11]
+                     .
+               END.
+            END.
+         END CASE.
+      END.
+   END.
+END.
+
+/* ручной расчет справочно . Никитина Ю.А. Заявка в БИС  0201815 
+сделан ручной, т.к. возможны досрочное погашение ссуды и тогда БИС считает неправильно.
+Т.к. наши берут сумму непогаш. остатка на начала отчетного периода.
+А бис берут сумму планого платежа.
+pir_115_spr1.p (<тип договора>, <начала периода>, <окончание периода>, <значение ДР ЦельКред>, <дата расчета>, output <переменная результата dec>). 
+*/
+for each ttFml where ttFml.fml begins "f115l_" no-lock:
+   if ttFml.fml eq "f115l_1" then do:
+      if mRaz eq "s1" then do:
+         RUN pir_115_spr1.p ("покжил*", beg, dob, "*", beg - 1, output summ_all). 
+         ttFml.Gr[03] = summ_all.
+      end.
+      if mRaz eq "s2" then do:
+         RUN pir_115_spr1.p ("покжил*", beg, dob, "*", dob, output summ_all). 
+         ttFml.Gr[03] = summ_all.
+      end.
+   end.
+   if ttFml.fml eq "f115l_2" then do:
+      if mRaz eq "s1" then do:
+         RUN pir_115_spr1.p ("ипот*", beg, dob, "*", beg - 1, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+      if mRaz eq "s2" then do:
+         RUN pir_115_spr1.p ("ипот*", beg, dob, "*", dob, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+   end.
+   if ttFml.fml eq "f115l_3" then do:
+      if mRaz eq "s1" then do:
+         RUN pir_115_spr1.p ("авто*", beg, dob, "*", beg - 1, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+      if mRaz eq "s2" then do:
+         RUN pir_115_spr1.p ("авто*", beg, dob, "*", dob, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+   end.
+   if ttFml.fml eq "f115l_4" then do:
+      if mRaz eq "s1" then do:
+         RUN pir_115_spr1.p ("!ипот*,!покжил*,*", beg, dob, "ПотрКред", beg, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+      if mRaz eq "s2" then do:
+         RUN pir_115_spr1.p ("!ипот*,!покжил*,*", beg, dob, "ПотрКред", dob, output summ_all).
+         ttFml.Gr[03] = summ_all.
+      end.
+   end.
+end.
+/* окончание ручной расчет справочно . Никитина Ю.А. Заявка в БИС  0201815 */
+
+FOR EACH ttFml WHERE NOT ttFml.itog :
+   CASE mRaz:
+      &IF DEFINED (D01-05-13) &THEN
+         WHEN "r2" OR WHEN "r3" THEN
+            ASSIGN
+               ttFml.Gr[3] = ROUND(ttFml.Gr[3] / 1000,0)
+               ttFml.Gr[4] = ROUND(ttFml.Gr[4] / 1000,0)
+            .
+      &ENDIF   
+      WHEN "s1" OR WHEN "s2" OR WHEN "s31" OR WHEN "s32" THEN
+         ttFml.Gr[3] = ROUND(ttFml.Gr[3] / divider,0).
+   END CASE.
+END.
+
+
+FOR EACH ttFml-itog WHERE ttFml-itog.itog :
+   FOR EACH ttFml WHERE NOT ttFml.itog
+                    AND CAN-DO(ttFml-itog.fml,TRIM(ttFml.fml)) :
+      DO i = 1 TO 19 :
+         ttFml-itog.Gr [i] = ttFml-itog.Gr [i] + ttFml.Gr [i].
+      END.
+   END.
+END.
+
+CASE mRaz:
+   WHEN "r1" THEN
+      ASSIGN
+         mTmpTxt   = mDopChar + "┼─────────────────────────┼" + FILL(FILL("─",LENGTH(OuTPutFormat)) + "┼",10) + FILL(FILL("─",LENGTH(mOuTPutFormat-1)) + "┼",6) + FILL("─",LENGTH(mOuTPutFormat-1)) + "┤"
+         mEmptyTxt = FILL(FILL(" ",LENGTH(OuTPutFormat)) + "│",10) + FILL(FILL(" ",LENGTH(mOuTPutFormat-1)) + "│",7)
+         mMaxPPInt = 7
+         vLenName  = 25
+      .
+   WHEN "r1412" OR WHEN "r14121" THEN
+      ASSIGN
+         mTmpTxt   = ""
+         vLenName  = 0
+      .
+   WHEN "r2" OR WHEN "r3" THEN
+      ASSIGN
+         mTmpTxt   = "─┼──────────────────────────────────────────┼───────────────┼───────────────┤"
+         mEmptyTxt = FILL("               │",2)
+         vLenName  = 42
+      .
+   WHEN "s1" OR WHEN "s2" THEN
+      ASSIGN
+         mTmpTxt   = ""
+         vLenName  = 50
+      .
+   WHEN "s31" OR WHEN "s32" THEN
+      ASSIGN
+         mTmpTxt   = ""
+         vLenName  = 0
+      .
+
+END CASE.
+
+IF mRaz BEGINS "s" OR
+   mRaz BEGINS "r1412" THEN
+   ASSIGN
+      mCherta1 = ""
+      mCherta  = ""
+      mFormatPP = FILL("x",mMaxPPInt)
+   .
+ELSE
+   ASSIGN
+      mCherta1 = "├" + mDopChar + FILL("─",mMaxPPInt) + mTmpTxt
+      mCherta  = "~n" + "├" + mDopChar + FILL("─",mMaxPPInt) + mTmpTxt
+      mFormatPP = FILL("x",mMaxPPInt)
+   .
+IF GetSysConf("ModeExport") EQ "ExpExcl" THEN mFormatPP = " " + mFormatPP.
+FOR EACH ttFml :
+
+   ASSIGN
+      mTmpTxt   = ""
+      mTmp1Txt  = "".
+   IF GetSysConf("ModeExport") NE "ExpExcl" THEN
+   ASSIGN
+     printtext = printtext + mCherta1
+      mCherta1  = mCherta.
+
+   FIND FIRST ttGrX WHERE ttGrX.pp = ttFml.pp OR
+                          ttGrX.pp = "*"      NO-ERROR.
+
+   CASE mRaz:
+      WHEN "r1" THEN
+         DO vIInt = 3 TO 19:
+            mTmp1Txt = mTmp1Txt
+                     + (IF AVAIL ttGrX AND ttGrX.Gr [vIInt]
+                        THEN fStrCenter("X",(IF vIInt < 13 THEN LENGTH(OuTPutFormat) ELSE LENGTH(mOuTPutFormat-1)))
+                        ELSE STRING(ttFml.Gr[vIInt] / divider,(IF vIInt < 13 THEN OuTPutFormat ELSE mOuTPutFormat-1)))
+                     + "│".
+         END.
+
+      WHEN "r2" OR WHEN "r3" THEN
+         DO vIInt = 3 TO 4 :
+            mTmp1Txt = mTmp1Txt
+                     + (IF AVAIL ttGrX AND ttGrX.Gr [vIInt]
+                        THEN fStrCenter("X",LENGTH(OuTPutFormat))
+                        ELSE STRING(ttFml.Gr[vIInt] / divider,OuTPutFormat))
+                     + "│".
+         END.
+
+      WHEN "s1" OR WHEN "s2" OR WHEN "s31" OR WHEN "s32" THEN
+            mTmp1Txt = STRING(ttFml.Gr[3],OuTPutFormat).
+
+      WHEN "r1412" OR WHEN "r14121" THEN
+      DO vIInt = 3 TO 19:
+         mTmp1Txt = mTmp1Txt
+                  + (IF AVAIL ttGrX AND ttGrX.Gr [vIInt]
+                     THEN fStrCenter("X",(IF vIInt < 13 THEN LENGTH(OuTPutFormat) ELSE LENGTH(mOuTPutFormat-1)))
+                     ELSE STRING(ttFml.Gr[vIInt] / divider,(IF vIInt < 13 THEN OuTPutFormat ELSE mOuTPutFormat-1)))
+                  + "│".
+      END.
+   END CASE.
+
+   vName[1] = ttFml.name.
+   IF GetSysConf("ModeExport") NE "ExpExcl" THEN
+   DO:
+      {wordwrap.i &S=vName &N="EXTENT(vName)" &L=vLenName}
+   END.
+   ELSE
+      ASSIGN vLenName = LENGTH(vName[1])
+             .
+
+   IF mRaz BEGINS "s" THEN
+      IF mRaz BEGINS "s3" THEN
+         mTmpTxt = mTmp1Txt.
+      ELSE
+         mTmpTxt =  "~n"
+                  + STRING(ttFml.pp,mFormatPP) + " "
+                  + STRING(vName[1],FILL("x",vLenName))
+                  + (IF GetSysConf("ModeExport") EQ "ExpExcl" THEN CHR(9) ELSE " " )
+                  + mTmp1Txt
+                  .
+   ELSE
+      IF mRaz BEGINS "r1412" THEN
+         mTmpTxt =  mTmp1Txt.
+      ELSE
+         mTmpTxt =  "~n"
+                  + (IF GetSysConf("ModeExport") EQ "ExpExcl" THEN "" else "│" )
+                  + mDop1Char + STRING(ttFml.pp,mFormatPP) + mDop1Char + "│"
+                  + STRING(vName[1],FILL("x",vLenName)) + "│"
+                  + mTmp1Txt
+                  .
+   printtext = printtext + mTmpTxt.
+
+   IF GetSysConf("ModeExport") EQ "ExpКЛИКО" AND (mRaz EQ "s1" OR mRaz EQ "s2" OR mRaz EQ "s31" OR mRaz EQ "s32")
+   THEN
+   DO:
+      IF NOT (mRaz EQ "s31" OR mRaz EQ "s32") THEN
+         printtext = printtext + "~n" + "│" + ENTRY(1, TRIM(mTmpTxt), " ")                     + "│" + ENTRY(NUM-ENTRIES(TRIM(mTmpTxt), " "), TRIM(mTmpTxt), " ") + "│".
+      ELSE /* IF mRaz EQ "s31" OR mRaz EQ "s32" THEN */
+         printtext = printtext + "~n" + "│" + (IF mRaz EQ "s31" THEN "3.││~n │3.1" ELSE "3.2") + "│" + ENTRY(NUM-ENTRIES(TRIM(mTmpTxt), " "), TRIM(mTmpTxt), " ") + "│".
+   END.
+   ELSE
+   DO j = 2 TO 10:
+      IF vName[j] > "" THEN
+         IF mRaz BEGINS "s" THEN
+            printtext = printtext + "~n"
+                        + FILL(" ",mMaxPPInt) + " "
+                        + STRING(vName[j],FILL("x",vLenName))
+                        + " "
+                        .
+         ELSE
+            printtext = printtext + "~n"
+                        + (IF GetSysConf("ModeExport") NE "ExpExcl" THEN "│" ELSE "")
+                        + mDop1Char + FILL(" ",mMaxPPInt) + mDop1Char + "│"
+                        + STRING(vName[j],FILL("x",vLenName))
+                        + "│"
+                        + mEmptyTxt
+                        .
+   END.
+   IF GetSysConf("ModeExport") EQ "ExpExcl" THEN
+   DO:
+      ASSIGN printtext = REPLACE(printtext ,"│",CHR(9))
+             printtext = REPLACE(printtext ,"|","~n").
+   END.
+END. /* FOR EACH ttFml : */
+/******************************************************************************/
+
+

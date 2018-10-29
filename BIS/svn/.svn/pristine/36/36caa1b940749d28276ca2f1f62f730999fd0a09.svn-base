@@ -1,0 +1,133 @@
+  /*------------------------------------------------------------------------
+    File        : TEra
+    Purpose     : 
+    Syntax      : 
+    Description : 
+    Author(s)   : dmaslov
+    Created     : Tue Jun 05 09:47:52 MSD 2012
+    Notes       : 
+  ----------------------------------------------------------------------*/
+
+USING Progress.Lang.*.
+
+
+CLASS TEra:
+
+  {set-prop.i &aa="hWebService" &cc="HANDLE"}
+  {set-prop.i &aa="hpt" &cc="HANDLE"}
+      
+  CONSTRUCTOR TEra(INPUT lType AS LOG):
+         connect().
+  END CONSTRUCTOR.
+     
+METHOD PROTECTED VOID connect():
+  CREATE SERVER hWebService.
+  hWebService:CONNECT("-WSDL " + TSysClass:getSetting2("PirEArch","PirProvider","") + " ") NO-ERROR.
+
+  IF NOT hWebService:CONNECTED() THEN DO:
+         MESSAGE "Ошибка! Невозможно подключиться к системе хранения!" VIEW-AS ALERT-BOX.
+         RETURN.
+  END.
+  
+  RUN WfControllerPortType SET hpt ON SERVER hWebService.
+  
+END METHOD.         
+ 
+/**
+ * Метод добавляет документ в электронное хранилище
+ *
+ * @var CHAR num Номер документа
+ * @var CHAR opdate Дата опер дня в формате YYYY-mm-dd
+ * @var CHAR expn Номер рейса по которому документы выгружаются
+ * @var CHAR author Автор документа
+ * @var CHAR inspector Контроллер документа
+ * @var CHAR cFileName Путь к файлы с данными
+ * @return INT64 Primary Key документа в электронном архиве
+ **/
+METHOD PUBLIC INT64 addDoc(INPUT num AS CHAR,INPUT opdate AS CHAR,INPUT expn AS CHAR,INPUT author AS CHAR,INPUT inspector AS CHAR,INPUT cFileName AS CHAR):
+       DEF VAR iRes    AS INT      NO-UNDO.
+       DEF VAR details AS LONGCHAR NO-UNDO.
+       details = getFile(cFileName). 
+       RUN addDoc IN hpt ({cpc num},{cpc opdate},{cpc expn},{cpc author},{cpc inspector},{cpc details},OUTPUT iRes).
+      RETURN iRes.
+END METHOD.
+
+/**
+ * Возвращает содержимое файла
+ * @var CHAR cFileName Путь к файлу с данными
+ * @return LONGCHAR Содержимое файла
+ **/
+METHOD PUBLIC LONGCHAR getFile(INPUT cFileName AS CHAR):
+       DEF VAR details      AS LONGCHAR       NO-UNDO.
+       DEF VAR fileInMemory AS MEMPTR         NO-UNDO.
+
+       COPY-LOB FROM FILE cFileName TO fileInMemory.
+       details=BASE64-ENCODE(fileInMemory).
+    RETURN details.
+END METHOD.    
+
+/**
+ * Добавляет файл в электронный архив с произвольными
+ * параметрами.
+ * @var TAArray oArray Аттрибуты документы
+ * @var CHAR cFileName Путь к файлу с данными
+ * @return INT64 Primary Key документа в электронном хранилище
+ **/
+
+METHOD PUBLIC INT64 addCustomDoc(INPUT oArray AS TAArray,INPUT cFileName AS CHAR):
+    DEF VAR details AS LONGCHAR NO-UNDO.
+    DEF VAR json    AS LONGCHAR NO-UNDO.
+    DEF VAR iRes    AS INT      NO-UNDO.
+    details = getFile(cFileName).
+    json    = oArray:toJSON().
+
+    RUN addCustomDoc IN hpt({cpc json},{cpc details},OUTPUT iRes).
+    RETURN iRes.
+END METHOD.    
+
+/**
+ * Добавляет файл в электронный архив с произвольными параметрами,
+ * предварительно запрашивает согласие на сохранение.
+ * @var TAArray oArray  Параметры документа
+ * @var CHAR cFileName Путь к файлу с данными
+ * @return INT64 Первичный ключ документа в электронном хранилище
+ **/
+
+METHOD PUBLIC INT64 askAndSave(INPUT oArray AS TAArray,INPUT cFileName AS CHAR):
+  DEF VAR doUnload AS LOG NO-UNDO.
+  MESSAGE "Будем выгружать в электронный архив?" VIEW-AS ALERT-BOX BUTTONS YES-NO TITLE "Запрос на выгрузку" SET doUnload.
+
+  IF doUnload THEN DO:
+   RETURN addCustomDoc(oArray,cFileName).
+  END. ELSE DO:
+   RETURN ?.
+  END.
+
+END METHOD.
+
+/** 
+ * Преобразуют дату в формат YYYY-mm-dd
+ * @var DATE dDate Дата
+ * @return CHAR
+ **/
+METHOD STATIC CHAR getDate(INPUT dDate AS DATE):
+  DEF VAR oSysClass AS TSysClass NO-UNDO.
+  DEF VAR cRes      AS CHAR      NO-UNDO.
+
+  oSysClass = new TSysClass().
+    cRes = oSysClass:DATETIME2STR(dDate,"%Y-%m-%d").
+  DELETE OBJECT oSysClass.
+ RETURN cRes.  
+END METHOD.
+
+METHOD PUBLIC LOG disconnect():
+ hWebService:DISCONNECT().
+ DELETE OBJECT hWebService.
+END METHOD.
+
+DESTRUCTOR TEra():
+ hWebService:DISCONNECT().
+ DELETE OBJECT hWebService.   
+END DESTRUCTOR.                      
+
+END CLASS.

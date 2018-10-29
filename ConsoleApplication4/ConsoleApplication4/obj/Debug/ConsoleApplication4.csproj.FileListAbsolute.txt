@@ -1,0 +1,12 @@
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.exe.config
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.exe
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.pdb
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.csprojResolveAssemblyReference.cache
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.exe
+c:\users\ddorkin\documents\visual studio 2013\Projects\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.pdb
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.exe.config
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.exe
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.pdb
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.exe
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\bin\Debug\ConsoleApplication4.pdb
+C:\test\xmlcrypto\ConsoleApplication4\ConsoleApplication4\obj\Debug\ConsoleApplication4.csprojResolveAssemblyReference.cache

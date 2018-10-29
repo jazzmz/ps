@@ -1,0 +1,253 @@
+{sh-defs.i}
+
+DEFINE VARIABLE vTxt7  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vTxt9  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vTxt10 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vTxt11 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vTxt12 AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vBazAct AS CHARACTER NO-UNDO.
+DEFINE VARIABLE vCountryEmitSecCode AS CHARACTER NO-UNDO.
+DEFINE VARIABLE drAcctKorr AS CHARACTER NO-UNDO.
+DEFINE VARIABLE AcctKorr AS CHARACTER NO-UNDO.
+
+mSecCode = GetValue (hQ:GET-BUFFER-HANDLE (2),"currency").
+
+
+FOR FIRST sec-code WHERE
+          sec-code.sec-code EQ mSecCode
+   NO-LOCK:                         
+
+   ASSIGN
+      name-emit = ""
+      lic-emit  = ""
+      emit-inn  = ""
+      mAcct     = ""
+      mContCode = ""
+      mCustSurr = ""
+      hEmit     = ?
+      .
+   for each acct  WHERE (acct.close-date EQ ? or acct.close-date > DataBlock.End-Date) and  acct.acct-cat EQ 'd' AND 
+			acct.currency EQ mSecCode and acct.side eq "П" 
+		NO-LOCK:
+   if avail acct then do:
+	AcctKorr = acct.acct.
+   	drAcctKorr = GetXAttrValueEx("acct", acct.acct + "," + acct.currency, "СчетУКорр","").
+	RUN acct-qty IN h_base (acct.acct, acct.currency, DataBlock.End-Date, DataBlock.End-Date, "√").
+	IF dec(GetValue(hQ:GET-BUFFER-HANDLE (1),"Parsq_Value")) <> 0 and string(sh-qty) ne "0" THEN do:
+	/*	leave.*/
+
+   IF mClassId = "f711_2" or drAcctKorr ne "" THEN DO:
+      IF mClassId = "f711_2" THEN DO: mAcct = GetValue(hQ:GET-BUFFER-HANDLE (2), "acct"). end.
+      IF drAcctKorr ne "" THEN DO: mAcct = GetXAttrValueEx("acct", AcctKorr + "," + sec-code.sec-code, "СчетУКорр",""). end.
+
+      mContCode = GetXAttrValue("acct", mAcct + "," + mSecCode, "Депо").
+      IF mContCode > "" THEN DO:
+         FIND FIRST loan WHERE
+                    loan.cont-code = mContCode
+         NO-LOCK NO-ERROR.
+         IF AVAIL loan THEN
+            mCustSurr = loan.cust-cat + "," + STRING(loan.cust-id).
+      END.
+   END.
+
+   RUN pCreDataLine (mPart,
+                     sec-code.sec-code,
+                     &IF DEFINED(Instr2627-U) &THEN
+                     IF mClassId = "f711_2" THEN mCustSurr ELSE "",
+                     &ELSE
+                     "",
+                     &ENDIF
+                     "",
+                     mCurVal,
+                     DEC (GetValue (hQ:GET-BUFFER-HANDLE (1),"Parsq_Value"))
+		     ).
+   IF NEW (TDataLine) THEN
+   DO:
+
+
+      hEmit = secEmitInfo (TDataLine.Sym2).
+
+      /* Страна эмитента ценной бумаги */
+      vCountryEmitSecCode = IF VALID-HANDLE (hEmit) THEN hEmit:BUFFER-FIELD ("country-emit"):BUFFER-VALUE ELSE "".
+      IF vCountryEmitSecCode = "" THEN vCountryEmitSecCode = "RUS".
+         
+      /* Депо расписка? */
+      mShType = GetXAttrValue ("sec-code",TDataLine.Sym2,"Share_Type").
+      IF mShType BEGINS "DR"
+      THEN DO:
+         vBazAct = GetXAttrValueEx("sec-code",
+                                   TDataLine.Sym2,
+                                   "БазАкт",
+                                   "").
+         IF vBazAct > "" THEN
+            hEmit = secEmitInfo(vBazAct).
+      END.
+      
+      
+      IF VALID-HANDLE (hEmit) 
+      THEN ASSIGN
+         name-emit    = hEmit:BUFFER-FIELD ("name-emit"):BUFFER-VALUE
+         lic-emit     = hEmit:BUFFER-FIELD ("lic-emit"):BUFFER-VALUE    
+         country-emit = hEmit:BUFFER-FIELD ("country-emit"):BUFFER-VALUE
+         emit-inn     = hEmit:BUFFER-FIELD ("emit-inn"):BUFFER-VALUE    
+         emit-custcat = hEmit:BUFFER-FIELD ("emit-custcat"):BUFFER-VALUE
+         emit-ogrn    = hEmit:BUFFER-FIELD ("emit-ogrn"):BUFFER-VALUE   
+         emit-custid  = hEmit:BUFFER-FIELD ("emit-custid"):BUFFER-VALUE 
+      .
+
+      /* Если эмитент резидент */
+      IF IsResident (emit-custcat, emit-custid) AND
+         (mShortNameLog OR NOT mShortNameLog) THEN
+      DO:
+         CASE mShortNameLog:
+            WHEN YES THEN
+               /* Если НП Форма711/КратНаим = Да */
+               name-emit  = cust-rekviz(emit-custcat, emit-custid, "ShortName").
+            WHEN NO THEN 
+               /* Если НП Форма711/КратНаим = Нет */
+               name-emit  = cust-rekviz(emit-custcat, emit-custid, "name").
+         END CASE.
+      END.
+
+      /* По умолчанию - резидент */
+      IF Country-Emit EQ "" THEN Country-Emit = "RUS".
+      
+      IF sec-code.issuing-sec
+      THEN DO:
+         /* Номер регистрации для резидентов */
+         ASSIGN
+/*            lic-emit = sec-code.reg-num*/
+            lic-emit = GetXAttrValueEx("sec-code",sec-code.sec-code,"issue_ser",sec-code.reg-num).
+            vTxt7    = "1".
+         IF NOT {assigned lic-emit}
+            OR 
+            vCountryEmitSecCode NE fGetSetting ("КодРез",?,"RUS")
+         THEN
+         DO:
+            lic-emit = GetXAttrValue ("sec-code", TDataLine.Sym2,"ISIN").
+            IF {assigned lic-emit} 
+            THEN vTxt7    = IF GetXAttrValueEx ("sec-code", TDataLine.Sym2,"КодирСистЦБ","ISIN") EQ "ISIN"
+                            THEN "2" ELSE "3".
+            ELSE vTxt7 = "".
+         END.
+      END.
+      ELSE 
+         ASSIGN
+            lic-emit = ""
+            vTxt7    = "".
+      /* Резидент или нет? */
+      IF (IsResident (emit-custcat, emit-custid) NE YES)
+         OR
+         (NOT {assigned emit-custcat} AND country-emit NE FGetSetting ("КодРез",?,"RUS"))
+      THEN
+      DO:
+         ASSIGN
+            name-emit = GetXAttrValueEx(GetCustClass(Emit-CustCat),
+                                        STRING(Emit-CustID),
+                                        "engl-name",
+                                        name-emit)
+            mTxt[1]   = GetCountry (Emit-CustCat,Emit-CustID)
+            emit-inn = IF {assigned mTxt[1]}
+                          THEN mTxt[1]
+                          ELSE country-emit
+         .
+         emit-inn = GetCountryFld (emit-inn,
+                                   "country-alt-id",
+                                   emit-inn).
+      END.
+      
+      /* для закладных физических лиц */
+      IF mShType EQ "ENC" AND emit-custcat EQ "Ч" THEN
+         ASSIGN
+            name-emit = "Физические лица"
+            emit-inn  = "000000000000"
+            .
+      &IF DEFINED(Instr2627-U) &THEN
+      ASSIGN
+         vTxt9  = ""
+         vTxt10 = ""
+         vTxt11 = ""
+         vTxt12 = ""
+         .
+      IF (mClassId = "f711_2" or drAcctKorr ne "" ) AND mContCode > "" AND AVAIL loan THEN DO:
+         IF mShortNameLog OR NOT mShortNameLog THEN DO:
+            CASE mShortNameLog:
+               WHEN YES THEN
+                  /* Если НП Форма711/КратНаим = Да */
+                  vTxt9  = cust-rekviz(loan.cust-cat, loan.cust-id, "ShortName").
+               WHEN NO THEN 
+                  /* Если НП Форма711/КратНаим = Нет */
+                  vTxt9  = cust-rekviz(loan.cust-cat, loan.cust-id, "name").
+            END CASE.
+         END.
+         ELSE
+            vTxt9  = cust-rekviz(loan.cust-cat, loan.cust-id, "name").
+
+         IF IsResident(loan.cust-cat, loan.cust-id) THEN DO:
+            vTxt12 = GetXattrValueEx("loan",
+                                     loan.contract + "," + loan.cont-code,
+                                     "pr_dep_kor",
+                                     ?).
+            IF vTxt12 <> ? THEN
+               ASSIGN 
+                  vTxt12 = GetCode("pr_dep_kor", vTxt12)
+                  vTxt12 = IF vTxt12 EQ ? THEN
+                                ""
+                             ELSE
+                                vTxt12
+               .
+            ELSE
+               vTxt12 = "".
+               
+            vTxt10 = cust-rekviz(loan.cust-cat, loan.cust-id, "inn").
+            IF vTxt10 BEGINS "ИНН " THEN
+               vTxt10 = SUBSTRING(vTxt10, 5).
+         END.
+         ELSE DO:
+            vTxt12 = GetCode("pr_dep_kor", '4').
+            IF loan.cust-cat = "Ю" THEN DO:
+               vTxt10 = cust-rekviz(loan.cust-cat, loan.cust-id, "Страна").
+               FIND FIRST country WHERE
+                          country.country-id = vTxt10
+               NO-LOCK NO-ERROR.
+               vTxt10 = IF AVAIL country THEN STRING(country-alt-id, "999") ELSE "999".
+            END.
+         END.
+         
+         IF NOT {assigned vTxt10} THEN
+            vTxt10 = FILL("0", 10).
+         
+         IF NOT CAN-DO("И,Э", vTxt12) THEN
+                  vTxt11 = cust-signs(loan.cust-cat,loan.cust-id,"lic-sec").
+      END.
+      &ENDIF
+
+      TDataLine.Txt  = fStrNvl (REPLACE(name-emit,"~n"," "),"") + "~n"
+                     + fStrNvl (emit-inn,"")  + "~n"
+                     + fStrNvl (lic-emit,"")  + "~n"
+                     + (IF sec-code.currency EQ "" THEN mNatCurr ELSE fStrNvl (sec-code.currency,"")) + "~n"
+                     + fStrNvl (STRING (FindRateSimpleCat ("sec-code",
+                                                           "Номинал",
+                                                           TDataLine.Sym2,
+                                                           DataBlock.End-Date,
+                                                           .0)
+                                       ),"")  + "~n"
+                     + fStrNvl (mShType,"")   + "~n"
+                     + vTxt7                  + "~n"
+                     + fStrNvl(getCodeMisc("Share_Type",mShType,2), "")
+                     &IF DEFINED(Instr2627-U) &THEN
+                     + "~n"
+                     + fStrNvl (vTxt9,  "")   + "~n"
+                     + fStrNvl (vTxt10, "")   + "~n"
+                     + fStrNvl (vTxt11, "")   + "~n"
+/*                     + fStrNvl (vTxt12, "")*/
+                     + fStrNvl ("К", "")
+                     &ENDIF
+      .
+   END.
+   RELEASE TDataLine.
+
+	end.
+   end.
+   end.
+END.

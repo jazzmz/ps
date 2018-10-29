@@ -1,0 +1,248 @@
+/************************************
+ *
+ * Инклюдник-событие. Вызывается из
+ * pir-chkop.p.
+ * Передаются следующие параметры:
+ * iStatus - статус действия, вещь
+ * загадочная.
+ * iRecOp - RECID документа с которым
+ * производится действие.
+ *
+ * Вызывается в следующие случаях:
+ * 1. Зашли в документ по Enter и затем вышли;
+ * 2. Нажали F9 на документе и подвердили Ctrl+Enter;
+ * 3. Изменили статус;
+ * 4. Перевели документ в другой день.
+ ************************************/
+
+		/***********************************
+		 *                                 *
+		 * Подключаем проверку на красное. *
+		 *                                 *
+		 ***********************************
+		 *                                 *
+		 * Автор: Маслов Д. А.             *
+		 * Заявка: #529			   *
+		 * Смотри описание: http://lib,    *
+		 * http://help .		   *
+		 *                                 *
+		 ***********************************/
+
+   
+		 /*********************************
+		  * Если пользователь перечислен в
+		  * НП, то для него включается новая
+		  * проверка на красное сальдо.
+		  * !!! ВНИМАНИЕ !!!
+		  * Старая при этом отключается.
+		  * 05.05.11 9:40
+		  **********************************/
+
+  IF CAN-DO(FGetSetting("PirChkOp","PirRedSaldoV2","!*"),USERID("bisquit")) THEN DO:
+	oPOValid:isCanTake(direct).
+
+		  IF oPOValid:isErrorState THEN 
+			DO:
+				/*************************
+				 * В ДОКУМЕНТЕ ОШИБКА !!!*
+		                 *************************/
+   		                 MESSAGE COLOR WHITE/RED "ВНИМАНИЕ КРАСНОЕ САЛЬДО! " SKIP
+			         "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+			         "*** ОБНАРУЖЕНЫ ОШИБКИ ***" SKIP
+				 REPLACE(oPOValid:getListErrorDetails("ОшибкаОстатка"),",",CHR(10)) SKIP
+				 VIEW-AS ALERT-BOX TITLE "[ОШИБКА #535]".
+
+                            {pir-emtop.i}
+  			    RETURN.
+			END.
+  END.
+
+
+	     /****************************************
+	      *                                      *
+	      * Подключаем проверку на создание      *
+	      * валютного документа в дне, в котором *
+	      * нет курса ЦБ.                        *
+	      *                                      *
+	      ****************************************
+	      *                                      *
+	      *	Автор: Маслов Д. А.                  *
+	      * Заявка: #537			     *
+	      * Смотри описание:http://lib,          *
+	      * http://help                          *                                      
+	      *					     *
+	      ****************************************/
+
+
+   IF oPOValid:isValute() AND op.op-date <> ? THEN DO:
+
+     IF oSysClass:getCBRKurs(INT(oPOValid:currency),oPOValid:DocDate) = ? THEN DO:
+
+	 MESSAGE COLOR WHITE/RED "НЕТ УЧЕТНОГО КУРСА в " + STRING(oPOValid:DocDate) SKIP
+                                 "Работа с валютными документами запрещена!"
+				  VIEW-AS ALERT-BOX TITLE "[Ошибка #537]".
+         {pir-emtop.i}
+         RETURN.
+     END.
+   END.
+
+
+	     /****************************************
+              *                                      *
+	      * Проверяем корректность дат докумета. *
+	      * Добавлено по заявке #719             *
+	      *                                      *
+	      ****************************************
+	      *
+	      * Автор: Маслов Д. А.
+	      * Заявка:719
+	      *
+	      ****************************************/
+
+    IF LOGICAL(FGetSetting("PirChkOp","isDateValidate","YES")) THEN DO:
+    oPOValid:runDateCheck().
+
+		  IF  oPOValid:isErrorState THEN 
+			DO:
+				/*************************
+				 * В ДОКУМЕНТЕ ОШИБКА !!!*
+		                 *************************/
+   		                 MESSAGE COLOR WHITE/RED "ОШИБОЧНО ЗАДАНЫ ДАТЫ! " SKIP
+			         "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+			         "*** ОБНАРУЖЕНЫ ОШИБКИ ***" SKIP
+				 REPLACE(oPOValid:getListErrorDetails("Дата"),",",CHR(10)) SKIP
+				 VIEW-AS ALERT-BOX TITLE "[ОШИБКА #719]".
+                        {pir-emtop.i}
+  			RETURN.
+			END.
+    END.
+
+	/******************************************
+	 * Проверка основных реквизитов документа *
+	 *******************************************/
+
+  IF LOGICAL(FGetSetting("PirChkOp","isMainAttrCheck","YES")) THEN DO:
+	  IF oPoValid:doc-status GT "К" THEN DO:
+	  oPoValid:runMainAttrCheck().
+
+		  IF  oPOValid:isErrorState THEN 
+			DO:
+				/*************************
+				 * В ДОКУМЕНТЕ ОШИБКА !!!*
+		                 *************************/
+   		                 MESSAGE COLOR WHITE/RED "НЕПРАВИЛЬНЫЕ ОСНОВНЫЕ РЕКВИЗИТЫ! " SKIP
+			         "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+			         "*** ОБНАРУЖЕНЫ ОШИБКИ ***" SKIP
+				 REPLACE(oPOValid:getListErrorDetails("Основные"),",",CHR(10)) SKIP
+				 VIEW-AS ALERT-BOX TITLE "[ОШИБКА #725]".
+                        {pir-emtop.i}
+  			RETURN.
+			END.
+   END.
+
+
+	/******************************************
+	 * Проверка документов снятия/внесения наличных денежных 
+	 * средств со счета физика лицом, у которого нет доверенности 
+	 * Проверка #1716 заменена на #3679
+	 *******************************************/
+   IF LOGICAL(FGetSetting("PirChkOp","Pir3679","YES")) THEN 
+   DO:
+    IF oPoValid:doc-status GT "К" THEN 
+    DO:
+      oPoValid:runOperWithoutProxy().
+      IF  oPOValid:isErrorState  THEN 
+      DO:
+		/*************************
+		 * В ДОКУМЕНТЕ ОШИБКА !!!*
+                 *************************/
+                 MESSAGE COLOR WHITE/RED "ОПЕРАЦИЯ БЕЗ ДОВЕРННОСТИ! " SKIP
+	         "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+	         "*** ОБНАРУЖЕНЫ ОШИБКИ ***" SKIP
+		 REPLACE(oPOValid:getListErrorDetails("ОперацияБезДоверенности"),",",CHR(10)) SKIP
+		 VIEW-AS ALERT-BOX TITLE "[ОШИБКА #3679]".
+                 {pir-emtop.i}
+		RETURN.
+      END.
+    END.
+   END.
+
+
+	/******************************************
+	 * Проверка срока обновления анкеты клиента *
+	 *******************************************/
+   IF LOGICAL(FGetSetting("PirChkOp","Pir2905op","YES")) 
+      AND CAN-DO(FGetSetting("PirChkOp","Pir2905opuser", "*"), oPOValid:user-id) 
+      AND CAN-DO(FGetSetting("PirChkOp","Pir2905optranz","*"), oPOValid:op-kind) 
+   THEN 
+   DO:
+      oPoValid:runChkUpdatedAnketa(). 
+      IF  oPOValid:isErrorState  THEN 
+      DO:
+		/*************************
+		 * В ДОКУМЕНТЕ ОШИБКА !!!*
+                 *************************/
+                 MESSAGE  "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+		 oPOValid:getListErrorDetails("ОбновлениеАнкеты") SKIP
+		 VIEW-AS ALERT-BOX TITLE "[ПРЕДУПРЕЖДЕНИЕ #2905]".
+                /*  {pir-emtop.i}
+		RETURN. */
+      END.
+   END.
+
+
+	/******************************************
+	 * Запрет документов по кассе по пластиковым * 
+	 * счетам создаными операционистами          *
+	 *******************************************/
+   IF LOGICAL(FGetSetting("PirChkOp","Pir1717","YES")) 
+      AND  CAN-DO( FGetSetting("PirChkOp","Pir1717List","*") , oPOValid:user-id) 
+   THEN 
+   DO:
+      oPoValid:runBanCashCardDocum().
+      IF  oPOValid:isErrorState  THEN 
+      DO:
+		/*************************
+		 * В ДОКУМЕНТЕ ОШИБКА !!!*
+                 *************************/
+                 MESSAGE COLOR WHITE/RED "ДОКУМЕНТ ПО КАССЕ ПО ПЛАСТИКОВОМУ СЧЕТУ, СОЗДАННЫЙ ОПЕРАЦИОНИСТОМ! " SKIP
+	         "ДОКУМЕНТ №" + oPoValid:doc-num + " . На сумму: " + STRING(oPoValid:sum) SKIP
+	         "*** ОБНАРУЖЕНЫ ОШИБКИ ***" SKIP
+		 REPLACE(oPOValid:getListErrorDetails("КассДокумПоПКОперациониста"),",",CHR(10)) SKIP
+		 VIEW-AS ALERT-BOX TITLE "[ОШИБКА #1717]".
+                 {pir-emtop.i}
+		RETURN.
+      END.
+   END.
+
+
+
+  /*#4286 Проверка наличия кода VO, если его нет, и требуется авто*/
+  IF LOGICAL(FGetSetting("PirChkOp","Pir4286","YES")) 
+     AND CAN-DO(FGetSetting("PirChkOp","Pir4286Usr","*"),op.user-id)
+     AND CAN-DO(FGetSetting("PirChkOp","Pir4286Tr","*"),op.op-kind)
+     THEN 
+     DO:
+        DEF VAR oVOCode AS CHAR NO-UNDO.
+        DEF VAR BtOk AS Logical NO-UNDO.
+        DEF BUFFER bf-op-ent for op-entry.
+        FIND FIRST bf-op-ent where bf-op-ent.op = op.op NO-LOCK NO-ERROR.
+        RUN VALUE(TSysClass:whatShouldIRun2('pir-u102-codevo')) (bf-op-ent.acct-db, bf-op-ent.acct-cr, bf-op-ent.currency, "", OUTPUT oVOCode).
+        IF oVOCode <> "" and NOT CAN-DO("*" + oVOCode + "*",op.details) 
+           THEN 
+            DO:
+               IF NOT CAN-DO(FGetSetting("PirChkOp","Pir4286Auto","!*"),op.op-kind) THEN
+               MESSAGE "В документе: " op.doc-num SKIP
+                       "Дебет: " bf-op-ent.acct-db SKIP
+                       "Кредит: " bf-op-ent.acct-cr SKIP
+                       "На сумму: " STRING(bf-op-ent.amt-rub) " рублей" SKIP
+                       "необходим код VO: " oVOCode SKIP 
+                       "Произвести автоподстановку?" VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO UPDATE BtOk.    
+                ELSE BtOk = true.
+                if BtOk then op.details = oVOCode + " " + op.details.
+  
+            END.
+    END.
+  END. /* END doc-status */
+
+

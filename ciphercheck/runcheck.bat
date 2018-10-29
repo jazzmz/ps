@@ -1,0 +1,1 @@
+powershell "C:\test\ciphercheck\check.ps1 %1"

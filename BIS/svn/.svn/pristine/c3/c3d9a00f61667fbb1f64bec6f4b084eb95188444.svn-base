@@ -1,0 +1,8 @@
+     DataLine.Sym2 FORMAT "x(20)" LABEL "№"
+         HELP "Номера строк"
+     DataLine.Val[1] FORMAT "->>>,>>>,>>>,>>9.9" LABEL "Кред.организации"
+         HELP "Проверки кредитных организаций"
+     &IF DEFINED(PROJECT_01_10) = 0 &THEN
+     DataLine.Val[2] FORMAT "->>>,>>>,>>>,>>9.9" LABEL "Друг.организации"
+         HELP "Проверки других организаций"
+     &ENDIF

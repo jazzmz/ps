@@ -1,0 +1,7 @@
+     DataLine.Sym2 FORMAT "x(4)" LABEL "№"
+         HELP "Код операции" {&NoUpdate}
+     DataLine.Val[9] FORMAT "->>>,>>>,>>>,>>9.99" LABEL "Стоимость"
+         HELP "Стоимость операции"
+     DataLine.Val[2] FORMAT "->>>,>>>,>>>,>>9.99" LABEL "Количество"
+         HELP "Количество операций"
+

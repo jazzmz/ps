@@ -1,0 +1,69 @@
+IF NO THEN .
+/* Номер договора */
+ELSE IF frame-field BEGINS "Sym3" THEN 
+DO:
+   FIND FIRST loan WHERE loan.cont-code EQ ENTRY(1,DataLine.Sym3) AND 
+                       loan.contract = IF DataLine.Sym2 = "д" THEN "dps" 
+                                                              ELSE "кредит" 
+                       NO-LOCK NO-ERROR.
+   CASE DataLine.Sym2:
+      WHEN "к" THEN 
+      DO:
+         IF AVAIL loan THEN
+         DO:
+            RUN RunClassMethod IN h_xclass
+               (loan.class-code,"Form","","",?,
+                ",," + loan.class-code + "," +
+                loan.contract + ";" + loan.cont-code + "," + 
+                "{&MOD_VIEW}" + "," +
+                STRING(level + 1)) NO-ERROR.
+            IF RETURN-VALUE EQ {&NO-METHOD} THEN
+               RUN RunClassMethod in h_xclass
+                  (loan.class-code,
+                  "Look",
+                  "","",
+                  "loan#",
+                  loan.contract + "," + loan.cont-code + ",5").
+        END. 
+     END.
+     WHEN "д" THEN RUN loand#.p ("dps",ENTRY(1,DataLine.Sym3),level + 1).
+   END CASE.  
+END.
+ELSE IF FRAME-FIELD BEGINS "Txt"
+THEN
+   CASE FRAME-INDEX:
+      /* Счет */
+      WHEN 7 THEN
+      DO:
+         RUN runClassMethod IN h_xclass
+            ("acct":U,
+             "LOOK":U,
+             "","","",
+             ENTRY (7, dataLine.Txt, "~n") + ","
+           + STRING (level + 1)).
+      END.
+      /* ФИО */
+      WHEN 1 THEN
+      DO:
+         RUN findSignsByVal IN h_xclass
+            (       "person",
+                    "УНКг",
+                    dataLine.Sym1,
+             OUTPUT mId,
+             OUTPUT mCat).
+         IF {assigned mCat} THEN
+            RUN runClassMethod IN h_xclass
+               ("person":U,
+                "LOOK":U,
+                "","","",
+                mCat + "," 
+              + STRING (level + 1)).
+      END.
+   END CASE.
+else if frame-field begins "Val" then do:
+   frame-value = dec(frame-value) * div.
+   run calc.p. 
+   frame-value = dec(frame-value) / div.
+end. 
+hide message no-pause.
+

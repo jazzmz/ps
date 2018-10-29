@@ -1,0 +1,111 @@
+/*-----------------------------------------------------------------------------
+               Банковская интегрированная система БИСквит
+    Copyright: (C) 1992-2003 ТОО "Банковские информационные системы"
+     Filename: sw-uni.def
+      Comment: Определение таблиц для сводных мемордеров
+   Parameters:
+         Uses: 
+      Used by:
+      Created: 27/05/2003 Peter
+     Modified: 
+-----------------------------------------------------------------------------*/
+form "~n@(#) sw-uni.def Peter Peter" with frame sccs-id stream-io width 250.
+
+&IF DEFINED(NOINPUT) = 0 &THEN
+DEFINE INPUT PARAMETER iParam AS CHAR NO-UNDO.
+&ENDIF
+DEFINE {&NEW} SHARED VAR fAggregate     AS LOGICAL NO-UNDO INIT NO.   /* объединять полупроводки */
+DEFINE {&NEW} SHARED VAR fSortAsc       AS LOGICAL NO-UNDO INIT YES.  /* сортировка по возрастанию/убыванию */
+DEFINE {&NEW} SHARED VAR fAggregateSide AS CHAR    NO-UNDO INIT "Дб". /* сторона, по которой брать сумму в конверсионных проводках */
+DEFINE {&NEW} SHARED VAR fSortFlds      AS CHAR    NO-UNDO INIT "".   /* поля для сортировки */
+DEFINE {&NEW} SHARED VAR fBreakField    AS CHAR    NO-UNDO INIT "".   /* поле для группировки */
+DEFINE {&NEW} SHARED VAR fBreakAccum    AS CHAR    NO-UNDO INIT "".   /* поля для подитогов */
+DEFINE {&NEW} SHARED VAR fFilter        AS CHAR    NO-UNDO INIT "".   /* имя фильтра */
+DEFINE {&NEW} SHARED VAR fPeriod        AS CHAR    NO-UNDO INIT "".   /* период */
+DEFINE {&NEW} SHARED VAR fBank          AS CHAR    NO-UNDO INIT "".   /* банк */
+
+DEFINE BUFFER b-entry FOR op-entry.
+
+{tmprecid.def}
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-ope NO-UNDO LIKE op
+  FIELD acct-db    LIKE op-entry.acct-db
+  FIELD acct-cr    LIKE op-entry.acct-cr
+  FIELD amt-rub    LIKE op-entry.amt-rub
+  FIELD amt-cur    LIKE op-entry.amt-cur
+  FIELD currency   LIKE op-entry.currency
+  FIELD qty        LIKE op-entry.qty
+  FIELD symbol     LIKE op-entry.symbol
+  FIELD value-date LIKE op-entry.value-date
+  FIELD polacct    LIKE op.ben-acct
+  FIELD placct     LIKE op.ben-acct
+  FIELD reference  LIKE op-impexp.bank-reference
+  FIELD exp-batch  LIKE op-impexp.exp-batch
+  FIELD imp-batch  LIKE op-impexp.exp-batch
+  FIELD pl         AS CHAR
+  FIELD pol        AS CHAR
+  FIELD pomfo      AS CHAR
+  FIELD poinn      AS CHAR
+  FIELD pokpp      AS CHAR
+  FIELD porkc      AS CHAR
+  FIELD plmfo      AS CHAR
+  FIELD plinn      AS CHAR
+  FIELD plkpp      AS CHAR
+  FIELD plrkc      AS CHAR  
+  FIELD grp        AS CHAR
+  FIELD sort       AS CHAR
+  FIELD sortd      AS CHAR
+  FIELD uniq       AS CHAR
+  INDEX i-srt sort sortd DESCENDING
+  INDEX i-uniq uniq
+  INDEX i-grp grp
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-en NO-UNDO
+  FIELD rid AS RECID
+  INDEX i-r rid
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-fmt NO-UNDO
+  FIELD fld AS CHAR
+  FIELD fmt AS CHAR
+  INDEX i-fld fld
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-hdr NO-UNDO
+  FIELD num AS INTEGER
+  FIELD txt AS CHAR
+  INDEX i-num num
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-bd NO-UNDO
+  FIELD num AS INTEGER
+  FIELD txt AS CHAR
+  INDEX i-num num
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-st NO-UNDO
+  FIELD num AS INTEGER
+  FIELD txt AS CHAR
+  INDEX i-num num
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-tt NO-UNDO
+  FIELD num AS INTEGER
+  FIELD txt AS CHAR
+  INDEX i-num num
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-ftr NO-UNDO
+  FIELD num AS INTEGER
+  FIELD txt AS CHAR
+  INDEX i-num num
+.
+
+DEFINE {&NEW} SHARED TEMP-TABLE tt-tot NO-UNDO
+  FIELD grp  AS CHAR
+  FIELD grpr AS CHAR
+  FIELD val  AS CHAR
+  FIELD cnt  AS INTEGER
+  INDEX i-grp grp
+.

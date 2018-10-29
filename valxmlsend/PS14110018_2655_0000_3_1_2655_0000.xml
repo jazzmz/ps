@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<?xml-stylesheet type="text/xsl" href="ps_ei3.xsl"?>
+<TRANSPORT verspo="TBSVK 11.02 19/03/2015 15:20:55 VFP Net">
+<THEADER len="252" date="31/03/2015" time="16:59:32" regn="2655/0000" file="PS14110018_2655_0000_3_1_2655_0000.xml">
+<RepType>ps_ei3</RepType>
+<Bank>ООО ПИР Банк</Bank>
+<Pasport>14110018/2655/0000/3/1</Pasport>
+<Date>24/11/2014</Date>
+</THEADER>
+<TBODY len="1050" nTabl="4">
+<Resident>Коллегия адвокатов &quot;Монастырский, Зюба, Степанов и Партнеры&quot;</Resident>
+<Subject>ГОРОД МОСКВА</Subject>
+<Rajon></Rajon>
+<Gorod></Gorod>
+<NPunkt></NPunkt>
+<Ulica>БУЛЬВАР НОВИНСКИЙ</Ulica>
+<Dom>3</Dom>
+<Korpus>1</Korpus>
+<Ofis></Ofis>
+<RegNum>1037710057010</RegNum>
+<RegDate></RegDate>
+<Inn>7710470980/770401001</Inn>
+<Table1 len="141" nRec="1">
+<Rec RecID="1" len="100">
+<D101>Sonara Limited</D101>
+<D102>КИПР</D102>
+<D103>196</D103>
+</Rec>
+</Table1>
+<Table2 len="200" nRec="1">
+<Rec RecID="1" len="160">
+<D104>6/2012</D104>
+<D105>01/02/2012</D105>
+<D106>Евро</D106>
+<D107>978</D107>
+<D108>БС</D108>
+<D109>31/12/2017</D109>
+</Rec>
+</Table2>
+<Table3 len="161" nRec="1">
+<Rec RecID="1" len="121">
+<D110>1</D110>
+<D111>2655/0000</D111>
+<D112>X</D112>
+<D113></D113>
+<D114></D114>
+</Rec>
+</Table3>
+<Table4 len="39" nRec="0">
+</Table4>
+<Pasport0></Pasport0>
+<KBPr1>2</KBPr1>
+<KBDate1>21/11/2014</KBDate1>
+<KBPr2>1</KBPr2>
+<KBDate2>24/11/2014</KBDate2>
+</TBODY>
+</TRANSPORT>

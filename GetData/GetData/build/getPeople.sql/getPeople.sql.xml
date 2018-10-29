@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jdbc:descriptor wsdlLocation="getPeople.sql.wsdl" targetNamespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:jdbc="http://bpms.intalio.com/connectors/jdbc/">
+    <jdbc:service name="getPeopleService">
+        <jdbc:operation name="urn:getPeople" sqlStatement="select * from people where firstname= ?
+" event="false" dynamicCredentials="true" xmlns:urn="urn:intalio.com:connectors:database:getdata:getpeopleservice">
+            <jdbc:input>
+                <jdbc:parameter>
+                    <jdbc:mode>1</jdbc:mode>
+                    <jdbc:name>firstname</jdbc:name>
+                    <jdbc:type>40</jdbc:type>
+                    <jdbc:length>10</jdbc:length>
+                    <jdbc:typeName xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+                    <jdbc:precision>0</jdbc:precision>
+                    <jdbc:scale>0</jdbc:scale>
+                    <jdbc:nullable>false</jdbc:nullable>
+                    <jdbc:index>0</jdbc:index>
+                </jdbc:parameter>
+            </jdbc:input>
+            <jdbc:filter rowsToSendService="1" rowsToFetch="-1" duration="-PT1S">
+                <jdbc:unique scope="none"/>
+            </jdbc:filter>
+            <jdbc:output/>
+        </jdbc:operation>
+        <jdbc:port>
+            <jdbc:address location="http://localhost:8080/ode/processes/getPeopleService"/>
+        </jdbc:port>
+        <jdbc:connection jndiName="java:comp/env/jdbc/">
+            <jdbc:databaseProductName>Generic JDBC</jdbc:databaseProductName>
+            <jdbc:databaseProductVersion>1.0</jdbc:databaseProductVersion>
+            <jdbc:driverClass>org.apache.derby.jdbc.ClientDriver</jdbc:driverClass>
+            <jdbc:databaseUrl>jdbc:derby://localhost:1527/BPMSDB</jdbc:databaseUrl>
+            <jdbc:databaseName>BPMSDB</jdbc:databaseName>
+            <jdbc:userName>app</jdbc:userName>
+            <jdbc:password>app</jdbc:password>
+        </jdbc:connection>
+    </jdbc:service>
+</jdbc:descriptor>

@@ -1,0 +1,43 @@
+﻿<wsdl:definitions targetNamespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:tns="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns="urn:intalio.com:connectors:database:getdata:getpeopleservice">
+    <wsdl:types>
+        <xsd:schema>
+            <xsd:import schemaLocation="getPeople.xsd" namespace="urn:intalio.com:connectors:database:getdata:getpeopleservice"/>
+        </xsd:schema>
+    </wsdl:types>
+    <wsdl:message name="getPeopleInput">
+        <wsdl:part name="parameters" element="ns:getPeopleParameterSet"/>
+    </wsdl:message>
+    <wsdl:message name="getPeopleOutput">
+        <wsdl:part name="parameters" element="ns:getPeopleResultSet"/>
+    </wsdl:message>
+    <wsdl:message name="getPeopleFault">
+        <wsdl:part name="fault" element="ns:getPeopleFault"/>
+    </wsdl:message>
+    <wsdl:portType name="getPeoplePort">
+        <wsdl:operation name="getPeople">
+            <wsdl:input message="tns:getPeopleInput"/>
+            <wsdl:output message="tns:getPeopleOutput"/>
+            <wsdl:fault message="tns:getPeopleFault" name="nsgetPeopleFault"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="getPeoplePortSoapBinding" type="tns:getPeoplePort">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="getPeople">
+            <soap:operation style="document" soapAction="urn:intalio:connector:jdbc:query:getPeople"/>
+            <wsdl:input>
+                <soap:body namespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body namespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="nsgetPeopleFault">
+                <soap:body namespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="getPeopleService">
+        <wsdl:port binding="tns:getPeoplePortSoapBinding" name="getPeoplePort">
+            <soap:address location="http://localhost:8080/intalio/ode/processes/GetData/getPeople"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,45 @@
+/*
+               Банковская интегрированная система БИСквит
+    Copyright: (C) 1992-2004 ТОО "Банковские информационные системы"
+     Filename: PIRREE_DPS.DEF
+      Comment: <comment>
+   Parameters:
+         Uses:
+      Used by:
+      Created: 25.08.2004 11:22 SAP     
+     Modified: 10.06.2005 16:52 SAP      
+     Modified: 
+*/
+
+/*реквизиты вкладчика*/
+DEFINE  TEMP-TABLE ttRee NO-UNDO
+   FIELD SysNum AS CHAR  /*УНК*/ 
+   FIELD AdressReq AS CHAR /*Адрес регистрации*/
+   FIELD AdressPos AS CHAR /*Адрес почтовый*/
+   FIELD DocTypeCode AS CHAR /*Код Документа*/
+   FIELD DocNum AS CHAR     /*Номер и серия документа*/
+   FIELD KemVidano AS CHAR  /*кем выдано*/
+   FIELD FIO AS CHAR        /*ФИО*/
+   FIELD id AS INT          /*номер ПП*/
+   FIELD phone AS CHAR      /*телефон*/
+   FIELD Email AS CHAR      /*электронная почта*/
+   INDEX Idx-num IS  UNIQUE SysNum  
+   INDEX Idx-FIO IS PRIMARY FIO 
+   INDEX Idx-id id
+.
+
+/*реквизиты договоров вкладчика*/
+DEFINE TEMP-TABLE ttReeLoan NO-UNDO
+   FIELD SysNum AS CHAR       /*УНК*/ 
+   FIELD Symbol AS CHAR       /*кредит или депозит*/
+   FIELD ContNum  AS CHAR     /*номер договора*/
+   FIELD BankRegNum AS CHAR    /*рег. номер банка*/
+   FIELD ContDate AS CHAR      /*дата открыия договора*/
+   FIELD AcctNum AS CHAR       /*номер договорного счета*/
+   FIELD Curr AS CHAR          /*валюта*/
+   FIELD SumInCurr AS DEC      /*сумма в валюте вклада*/
+   FIELD SumInRur AS DEC       /*Сумма в рублях по курсу*/
+   FIELD ContPl AS char      /* договор пластика*/
+   INDEX idx-SysNum SysNum
+
+.

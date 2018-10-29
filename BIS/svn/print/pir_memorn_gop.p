@@ -1,0 +1,1 @@
+{pir_memorn.p &MULTI-FROM-OP}

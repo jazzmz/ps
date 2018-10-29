@@ -1,0 +1,11 @@
+/* ------------------------------------------------------
+File          : $RCSfile: pir-log-v.nav,v $ $Revision: 1.1 $ $Date: 2007-08-08 11:55:03 $
+Copyright     : ООО КБ "Пpоминвестрасчет"
+Назначение    : Инклюдник для pir-ref-v.p (процедуры просмотра класса pir-log)
+Автор         : $Author: lavrinenko $ 
+Изменения     : $Log: not supported by cvs2svn $
+------------------------------------------------------ */
+
+IF (frame-field = "Sym4") THEN RUN _user#.p (Sym3, 9).
+ 
+hide message no-pause. 

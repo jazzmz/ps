@@ -1,0 +1,935 @@
+/* ООО "ПИР Банк" Управление автоматизации 2013г.	*/
+/* Анкета клиента. Основана на трудах Андрея Борисова и	*/
+/* Сергея Степанова.					*/
+/* Гончаров А.Е. 04.06.2013				*/
+
+{globals.i}           /* Глобальные определения */
+{tmprecid.def}        /* Используем информацию из броузера */
+{wordwrap.def}        /* Будем использовать перенос по словам */
+{parsin.def}
+{intrface.get xclass} /* Функции для работы с метасхемой */
+{intrface.get strng}  /* Функции для работы со строками */
+{intrface.get tmess}
+
+{pir-eanketa-20130626.def}
+{pir_anketa.fun}
+
+
+define input parameter iParam as character no-undo.
+
+
+/******************************************* Реализация */
+/* NEW - params:
+   1 = "Ч,Ю,Б,ВП,П,БВ"
+   2 = cUser
+   3 = cKladr              */
+
+/** Разбор входного параметра */
+cKl     = ENTRY(1, iParam). /* "Ч,Ю,Б,ВП,П" */
+cUser   = ENTRY(2, iParam). /*  */
+cKladr  = ENTRY(3, iParam). /*  */
+bIsBOS  = NUM-ENTRIES(iParam) > 3. /* анкета для Без Открытия Счета */
+
+find first tmprecid no-error.
+
+case cKl:
+	when "Ч" then do:
+		find first person
+		   WHERE (RECID(person) EQ tmprecid.id)
+		   no-error.
+		cKlNum = STRING(person.person-id).
+		cKl    = "ФЛ".
+		iKl    = 1.
+	end.
+
+	when "Ю" then do:
+		find first cust-corp
+		   WHERE (RECID(cust-corp) EQ tmprecid.id)
+		   no-error.
+		cOPF   = cust-corp.cust-stat.
+		cKl    = if CAN-DO("ИП,ПБОЮЛ,Адвокат,Нотариус,ГКХ", cOPF) then "ИП" ELSE "ЮЛ".
+		iKl    = if (cKl EQ "ИП") then 2 ELSE 3.
+		cOPF   = GetCodeName("КодПредп",GetCodeVal("КодПредп", cOPF)).
+		cKlNum = STRING(cust-corp.cust-id).
+	end.
+
+	when "Б" then do:
+		find first banks
+		   WHERE (RECID(banks) EQ tmprecid.id)
+		   no-error.
+		cKlNum = STRING(banks.bank-id).
+		iKl    = 4.
+	end.
+
+	when "ВП" then do:
+		cVp     = "ВП".
+		find first cust-role
+		   WHERE (RECID(cust-role) EQ tmprecid.id)
+		   no-error.
+		if NOT (cust-role.class-code BEGINS "ВыгодоПриобретатель") then RETURN.
+		cKlNum = cust-role.cust-id.
+		find first cust-corp
+		   WHERE (cust-corp.cust-id EQ INT(cust-role.surrogate))
+		   NO-LOCK no-error.
+		case cust-role.file-name:
+			when "cust-corp" then do:
+				cPredWho_Name		= cust-corp.name-short.
+				cPredWho_INN		= cust-corp.inn.
+				cPredWho_MainAcct	= KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), cust-corp.cust-stat).
+			end.
+			when "person" then do:
+				find first person
+				   WHERE (person.person-id EQ INT(cust-role.surrogate))
+				   NO-LOCK no-error.
+				cTmpS  = person.inn.
+				cPredWho_Name	= person.first-names + " " + person.name-last.
+				cPredWho_INN        = (if ((cTmpS EQ "000000000000") OR (cTmpS = "0")) then "" ELSE cTmpS).
+				cPredWho_MainAcct   = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+			end.
+		END case.
+		cKlNum = cust-role.cust-id.
+		if (cust-role.cust-cat EQ "Ч") then do:
+			find first person
+			   WHERE (person.person-id EQ integer(cKlNum))
+			   no-error.
+			cKl    = "ФЛ".
+			iKl    = 5.
+		end.
+		ELSE do:
+			find first cust-corp
+			   WHERE (cust-corp.cust-id EQ integer(cKlNum))
+			   no-error.
+			cOPF   = cust-corp.cust-stat.
+			cKl    = if CAN-DO("ИП,ПБОЮЛ,Адвокат,Нотариус", cOPF) then "ИП" ELSE "ЮЛ".
+			iKl    = if (cKl EQ "ИП") then 6 ELSE 7.
+			cOPF   = GetCodeName("КодПредп",GetCodeVal("КодПредп", cOPF)).
+		end.
+	end.	
+
+	when "П" then do:
+		find first cust-role
+		   WHERE (RECID(cust-role) EQ tmprecid.id)
+		   no-error.
+
+		case cust-role.file-name:
+			when "cust-corp" then do:
+				find first cust-corp
+				   WHERE (cust-corp.cust-id EQ INT(cust-role.surrogate))
+				   NO-LOCK no-error.
+				cPredWho_Name		= cust-corp.name-short.
+				cPredWho_INN		= cust-corp.inn.
+				cPredWho_MainAcct	= KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), cust-corp.cust-stat).
+/*				cPredWho_MainAcct	= entry(1,GetXAttrValueEx("cust-role", string(cust-role.cust-role-id), "acct-list", "")).*/
+		end.
+		when "person" then do:
+			find first person
+			   WHERE (person.person-id EQ INT(cust-role.surrogate))
+			   NO-LOCK no-error.
+			cTmpS  = person.inn.
+		        cPredWho_Name	= person.first-names + " " + person.name-last.
+		        cPredWho_INN        = (if ((cTmpS EQ "000000000000") OR (cTmpS = "0")) then "" ELSE cTmpS).
+			cPredWho_MainAcct   = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+/*			cPredWho_MainAcct   = entry(1,GetXAttrValueEx("cust-role", string(cust-role.cust-role-id), "acct-list", "")).*/
+		end.
+		when "banks" then do:
+			find first banks
+			   WHERE (banks.bank-id EQ INT(cust-role.surrogate))
+			   NO-LOCK no-error.
+			find first cust-ident
+			   WHERE cust-ident.cust-cat  	= "Б"
+			   AND cust-ident.cust-id  	= banks.bank-id
+			   AND cust-ident.cust-code-type = "ИНН"
+			   NO-LOCK no-error.
+			cPredWho_Name     = (if AVAIL banks then GetXAttrValue("banks", STRING(banks.bank-id), "pirShortName") ELSE ""). /* banks.short-name */
+			cPredWho_INN      = (if AVAIL cust-ident then cust-ident.cust-code ELSE ""). /* banks.inn */
+			cPredWho_MainAcct = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+		end.
+		END case.
+		cKlNum = cust-role.cust-id.
+		if (cust-role.cust-cat EQ "Ч") then do:
+			find first person
+			   WHERE (person.person-id EQ integer(cKlNum))
+			   no-error.
+			cKl    = "ФЛ".
+			iKl    = 8.
+		end.
+		ELSE do:
+			find first cust-corp
+			   WHERE (cust-corp.cust-id EQ integer(cKlNum))
+			   no-error.
+			cOPF   = cust-corp.cust-stat.
+			cKl    = if CAN-DO("ИП,ПБОЮЛ,Адвокат,Нотариус", cOPF) then "ИП" ELSE "ЮЛ".
+			iKl    = if (cKl EQ "ИП") then 10 ELSE 9.
+			cOPF   = GetCodeName("КодПредп",GetCodeVal("КодПредп", cOPF)).
+		end.
+	end.
+	when "БВ" then do:
+		find first cust-role
+		   WHERE (RECID(cust-role) EQ tmprecid.id)
+		   no-error.
+
+		case cust-role.file-name:
+			when "cust-corp" then do:
+				find first cust-corp
+				   WHERE (cust-corp.cust-id EQ INT(cust-role.surrogate))
+				   NO-LOCK no-error.
+				cPredWho_Name		= cust-corp.name-short.
+				cPredWho_INN		= cust-corp.inn.
+				cPredWho_MainAcct = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+		end.
+		when "person" then do:
+			find first person
+			   WHERE (person.person-id EQ INT(cust-role.surrogate))
+			   NO-LOCK no-error.
+			cTmpS  = person.inn.
+		        cPredWho_Name	= person.first-names + " " + person.name-last.
+		        cPredWho_INN        = (if ((cTmpS EQ "000000000000") OR (cTmpS = "0")) then "" ELSE cTmpS).
+			cPredWho_MainAcct   = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+/*			cPredWho_MainAcct   = entry(1,GetXAttrValueEx("cust-role", string(cust-role.cust-role-id), "acct-list", "")).*/
+		end.
+		when "banks" then do:
+			find first banks
+			   WHERE (banks.bank-id EQ INT(cust-role.surrogate))
+			   NO-LOCK no-error.
+			find first cust-ident
+			   WHERE cust-ident.cust-cat  	= "Б"
+			   AND cust-ident.cust-id  	= banks.bank-id
+			   AND cust-ident.cust-code-type = "ИНН"
+			   NO-LOCK no-error.
+			cPredWho_Name     = (if AVAIL banks then GetXAttrValue("banks", STRING(banks.bank-id), "pirShortName") ELSE ""). /* banks.short-name */
+			cPredWho_INN      = (if AVAIL cust-ident then cust-ident.cust-code ELSE ""). /* banks.inn */
+			cPredWho_MainAcct = KlientMainAcct(cust-role.file-name, INT(cust-role.surrogate), "").
+		end.
+		END case.
+		cKlNum = cust-role.cust-id.
+		if (cust-role.cust-cat EQ "Ч") then do:
+			find first person
+			   WHERE (person.person-id EQ integer(cKlNum))
+			   no-error.
+			cKl    = "ФЛ".
+			iKl    = 11.
+		end.
+	end.
+
+END case.
+
+cKlType = KlType(cKl). 
+cKlTabl = KlTabl(cKl).
+cKlPole = cKlPoleL[iKl].
+
+{pir-eanketa-20130626.i}
+
+if (iKl LT 5)
+then do:
+   daFirstOp = ?.
+   RUN FirstKlAcct(cKl, integer(cKlNum), OUTPUT cFstAcct, OUTPUT daFirstOp, OUTPUT daFirstCl, OUTPUT cUsrFirst).
+
+   if (cFstAcct EQ "") then do:
+	run Fill-SysMes IN h_tmess ("","",3,"Не открывались клиентские счета.\n Распечатать анкету без открытия счёта?|Да,Нет").
+	if pick-value="1" then bIsBOS = true.
+   end.
+   ELSE do:
+      if (daFirstCl NE ?)
+      then do:
+	run Fill-SysMes IN h_tmess ("","",3,"Все клиентские счета закрыты.\n Распечатать анкету без открытия счёта?|Да,Нет").
+	if pick-value="1" then bIsBOS = true.
+      end.
+
+      cTmpS = SUBSTRING(cFstAcct, 6, 3).
+      cTmpS = if (cTmpS EQ "810") then "" ELSE cTmpS.
+      cUser = GetXAttrValue("acct", cFstAcct + "," + cTmpS, "СотрУтвСч").
+/*
+      ELSE do:
+         if (NUM-ENTRIES(cUser, ";") GT 1)
+         then do:
+            if (cKl EQ "Б")
+            then do:
+               if (SUBSTRING(cFstAcct, 1, 3) EQ "301")
+               then cUser = ENTRY(1, cUser, ";").
+               ELSE cUser = ENTRY(2, cUser, ";").
+            end.
+            ELSE do:
+               cUserFIO = "".
+               DO iI = 1 TO NUM-ENTRIES(cUser, ";"):
+                  find first _user
+                     WHERE (_user._userid = ENTRY(iI, cUser, ";"))
+                     NO-LOCK no-error.
+                  cUserFIO = cUserFIO + "," + (if AVAIL _user then _user._user-name ELSE "-").
+               end.
+
+               cUserFIO = TRIM(cUserFIO, ",").
+               pick-value = "1".
+               run messmenu.p(9, "Сотрудник, утвердивший открытие счета:", "", cUserFIO).
+
+               if (pick-value EQ "0")
+               then RETURN.
+
+               cUser = ENTRY(integer(pick-value), cUser, ";").
+            end.
+         end.
+      end.
+*/
+   end.
+end.
+
+RUN GetLastAnketaDate( /* cVp + */ cKl, integer(cKlNum), OUTPUT daLast, OUTPUT cUsrLast).
+/******************************************* Присвоение значений переменным и др. */
+
+DO iPI = 1 TO NUM-ENTRIES(cKlPole):
+
+   cP = ENTRY(iPI, cKlPole).
+
+   case cP:
+      when "1" then do:
+         cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-FullName", end-date, "").
+         cKlP   = PrintStringInfo(
+                  if (cTmpS EQ "") then (cOPF + " " + cust-corp.name-corp) ELSE cTmpS).
+      end.
+      when "2" then do:
+         cKlP   = PrintStringInfo(
+                  cust-corp.name-corp).
+      end.
+/*
+      when "3" then do:
+         cKlP   = PrintStringInfo(
+                  if (NUM-ENTRIES(cust-corp.name-corp, " ") > 1) then ENTRY(2, cust-corp.name-corp, " ") ELSE "").
+      end.
+      when "4" then do:
+         cKlP   = PrintStringInfo(
+                  if (NUM-ENTRIES(cust-corp.name-corp, " ") > 2) then ENTRY(3, cust-corp.name-corp, " ") ELSE "").
+      end.
+*/
+      when "5" then do:
+         cKlP   = PrintStringInfo(
+                  person.name-last + " " + person.first-names).
+      end.
+/*
+      when "6" then do:
+         cKlP   = PrintStringInfo(
+                  ENTRY(1, person.first-names, " ")).
+      end.
+      when "7" then do:
+         cKlP   = PrintStringInfo(
+                  if (NUM-ENTRIES(person.first-names, " ") > 1) then ENTRY(2, person.first-names, " ") ELSE "").
+      end.
+*/
+      when "8" then do:
+         cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-FullName", end-date, "").
+         cKlP   = PrintStringInfo(
+                    if {assigned cTmpS} then cTmpS ELSE banks.name).
+      end.
+      when "9" then do:
+         cKlP   = PrintStringInfo(
+                  cust-corp.name-short).
+      end.
+      when "10" then do:
+         cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-pirShortName", end-date, "").
+         cKlP   = PrintStringInfo(
+                  if {assigned cTmpS} then cTmpS ELSE banks.short-name).
+      end.
+      when "11" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-engl-name", end-date, "")).
+      end.
+      when "12" then do:
+         cKlP   = PrintStringInfo(
+                  cOPF).
+      end.
+      when "13" then do:
+         cKlP   = PrintStringInfo(
+                  GetCodeName("КодПредп", GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-bank-stat", end-date, ""))).
+      end.
+      when "14" then do:
+         cKlP   = PrintStringInfo(
+                  GetXAttrValue(cKlTabl, cKlNum, "ОГРН")).
+      end.
+      when "15" then do:
+         cKlP   = PrintDateInfo(
+                  date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-RegDate", end-date, ""))).
+      end.
+      when "16" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-RegPlace", end-date, "")).
+      end.
+      when "17" then do:
+         FIND LAST cust-ident
+            WHERE (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND (cust-ident.cust-code-type EQ "АдрЮр")
+              AND (cust-ident.class-code     EQ "p-cust-adr")
+              AND ( (cust-ident.close-date     EQ ?) OR (cust-ident.close-date > end-date))
+            no-error.
+         if (AVAIL cust-ident)
+         then do:
+            cKlP = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+                 + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+            cKlP = PrintStringInfo(
+                   if (cKladr = "KLADR") then Kladr(cKlP, cust-ident.issue)
+                                         ELSE (RegGNI(cKlP) + cust-ident.issue)).
+         end.
+         ELSE cKlP = PrintStringInfo(?).
+      end.
+      when "18" then do:
+
+         FIND LAST cust-ident
+            WHERE (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND (cust-ident.cust-code-type EQ "АдрПроп")
+              AND (cust-ident.class-code     EQ "p-cust-adr")
+              AND ( (cust-ident.close-date     EQ ?) OR (cust-ident.close-date > end-date))
+            no-error.
+
+         if (AVAIL cust-ident)
+         then do:
+            cKlP = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+                 + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+            cKlP = PrintStringInfo(
+                   if (cKladr = "KLADR") then Kladr(cKlP, cust-ident.issue)
+                                         ELSE (RegGNI(cKlP) + cust-ident.issue)).
+         end.
+         ELSE cKlP = PrintStringInfo(?).
+      end.
+      when "19" then do:
+         FIND LAST cust-ident
+            WHERE (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND (cust-ident.cust-code-type EQ "АдрФакт")
+              AND (cust-ident.class-code     EQ "p-cust-adr")
+              AND ( (cust-ident.close-date     EQ ?) OR (cust-ident.close-date > end-date))
+            no-error.
+         if (AVAIL cust-ident)
+         then do:
+            cKlP = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+                 + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+            cKlP = PrintStringInfo(
+                   if (cKladr = "KLADR") then Kladr(cKlP, cust-ident.issue)
+                                         ELSE (RegGNI(cKlP) + cust-ident.issue)).
+         end.
+         ELSE cKlP = PrintStringInfo(?).
+      end.
+      when "20" then do:
+         find first cust-ident
+            WHERE (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND (cust-ident.cust-code-type EQ "АдрПочт")
+              AND (cust-ident.class-code     EQ "p-cust-adr")
+              AND (cust-ident.close-date     EQ ?)
+            no-error.
+         if (AVAIL cust-ident)
+         then do:
+            cKlP = GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "country-id") + ","
+                 + GetXAttrValue("cust-ident", cust-ident.cust-code-type + ',' 
+                   + cust-ident.cust-code + ',' + STRING(cust-ident.cust-type-num), "КодРегГНИ").
+            cKlP = PrintStringInfo(
+                   if (cKladr = "KLADR") then Kladr(cKlP, cust-ident.issue)
+                                         ELSE (RegGNI(cKlP) + cust-ident.issue)).
+         end.
+         ELSE cKlP = PrintStringInfo(?).
+      end.
+      when "21" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-tel", end-date, "")).
+      end.
+      when "22" then do: /* При появлении новой i-шки, убрать в ней #23 и #25, т.к. дублируются */
+	vFax = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-fax", end-date, "").
+	vEmail = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-email", end-date, "").
+	if vFax = "" and vEmail = "" then cKlp = "(отсутствует)".
+	if vFax NE "" and vEmail NE "" then cKlp = vFax + ", " + vEmail.
+	if vFax = "" and vEmail NE "" then cKlp = vEmail.
+	if vFax NE "" and vEmail EQ "" then cKlp = vFax.
+	PrintStringInfo(cKlp).
+      end.
+      when "24" then do:
+         cKlP   = PrintStringInfo(
+                  TRIM(TRIM(person.phone[1], ",") + " " + TRIM(person.phone[2], ","), ",")).
+      end.
+      when "26" then do:
+         cKlP   = PrintStringInfo(
+                  cust-corp.inn).
+      end.
+      when "27" then do:
+         cTmpS  = person.inn.
+         cKlP   = PrintStringInfo(
+                  if ((cTmpS EQ "000000000000") OR (cTmpS = "0")) then "" ELSE cTmpS).
+      end.
+      when "28" then do:
+         find first cust-ident
+            WHERE (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND (cust-ident.cust-code-type EQ "ИНН")
+            NO-LOCK no-error.
+         cKlP   = PrintStringInfo(
+                  if (AVAIL cust-ident) then cust-ident.cust-code ELSE "").
+      end.
+      when "29" then do:
+         cKlP   = PrintStringInfo(
+		GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-ИИН", end-date, "")).
+      end.
+      when "30" then do:
+         cTmpS  = "".
+         FOR EACH cust-ident
+            WHERE (cust-ident.cust-cat   EQ cKlType)
+              AND (cust-ident.cust-id    EQ integer(cKlNum))
+              AND (cust-ident.class-code EQ "cust-lic")
+              AND (   (cust-ident.close-date =  ?)
+                   OR (cust-ident.close-date >= gend-date))
+            NO-LOCK:
+
+            cTmpS = cTmpS
+                  + "|      Вид лицензируемой деятельности: "
+                  + PrintStringInfo(if (cKlType EQ "Ю")
+                    then GetCodeName("ВидЛицДеят", cust-ident.cust-code-type)
+                    ELSE GetCodeName("ВидБанкЛиц", cust-ident.cust-code-type))
+                  + "|      Номер: "
+                  + PrintStringInfo(cust-ident.cust-code)
+                  + "|      Дата выдачи лицензии: "
+                  + PrintDateInfo(cust-ident.open-date)
+                  + "|      Кем выдана: "
+                  + PrintStringInfo(cust-ident.issue)
+                  + "|      Срок действия до: "
+                  + PrintDateInfo(cust-ident.close-date).
+         end.
+         cKlP   = PrintStringInfo(cTmpS).
+      end.
+      when "31" then do:
+         cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-ИсполнОрган", end-date, "").
+         cTmpS2 = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-ОбщСобрание", end-date, "").
+         if ((cTmpS + cTmpS2) EQ "")
+         then do:
+            cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СоставСД", end-date, "").
+            cTmpS2 = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СоставИКО", end-date, "").
+            cKlP   = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СтруктОрг", end-date, "").
+            cKlP   = cKlP
+                   + (if (cKlP NE "") AND (cTmpS  NE "") AND (cTmpS  NE "нет") then ";" ELSE "")
+                   + if ((cTmpS  EQ "") OR (cTmpS  EQ "нет"))
+                     then "" ELSE ("|      Совет директоров: " + cTmpS).
+            cKlP   = cKlP
+                   + (if (cKlP NE "") AND (cTmpS  NE "") AND (cTmpS  NE "нет") then ";" ELSE "")
+                   + if ((cTmpS2 EQ "") OR (cTmpS2 EQ "нет"))
+                     then "" ELSE ("|      " + cTmpS2).
+            cKlP   = PrintStringInfo(cKlP).
+         end.
+         ELSE do:
+            cKlP   = if ((cTmpS  EQ "") OR (cTmpS  EQ "нет"))
+                     then "" ELSE cTmpS.
+            cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СоставСД", end-date, "").
+            cKlP   = cKlP
+                   + (if (cKlP NE "") AND (cTmpS  NE "") AND (cTmpS  NE "нет") then ";" ELSE "")
+                   + if ((cTmpS  EQ "") OR (cTmpS  EQ "нет"))
+                     then "" ELSE ("|      Совет директоров: " + cTmpS).
+            cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СоставИКО", end-date, "").
+            cKlP   = cKlP
+                   + (if (cKlP NE "") AND (cTmpS  NE "") AND (cTmpS  NE "нет") then ";" ELSE "")
+                   + if ((cTmpS  EQ "") OR (cTmpS  EQ "нет"))
+                     then "" ELSE ("|      " + cTmpS).
+            cKlP   = cKlP
+                   + (if (cKlP NE "") AND (cTmpS2 NE "") AND (cTmpS2 NE "нет") then ";" ELSE "")
+                   + if ((cTmpS2 EQ "") OR (cTmpS2 EQ "нет"))
+                     then "" ELSE ("|      " + cTmpS2 + "|").
+            cKlP   = PrintStringInfo(cKlP).
+         end.
+      end.
+      when "32" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СтруктОрг", end-date, "")).
+      end.
+      when "33" then do:
+         cTmpS  = ENTRY(1, GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-УставКап", end-date, ""),"/").
+	 cKlP   = PrintStringInfo(cTmpS).
+			
+      end.
+      when "33.1" then do:
+		if can-do ("*/*", GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-УставКап", end-date, "")) then
+                	cTmpS  = ENTRY(2, GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-УставКап", end-date, ""),"/").
+		else cTmpS = "".
+		cKlP   = PrintStringInfo(cTmpS).	
+      end.
+      when "34" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-ПрисутОргУправ", end-date, "")).
+      end.
+      when "35" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-pirOtherBanks", end-date, "")).
+      end.
+      when "36" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-pirBusImage", end-date, "")).
+      end.
+      when "37" then do: /* 1.12 */
+         cTmpS  = if bIsBOS then "низкий" ELSE GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-РискОтмыв", end-date, "").
+         cKlP   = PrintStringInfo(cTmpS).
+      end.
+      when "38" then do: /* 1.13 */
+	if bIsBOS 
+	  then cTmpS2 = "Банковские операции клиента не вызывают подозрения и не связаны с легализацией (отмыванием) доходов, полученных преступным путем, или финансированием терроризма".
+	ELSE do:
+          cTmpS2 = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-ОценкаРиска", end-date, "").
+          if (cTmpS2 EQ "")
+          then
+            cTmpS2 = GetCode("ОценкаРиска", cTmpS).
+	end.
+        cKlP   = PrintStringInfo(cTmpS2).
+      end.
+      when "39" then do: /* не используется. Теперь 74 */
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-СведВыгДрЛица", end-date, "")).
+
+      end.
+      when "40" then do:
+         cKlP   = PrintDateInfo(
+                  date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-BirthDay", end-date, ""))).
+      end.
+      when "41" then do:
+         cKlP   = PrintDateInfo(
+                  person.birthday).
+      end.
+      when "42" then do:
+         cKlP   = PrintStringInfo(
+                  GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-BirthPlace", end-date, "")).
+      end.
+      when "43" then do:
+         find first country 
+            WHERE (country.country-id EQ cust-corp.country-id)
+            NO-LOCK no-error.
+         cKlP   = PrintStringInfo(
+                  if (AVAIL country) then country.country-name ELSE ?).
+      end.
+      when "44" then do:
+         cTmpS = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-country-id2", end-date, "").
+         find first country
+            WHERE (country.country-id EQ cTmpS)
+            NO-LOCK no-error.
+         cKlP   = PrintStringInfo(
+                  if (AVAIL country) then country.country-name ELSE ?).
+      end.
+      when "45" then do:
+         cKlP   = PrintStringInfo(
+                  GetCodeName("КодДокум", GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-document-id", end-date, ""))
+                + ", N " + GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-document", end-date, "")
+                + ", выдан " + STRING(date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-Document4Date_vid", end-date, "")), "99.99.9999")
+                + ", " + GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-issue", end-date, "")).
+      end.
+      when "46" then do:
+         FIND LAST cust-ident
+            WHERE /* (cust-ident.close-date EQ ? OR cust-ident.close-date >= 01/01/2001)
+              AND */ (cust-ident.class-code     EQ "p-cust-ident")
+              AND (cust-ident.cust-cat       EQ cKlType)
+              AND (cust-ident.cust-id        EQ integer(cKlNum))
+              AND CAN-DO(v_cust-code-type, cust-ident.cust-code-type)
+            NO-LOCK USE-INDEX open-date no-error.
+         if NOT (AVAIL cust-ident)
+         then do:
+            FIND LAST cust-ident
+               WHERE /* (cust-ident.close-date EQ ? OR cust-ident.close-date >= 01/01/2001)
+                 AND */ (cust-ident.class-code     EQ "p-cust-ident")
+                 AND (cust-ident.cust-cat       EQ cKlType)
+                 AND (cust-ident.cust-id        EQ integer(cKlNum))
+               NO-LOCK USE-INDEX open-date no-error.
+         end.
+
+         if (AVAIL cust-ident)
+         then do:
+            cTmpS = cust-ident.cust-code-type + ','
+                  + cust-ident.cust-code      + ','
+                  + STRING(cust-ident.cust-type-num).
+            cTmpS = GetXAttrValue("cust-ident", cTmpS, "Подразд").
+            cKlP  = PrintStringInfo(
+                    GetCodeName("КодДокум", cust-ident.cust-code-type)
+                  + ", N " + cust-ident.cust-code
+                  + ", выдан " + STRING(cust-ident.open-date, "99.99.9999")
+                  + ", " + cust-ident.issue
+                  + (if (cTmpS EQ "") then "" ELSE (", К/П " + cTmpS))).
+         end.
+         ELSE cKlP = PrintStringInfo(?).
+      end.
+      when "47" then do:
+         cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрКарт", end-date, "").
+         cTmpS2 = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-VisaNum", end-date, "").
+
+         if ((cTmpS + cTmpS2) EQ "")
+         then cKlP = " " + PrintStringInfo("").
+         ELSE do:
+            cKlP   = ". Номер миграционной карты: " + cTmpS
+                   + "|      Данные документа, подтверждающего право на пребывание (проживание) в РФ|      Серия: "
+                   + PrintStringInfo(ENTRY(1, cTmpS2, " "))
+                   + "|      Номер документа: "
+                   + if (NUM-ENTRIES(cTmpS2, " ") > 1) then ENTRY(2, cTmpS2, " ") ELSE "".
+
+            cTmpS  = GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-country-id2", end-date, "").
+            find first country
+               WHERE (country.country-id EQ cTmpS)
+               NO-LOCK no-error.
+
+            cKlP   = cKlP
+                   + "|      Гражданство: "
+                   + PrintStringInfo(if (AVAIL country) then country.country-name ELSE "")
+                   + "|      Цель визита: "
+                   + PrintStringInfo(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрЦельВизита", end-date, ""))
+                   + "|      Срок пребывания с "
+                   + PrintDateInfo(date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрПребывС", end-date, "")))
+                   + " до "
+                   + PrintDateInfo(date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрПребывПо", end-date, "")))
+                   + "|      Срок действия права пребывания с "
+                   + PrintDateInfo(date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрПравПребС", end-date, "")))
+                   + " до "
+                   + PrintDateInfo(date(GetTempXAttrValueEx(cKlTabl, cKlNum, "pir-e-МигрПравПребПо", end-date, ""))).
+         end.
+      end.
+
+      when "48" then do:
+         cTmp48  = GetTempXAttrValueEx(cKlTabl, cKlNum, "Статус_ИПДЛ", end-date, "").
+           if (cTmp48 NE "") AND (TRIM(CAPS(cTmp48)) NE "НЕТ" AND LENGTH(cTmp48)>ChCount) then do:
+		cklP = "Д А".
+              end.
+	    ELSE 
+		cklP = "НЕТ".
+                /*         cKlP   = if (cTmp48 NE "") then "Д А" ELSE "НЕТ". */
+     end.
+      when "49" then do:
+         cTmp49_1 = GetTempXAttrValueEx(cKlTabl, cKlNum, "ОтнОкруж_ИПДЛ", end-date, "").
+         cTmp49_2 = GetTempXAttrValueEx(cKlTabl, cKlNum, "СтепРодст_ИПДЛ", end-date, "").
+           if (cTmp49_1 NE "") AND (TRIM(CAPS(cTmp49_1)) NE "НЕТ" AND LENGTH(cTmp49_1)>ChCount) AND (cTmp49_2 NE "") AND (TRIM(CAPS(cTmp49_2)) NE "НЕТ" AND LENGTH(cTmp49_2)>ChCount)then do:
+		cklP = "Д А".
+              end.
+	    ELSE 
+		cklP = "НЕТ".
+     end.
+
+
+
+      when "51" then do:
+         find first banks-code
+            WHERE (banks-code.bank-id        EQ banks.bank-id)
+              AND (banks-code.bank-code-type EQ "МФО-9")
+            NO-LOCK no-error.
+         cKlP   = PrintStringInfo(
+                  if (AVAIL banks-code) then banks-code.bank-code ELSE "").
+      end.
+
+      when "60" then do:	/* 1.14 */
+         cKlP   = IF bIsBOS
+		    then "без открытия счета"
+		    else PrintStringInfo(IF (daFirstOp NE ?) THEN STRING(daFirstOp, "99.99.9999") ELSE "без открытия счета").
+      end.
+
+      when "61" then do:        /* 1.15 !!! */
+         cKlP = PrintDateInfo(
+                if (cKlType EQ "Ю") then cust-corp.date-in ELSE (
+                if (cKlType EQ "Ч") then person.date-in
+                                    ELSE banks.date-in)).
+      end.
+
+      when "62" then do:	/* 1.16 */
+         cKlP   = /* if bIsBOS then "01.01.2099" ELSE*/ PrintDateInfo(daLast).
+      end.
+      when "63" then do:	/* 1.17 */
+         if (daFirstOp NE ?) AND NOT bIsBOS
+         then
+            cKlP   = UserFIO(cUsrFirst).
+         ELSE
+            cKlP   = UserFIO("").
+      end.
+      when "64" then do:	/* 1.18 */
+
+         if (daFirstOp NE ?) AND NOT bIsBOS
+         then
+            cKlP   = UserFIO(cUser).
+         ELSE
+            cKlP   = UserFIO("").
+      end.
+      when "65" then do:	/* 1.19 */
+/*         if bIsBOS
+           then do:
+	    RUN GetLastHistoryDateSince("ФЛ", person.person-id, person.date-in, OUTPUT oLastDate, OUTPUT oUser).
+/*  message oLastDate oUser view-as alert-box. */
+	     cKlP   = UserFIO(oUser).
+	   end.
+           ELSE*/ cKlP   = UserFIO(cUsrLast).
+      end.
+      when "66" then do:        /* 1.20 */
+         cKlP   = UserFIO(USERID).
+      end.
+      when "70" then do:
+/* >> было
+         cKlP   = PrintStringInfo(ENTRY(1, cPredWho)).
+   << было */
+/* >> стало */
+         cKlP   = cPredWho_Name.
+/* << стало */
+      end.
+      when "71" then do:
+/* >> было
+         cKlP   = PrintStringInfo(ENTRY(2, cPredWho)).
+   << было */
+/* >> стало */
+         cKlP   = cPredWho_INN.
+/* << стало */
+      end.
+      when "72" then do:
+/* >> было
+         cKlP   = PrintStringInfo(ENTRY(3, cPredWho)).
+   << было */
+/* >> стало */
+         cKlP   = cPredWho_MainAcct.
+/* << стало */
+      end.
+      when "73" then do:
+         find first class
+            WHERE (class.class-code EQ cust-role.class-code)
+            NO-LOCK no-error.
+         cKlP   = class.name.
+      end.
+      when "74" then do:
+         cKlP   = PrintStringInfo(
+                  GetXAttrValue("cust-role", STRING(cust-role.cust-role-id), "PIRosnovanie")).
+      end.
+      when "75" then do:
+         cKlP   = PrintDateInfo(cust-role.open-date).
+      end.
+      when "76" then do:
+         cKlP   = PrintDateInfo(cust-role.close-date).
+      end.
+      when "77" then do:
+         cTmp77 = GetTempXAttrValueEx(cKlTabl, cKlNum, "Статус_ПМО", end-date, "").
+           if (cTmp77 NE "") AND (TRIM(CAPS(cTmp77)) NE "НЕТ" AND LENGTH(cTmp77)>ChCount) then do:
+		cklP = "Д А".
+              end.
+	    ELSE 
+		cklP = "НЕТ".
+     end.
+      when "78" then do:
+          cTmp78 = GetTempXAttrValueEx(cKlTabl, cKlNum, "Статус_РПДЛ", end-date, "").
+           if (cTmp78 NE "") AND (TRIM(CAPS(cTmp78)) NE "НЕТ" AND LENGTH(cTmp78)>ChCount) then do:		
+		cklP = "Д А".
+              end.
+	    ELSE 
+		cklP = "НЕТ".
+     end.
+
+     when "79" then do:
+
+         cKlP   = cPredWho_Name.
+
+     end.
+
+      when "90" then do:
+       cKlP  = "". 
+           if (cTmp48 NE "") AND (TRIM(CAPS(cTmp48)) NE "НЕТ" AND LENGTH(cTmp48)>ChCount) then do:
+               if (NUM-ENTRIES (cTmp48, ";") NE 3) AND (TRIM(CAPS(cTmp48)) NE "НЕТ") then do:
+                   MESSAGE "Ошибка в доп. реквизите Статус_ИПДЛ!" VIEW-AS ALERT-BOX.
+		   Return.
+               end.
+            cKlP  = cKlP 
+                         + "| "
+			 + "|  1. Является иностранным публичным должностным лицом: "
+                         + "|а) Организация: "
+                         + PrintStringInfo(ENTRY(1, cTmp48, ";"))
+                         + "|б) Занимаемая должность: "
+                         + PrintStringInfo(ENTRY(2, cTmp48, ";")) 
+                         + "|в) Наименование государства: "
+                         + PrintStringInfo(ENTRY(3, cTmp48, ";"))
+                         + "| ". 
+         end.
+           if (cTmp49_1 NE "") AND (TRIM(CAPS(cTmp49_1)) NE "НЕТ" AND LENGTH(cTmp49_1)>ChCount) AND (cTmp49_2 NE "") AND (TRIM(CAPS(cTmp49_2)) NE "НЕТ" AND LENGTH(cTmp49_2)>ChCount)then do:
+               if (NUM-ENTRIES (cTmp49_1, ";") NE 3) then do:
+                   MESSAGE "Ошибка заполнения доп. реквизита ОтнОкруж_ИПДЛ!" VIEW-AS ALERT-BOX.
+		   Return.
+               end.
+            cKlP  = cKlP 
+			 + "|  2. Имеет отношение к иностранному публичному должностному лицу: "
+                         + "|а) Организацию: "
+                         + PrintStringInfo(ENTRY(1, cTmp49_1, ";"))
+                         + "|б) Занимаемую должность: "
+                         + PrintStringInfo(ENTRY(2, cTmp49_1, ";")) 
+                         + "|в) Наименование государства: "
+                         + PrintStringInfo(ENTRY(3, cTmp49_1, ";")).
+               if (NUM-ENTRIES (cTmp49_2, ";") NE 2) then do:
+                   MESSAGE "Ошибка заполнения доп. реквизита СтепРодст_ИПДЛ!" VIEW-AS ALERT-BOX.
+		   Return.
+               end.
+                         cKlP  = cKlP 
+                         + "|г) Степень родства или иное отношение: "
+                         + PrintStringInfo(ENTRY(1, cTmp49_2, ";"))
+                         + "|д) Фамилия, Имя и (при наличии) отчество должностного лица: "
+                         + PrintStringInfo(ENTRY(2, cTmp49_2, ";"))
+                         + "| ". 
+        end. /* 49 */
+
+          if (cTmp77 NE "") AND (TRIM(CAPS(cTmp77)) NE "НЕТ" AND LENGTH(cTmp77)>ChCount) then do:
+               if (NUM-ENTRIES (cTmp77, ";") NE 2) then do:
+                   MESSAGE "Ошибка заполнения доп. реквизита Статус_ПМО!" NUM-ENTRIES (cTmp77, ";")  VIEW-AS ALERT-BOX.
+		   Return.
+               end.
+            cKlP  = cKlP 
+			 + "|  3. Является должностным лицом публичной международной организации: "
+                         + "|а) Организация: "
+                         + PrintStringInfo(ENTRY(1, cTmp77, ";"))
+                         + "|б) Занимаемая должность: "
+                         + PrintStringInfo(ENTRY(2, cTmp77, ";")) 
+                         + "| ". 
+      end. /* 77 */
+
+          if (cTmp78 NE "") AND (TRIM(CAPS(cTmp78)) NE "НЕТ" AND LENGTH(cTmp78)>ChCount) then do:
+               if (NUM-ENTRIES (cTmp78, ";") NE 2) then do:
+                   MESSAGE "Ошибка заполнения доп. реквизита Статус_РДПЛ!" VIEW-AS ALERT-BOX.
+		   Return.
+               end.
+            cKlP  = cKlP 
+			 + "|  4. Является: российским публичным должностным лицом: "
+                         + "|а) Организация: "
+                         + PrintStringInfo(ENTRY(1, cTmp78, ";"))
+                         + "|б) Занимаемая должность: "
+                         + PrintStringInfo(ENTRY(2, cTmp78, ";")) 
+                         + "|в) Наименование государства: Российская Федерация"
+                         + "| ". 
+      end. /* 78 */
+     end. /* when 90  */
+	when "91" then do: /*Проценты бенефициара*/
+            cKlP  = string (GetTempXAttrValueEX("cust-role", STRING(cust-role.cust-role-id), "pir-ben_part",end-date,"")).
+            message STRING(cust-role.cust-role-id) (GetTempXAttrValueEX("cust-role", STRING(cust-role.cust-role-id), "pir-ben_part",end-date,"")) view-as alert-box.
+	end.
+   END case.
+
+/*  MESSAGE cP cKlP
+   VIEW-AS ALERT-BOX QUESTION BUTTONS OK. */
+
+
+   cAnketa = REPLACE(cAnketa, "#" + cP + "#", cKlP).
+
+end.
+
+/******************************************* печат анкеты ***********************/
+{setdest.i}
+DO WHILE (LENGTH(cAnketa) GT 0):
+
+   if (INDEX(SUBSTRING(cAnketa, 1, iLineW + 1), "|") NE 0)
+   then
+      ASSIGN
+         cPrLine = SUBSTRING(cAnketa, 1, INDEX(cAnketa, "|") - 1)
+         cAnketa = SUBSTRING(cAnketa, INDEX(cAnketa, "|") + 1)
+      .
+   ELSE
+      ASSIGN
+         iwwI    = MAX(R-INDEX(SUBSTRING(cAnketa, 1, iLineW + 1), " "),
+                       R-INDEX(SUBSTRING(cAnketa, 1, iLineW    ), ","))
+         iwwI    = (if (iwwI GT 0) then iwwI ELSE iLineW)
+         cPrLine = SUBSTRING(cAnketa, 1, iwwI)
+         cAnketa = "      " + SUBSTRING(cAnketa, iwwI + 1)
+      .
+   if (LENGTH(cPrLine) GT iLineW)
+   then cPrLine = SUBSTRING(cPrLine, 1, iLineW).
+
+   PUT UNFORMATTED cPrLine SKIP.
+end.
+
+{preview.i}
+{intrface.del}
+

@@ -1,0 +1,7 @@
+[DataClass 4.1d] // Экспорт данных произвел ADMMDA 01/08/2012 09:28:36 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+no "g227" "" "Трансферное ценообразование" 30 yes "" no "*" 1 "" "" "" "" "" "" "" "OLTP,oltpb" "*" "" 0
+.
+[Signs] // Экспорт данных произвел ADMMDA 01/08/2012 09:28:36 БД "-db /home2/bis/quit41d/db-train/bisquit,-B 120000,-spin 12000,-L 100000,-ld bisquit"
+"class-code" "DataClass" "g227" "dataclass" "" ? ?
+"module" "" "g227" "dataclass" "norm" ? ?
+.

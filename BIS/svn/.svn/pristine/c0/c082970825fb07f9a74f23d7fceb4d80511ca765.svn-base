@@ -1,0 +1,29 @@
+DEF TEMP-TABLE TTReestr NO-UNDO
+   FIELD PacketID    AS INT
+   FIELD doc-type    AS CHAR
+   FIELD doc-date    AS DATE
+   FIELD doc-num     AS CHAR
+   FIELD order-pay   AS CHAR
+   FIELD due-date    AS DATE
+   FIELD bank-code   AS CHAR
+   FIELD ben-acct    AS CHAR
+   FIELD acct        AS CHAR
+   FIELD inn         AS CHAR
+   FIELD details     AS CHAR
+   FIELD amt-rub     AS DECIMAL
+   FIELD send-id     AS CHAR
+   FIELD reference   AS CHAR
+   FIELD op-status   AS CHAR
+   FIELD op          AS INT
+   FIELD PackDate    AS DATE
+   FIELD PackTime    AS CHAR
+   FIELD ClassError  AS CHAR
+   FIELD PackError   AS CHAR
+   FIELD name-ben    AS CHAR
+   FIELD SeanceNum   AS CHAR
+   FIELD MailFormat  AS CHAR
+   FIELD FileName    AS CHAR
+   FIELD ESID        AS CHAR
+   INDEX ESID 
+         ESID PackDate SeanceNum
+. 

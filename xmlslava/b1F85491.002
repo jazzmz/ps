@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope">
+  <env:Header>
+    <props:MessageInfo xmlns:props="urn:cbr-ru:msg:props:v1.3">
+      <props:To>uic:458300199900</props:To>
+      <props:From>uic:458549100000</props:From>
+      <props:AppMessageID>guid:d569931db6764826b7e2e928327c4474</props:AppMessageID>
+      <props:MessageID>guid:655d7a8f4b914b1b8e4783b6f677c5bc</props:MessageID>
+      <props:MessageType>1</props:MessageType>
+      <props:Priority>5</props:Priority>
+      <props:LegacyTransportFileName>b1F85491.999</props:LegacyTransportFileName>
+      <props:CreateTime>2015-01-16T10:21:09Z</props:CreateTime>
+      <props:AckRequest>true</props:AckRequest>
+    </props:MessageInfo>
+    <props:DocInfo xmlns:props="urn:cbr-ru:msg:props:v1.3">
+      <props:DocFormat>1</props:DocFormat>
+      <props:DocType>ED999</props:DocType>
+      <props:EDRefID EDNo="1" EDDate="2015-01-16" EDAuthor="4585491000" />
+    </props:DocInfo>
+  </env:Header>
+  <env:Body>
+    <sen:SigEnvelope xmlns:sen="urn:cbr-ru:dsig:env:v1.1">
+      <sen:SigContainer>
+        <dsig:MACValue xmlns:dsig="urn:cbr-ru:dsig:v1.1">bzAwMDAwMB5Bi1CcM1iQWTjZA7pDVDTkcxzBDr/TwN0NtqQO59UbO/f7s/OJ2+ZKfVS1E466dObGMK+WPewVvkO2ypH4G+4zNTk4V1VWQU9IMDGUlLdUnZaPTUVNAYwAAAA=</dsig:MACValue>
+      </sen:SigContainer>
+      <sen:Object>h50406BVDkbMf7Syf0Yf6RtqDUyiYkKkmyzbZfOLyWjio/EWk08i3v2ikah/jB8cO33QeXxa97px35qg1ysZrUXqTLWBX43NCCy+cBZJD7/hJ+AGHBI9OB4f70UyaU4HlWOFl4RMYrg3ARqpicd15HdsdUsnRPFZeZTjRtG7cHA3dHpsbz8vQ3NXVVZBT0iIAAAAB+m0UbIdZ5hzC2tVjxlXU93YyVWXxE1WTkJZSDDkwyj0CWUzzevgGyA+1BiBkRp2Si2znqlADUA3azedfhS02FqJzaczNTk4FAYSe+vpGAD0v/r+SAK/fRPI4vIrECadaCd9ITL+wIap19ZSPbQF8ecFg7kzNTk4AgA=</sen:Object>
+    </sen:SigEnvelope>
+  </env:Body>
+</env:Envelope>

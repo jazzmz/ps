@@ -1,0 +1,7 @@
+if no then .
+else if frame-field begins "Val" then do:
+   run calc.p. 
+   if (lastkey = 13 or lastkey eq 10) and pick-value <> ? then 
+      frame-value = dec(pick-value).
+end.
+hide message no-pause.

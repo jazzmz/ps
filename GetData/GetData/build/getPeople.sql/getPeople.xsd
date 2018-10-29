@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="urn:intalio.com:connectors:database:getdata:getpeopleservice" elementFormDefault="qualified" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="urn:intalio.com:connectors:database:getdata:getpeopleservice">
+  <xsd:element name="getPeopleParameterSet">
+    <xsd:annotation>
+      <xsd:documentation>Main element in request message for operation - getPeople</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="connection">
+          <xsd:annotation>
+            <xsd:documentation>The database credentials</xsd:documentation>
+          </xsd:annotation>
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="user">
+                <xsd:annotation>
+                  <xsd:documentation>The type definition for  user</xsd:documentation>
+                </xsd:annotation>
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string"/>
+                </xsd:simpleType>
+              </xsd:element>
+              <xsd:element name="password">
+                <xsd:annotation>
+                  <xsd:documentation>The type definition for  password</xsd:documentation>
+                </xsd:annotation>
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:string"/>
+                </xsd:simpleType>
+              </xsd:element>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+        <xsd:element name="execute">
+          <xsd:annotation>
+            <xsd:documentation>Execution with input parameter</xsd:documentation>
+          </xsd:annotation>
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element form="qualified" name="parameters">
+                <xsd:annotation>
+                  <xsd:documentation>The query parameters</xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="firstname">
+                      <xsd:annotation>
+                        <xsd:documentation>The parameter value</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="10"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="getPeopleFault">
+    <xsd:annotation>
+      <xsd:documentation>The fault element</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:all>
+        <xsd:element name="errorMessage" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>The error message</xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:all>
+    </xsd:complexType>
+  </xsd:element>
+  <xsd:element name="getPeopleResultSet">
+    <xsd:annotation>
+      <xsd:documentation>Main element in response message for operation - getPeople</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="rows">
+          <xsd:annotation>
+            <xsd:documentation/>
+          </xsd:annotation>
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element form="qualified" name="row" maxOccurs="unbounded">
+                <xsd:annotation>
+                  <xsd:documentation>The row taken from database query</xsd:documentation>
+                </xsd:annotation>
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="ID">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  ID</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:decimal">
+                          <xsd:totalDigits value="10"/>
+                          <xsd:fractionDigits value="0"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element nillable="true" name="USERNAME">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  USERNAME</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="20"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element nillable="true" name="FIRSTNAME">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  FIRSTNAME</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="50"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element nillable="true" name="LASTNAME">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  LASTNAME</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="50"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element nillable="true" name="EMAIL">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  EMAIL</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="50"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element nillable="true" name="PHONE">
+                      <xsd:annotation>
+                        <xsd:documentation>The type definition for  PHONE</xsd:documentation>
+                      </xsd:annotation>
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:maxLength value="10"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:element>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+</xsd:schema>

@@ -1,0 +1,162 @@
+/* ========================================================================= */
+				/** Объявления */
+/* ========================================================================= */
+
+  /* договор и инфа по нему */
+DEF VAR LoanCurrency AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanOpDate   AS DATE NO-UNDO.
+DEF VAR LoanClient   AS CHAR NO-UNDO.
+DEF VAR AmtOsn	     AS DEC NO-UNDO.
+
+  /* счета */
+DEF VAR LoanAcct    AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctOut AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctCur AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctInt AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExp AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpProsh AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpSPOD  AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpSPODBefLast AS CHAR INIT "" NO-UNDO.
+
+
+  /* по периодам (в циклах) */
+DEF VAR LoanIntSchBase	AS INT  NO-UNDO.
+DEF VAR RateNorm   AS DEC  NO-UNDO.
+
+DEF VAR PerBegDate	    AS DATE NO-UNDO.
+DEF VAR PerEndDate	    AS DATE NO-UNDO.
+DEF VAR PerKolDay	    AS INT  NO-UNDO.
+DEF VAR PerEndOstAcct	    AS DEC  NO-UNDO.
+
+DEF VAR FlgRazb  AS LOGICAL INIT no  NO-UNDO.
+
+DEF VAR oSysClass AS TSysClass NO-UNDO.
+oSysClass = new TSysClass().
+
+
+DEF VAR PerEndKurs	    AS DEC  NO-UNDO.
+DEF VAR PerEndKursDate	    AS DATE NO-UNDO.
+DEF VAR KursRaspDate	    AS DEC  NO-UNDO.
+
+DEF VAR PerEndSumNach       AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachEqv    AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachPen    AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachPenEqv AS DEC  NO-UNDO.
+
+DEF VAR PerEndSumVpl       AS DEC  NO-UNDO.
+DEF VAR PerEndSumVplEqv    AS DEC  NO-UNDO.
+
+DEF VAR PerEndSumDonachPen    AS DEC  NO-UNDO.
+DEF VAR PerEndSumDonachPenEqv AS DEC  NO-UNDO.
+
+DEF VAR PerVplBegDate	    AS DATE NO-UNDO.
+DEF VAR PerVplEndDate	    AS DATE NO-UNDO.
+
+DEF VAR PerVplEndDateRasp   AS DATE  NO-UNDO. /* для распоряги. последняя выплата процентов. конец периода */
+DEF VAR PerDonachBegDate    AS DATE  NO-UNDO. /* для распоряги. начало периода доначисления */
+
+
+    /* итоговые суммы */
+ /* выплаченные проценты */
+DEF VAR SumVplProc_iter		AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_All          AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_Current      AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_Last         AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_BeforeLast   AS DEC INIT 0 NO-UNDO.
+                                
+ /* проценты начисленные по ставке договора */
+DEF VAR SumNachProc_iter        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_All         AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_Current     AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_Last        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_BeforeLast  AS DEC INIT 0 NO-UNDO.
+
+ /* проценты пересчитанные по ставе до востребования */
+DEF VAR SumNachPenProc_iter       AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_All        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_Current    AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_Last       AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_BeforeLast AS DEC INIT 0 NO-UNDO.
+
+ /* проценты доначисленные по ставе до востребования */
+DEF VAR SumDonachPenProc_iter     AS DEC INIT 0 NO-UNDO. 
+DEF VAR SumDonachPenProc_All      AS DEC INIT 0 NO-UNDO. 
+
+    /* доначисленные проценты по ставке договора */
+DEF VAR SumDonachProc_iter	AS DEC INIT 0 NO-UNDO. 
+DEF VAR SumDonachProc_All	AS DEC INIT 0 NO-UNDO. 
+
+    /* выплаченные проценты, пересчитанные по ставе до востребования */
+DEF VAR SumVplPenProc_iter	 AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplPenProc_All        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplPenProc_Current	 AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplPenProc_Last       AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplPenProc_BeforeLast AS DEC INIT 0 NO-UNDO.
+
+    /* учет дохода- расхода */
+DEF VAR SumDohodRashod_Iter	 AS DEC INIT 0 NO-UNDO.
+DEF VAR SumDohodRashod_All       AS DEC INIT 0 NO-UNDO.
+
+
+
+	/*** Временная таблица  ***/
+DEF TEMP-TABLE repkau NO-UNDO
+	FIELD stb00  AS INT   /* счетчик */
+	FIELD stb01  AS DEC   /* остаток вклада на конец периода */
+	FIELD stb02  AS DATE  /* начало периода */
+	FIELD stb03  AS DATE  /* конец  периода */
+	FIELD stb04  AS INT   /* количество дней в периоде */
+	FIELD stb05  AS DEC   /* % ставка по договору на дату */
+	FIELD stb06  AS DEC   /* % ставка досрочного расторжения */
+	FIELD stb07  AS DATE  /* дата проводки, на эту дату определяем курс */
+	FIELD stb08  AS DEC   /* курс */
+	FIELD stb09  AS DEC   /* сумма в вал дог = сумма %-ов по ставке договора */        
+	FIELD stb10  AS DEC   /* сумма в эквив   = сумма %-ов по ставке договора */        
+	FIELD stb11  AS DEC   /* сумма в вал дог = сумма %-ов пересчитанных по ставке ДВ */
+	FIELD stb12  AS DEC   /* сумма в эквив   = сумма %-ов пересчитанных по ставке ДВ */
+	FIELD stb13  AS CHAR  /* тип операции */
+	FIELD stb14  AS DEC   
+.
+
+DEF VAR i AS INT INIT 0 NO-UNDO.
+DEF VAR j AS INT INIT 0 NO-UNDO.
+DEF VAR n AS INT INIT 0 NO-UNDO.
+
+
+DEFINE BUFFER trloan FOR loan .
+
+
+DEF VAR FlgNach  AS LOGICAL INIT no  NO-UNDO.
+DEF VAR FlgVpl   AS LOGICAL INIT no  NO-UNDO.
+DEF VAR iParam   AS INT INIT 0 NO-UNDO.
+
+
+/* ========================================================================= */
+				/** Функции */
+/* ========================================================================= */
+
+  /*** временная база начисления процентов */
+FUNCTION GetLoanIntSchBase RETURNS DECIMAL ( INPUT iDate  AS DATE ).
+	DEFINE VARIABLE BaseNach AS DEC NO-UNDO.
+	BaseNach = (DATE('31/12/' + STRING(YEAR(iDate))) - DATE('01/01/' + STRING(YEAR(iDate))) + 1).
+	RETURN BaseNach.
+END FUNCTION.
+
+FUNCTION GetSumStr RETURNS CHARACTER (
+	INPUT SumDig  AS DEC, 
+	INPUT SumCurr AS CHAR
+	).
+
+	DEF VAR SumStr AS CHAR NO-UNDO.
+	DEF VAR AmtStr AS CHAR EXTENT 2  NO-UNDO.
+
+	RUN x-amtstr.p( SumDig, SumCurr, true,true,output amtstr[1], output amtstr[2]).
+	SumStr = AmtStr[1] + ' ' + AmtStr[2] .
+	SUBSTR(SumStr,1,1) = Caps(SUBSTR(SumStr,1,1)).
+	
+	SumStr = TRIM(STRING(SumDig,"->>>,>>>,>>>,>>>,>>9.99")) + " (" + SumStr + ") " .
+
+
+	RETURN SumStr.
+
+END FUNCTION.

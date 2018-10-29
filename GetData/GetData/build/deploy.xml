@@ -1,0 +1,11 @@
+﻿<?xml version='1.0' encoding='UTF-8'?>
+<dd:deploy xmlns:dd="http://www.apache.org/ode/schemas/dd/2007/03"><dd:schemaVersion>7</dd:schemaVersion><dd:process xmlns:Interface="http://example.com/processes/GetData/Interface" xmlns:dd="http://www.apache.org/ode/schemas/dd/2007/03" xmlns:ns="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:diag="http://example.com/processes/GetData" xmlns:tns="http://www.example.org/MoveData" xmlns:Database="http://example.com/processes/GetData/Database" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:this="http://example.com/processes/GetData/Get_Data" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="this:Get_Data" fileName="processes/GetData-Get_Data.bpel">
+  <dd:property name="PATH">processes/GetData</dd:property>
+  <dd:property name="SVG">processes/GetData.svg</dd:property>
+  <dd:provide partnerLink="interfaceAndGet_DataPlkVar">
+    <dd:service name="this:CanonicServiceForInterface" port="canonicPort"></dd:service>
+  </dd:provide>
+  <dd:invoke partnerLink="databaseAndGet_DataForGetPeoplePortPlkVar">
+    <dd:service name="ns:getPeopleService" port="getPeoplePort"></dd:service>
+  </dd:invoke>
+</dd:process></dd:deploy>

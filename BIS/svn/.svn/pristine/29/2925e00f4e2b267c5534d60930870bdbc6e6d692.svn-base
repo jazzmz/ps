@@ -1,0 +1,7 @@
+{globals.i}
+DEF INPUT PARAMETER cParentParam AS CHARACTER.
+DEF INPUT PARAMETER cParam       AS CHARACTER.
+DEF INPUT PARAMETER cDef         AS CHARACTER.
+DEF OUTPUT PARAMETER cRes        AS CHARACTER.
+
+cRes = FGetSetting(cParentParam,cParam,cDef).

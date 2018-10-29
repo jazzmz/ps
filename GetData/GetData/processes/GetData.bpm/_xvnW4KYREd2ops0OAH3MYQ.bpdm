@@ -1,0 +1,34 @@
+﻿<bpel:process xmlns:bpdm="http://www.intalio/designer/business-process-data-modeling" xmlns:mapper="http://www.intalio.com/designer/mapper" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:this="http://thisdiagram/Database" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Get_Data="http://thisdiagram/Get_Data" xmlns:ns="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:diag="http://thisdiagram" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable" xmlns:vprop="http://docs.oasis-open.org/wsbpel/2.0/varprop" xmlns:pnlk="http://docs.oasis-open.org/wsbpel/2.0/plnktype" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ode="http://www.apache.org/ode/type/extension" targetNamespace="http://thisdiagram/Database">
+    <bpdm:dependencies version="6000089">
+        <bpdm:namespaceDefinition bpdm:uri="http://www.w3.org/2001/XMLSchema" bpdm:prefix="xs"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="http://thisdiagram/Database" bpdm:prefix="this" bpdm:type="this_process"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="http://www.w3.org/2001/XMLSchema-instance" bpdm:prefix="xsi"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="http://thisdiagram/Get_Data" bpdm:prefix="Get_Data" bpdm:comment="contrib=&apos;partner-pool:///_IdCh8KXOEd2ops0OAH3MYQ"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="urn:intalio.com:connectors:database:getdata:getpeopleservice" bpdm:prefix="ns" bpdm:comment="contrib=&apos;project:///getPeople.sql/getPeople.sql.wsdl"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="http://thisdiagram" bpdm:prefix="diag" bpdm:comment="contrib=&apos;partner-pool:///_IdCh8KXOEd2ops0OAH3MYQ"></bpdm:namespaceDefinition>
+        <bpdm:namespaceDefinition bpdm:uri="http://www.w3.org/XML/1998/namespace" bpdm:prefix="xml"></bpdm:namespaceDefinition>
+        <bpdm:namespaceContributor bpdm:url="thisprocess://this-process-types" bpdm:label="process defined this-process-types"></bpdm:namespaceContributor>
+        <bpdm:namespaceContributor bpdm:url="partner-pool:///_IdCh8KXOEd2ops0OAH3MYQ" bpdm:label="Get Data"/>
+        <bpdm:namespaceContributor bpdm:url="project:///getPeople.sql/getPeople.sql.wsdl"/>
+        <bpdm:namespaceContributor bpdm:url="project:///getPeople.sql/getPeople.xsd"/>
+    </bpdm:dependencies>
+    <bpel:scope bpdm:label="Database" bpdm:ID="_xvnW4KYREd2ops0OAH3MYQ">
+        <bpel:partnerLinks>
+            <bpel:partnerLink name="databaseAndGet_DataForGetPeoplePortPlkVar" partnerLinkType="diag:DatabaseAndGet_DataForGetPeoplePortPlk" myRole="Database_for_Get_Data" bpdm:enableSharing="false" bpdm:providedService="ns:getPeopleService" bpdm:providedPort="getPeoplePort" bpdm:provideSOAPAddress="http://localhost:8080/ode/processes/GetData/getPeople" bpdm:providedIsDefault="true" bpdm:clientTasks="_xvnW4KYREd2ops0OAH3MYQ:_HKzmoAZuEeSdRZ4skEucPg" bpdm:isManaged="true" bpdm:otherPoolId="_IdCh8KXOEd2ops0OAH3MYQ"/>
+        </bpel:partnerLinks>
+        <bpel:variables>
+            <bpel:variable name="nsGetPeopleRequestMsg" messageType="ns:getPeopleInput" binding="ns:getPeoplePortSoapBinding" operation="getPeople" opMsgType="0" bpdm:id="_NkeecAZuEeSdRZ4skEucPg" bpdm:messageIds="inc:_NiAZQAZuEeSdRZ4skEucPg"/>
+            <bpel:variable name="nsGetPeopleResponseMsg" messageType="ns:getPeopleOutput" binding="ns:getPeoplePortSoapBinding" operation="getPeople" opMsgType="1" bpdm:id="_N9pzcAZuEeSdRZ4skEucPg" bpdm:messageIds=" out:_N7YikAZuEeSdRZ4skEucPg">
+                <bpel:from bpdm:toPart="parameters">
+                    <bpel:literal bpdm:linkedMessageType="ns:getPeopleOutput" bpdm:linkedPart="parameters" bpdm:binding="ns:getPeoplePortSoapBinding" bpdm:opMsgType="1" bpdm:operation="getPeople"></bpel:literal>
+                </bpel:from>
+            </bpel:variable>
+        </bpel:variables>
+        <bpel:sequence>
+            <bpdm:messagingtask operation="getPeople" partnerLink="databaseAndGet_DataForGetPeoplePortPlkVar" portType="ns:getPeoplePort" isMyRole="true" enableSharing="false" bpdm:label="Provide-Service-Getpeople" bpdm:ID="_HKzmoAZuEeSdRZ4skEucPg">
+                <bpdm:linkset bpdm:type="incomingMessage" bpdm:bpeltype="receive" bpdm:messageVariable="nsGetPeopleRequestMsg" bpdm:msgVarScopeId="_xvnW4KYREd2ops0OAH3MYQ" bpdm:variableIsManaged="true" bpdm:messageType="ns:getPeopleInput" bpdm:binding="ns:getPeoplePortSoapBinding" bpdm:ID="_NiAZQAZuEeSdRZ4skEucPg"></bpdm:linkset>
+                <bpdm:linkset bpdm:type="outgoingMessage" bpdm:bpeltype="reply" bpdm:messageVariable="nsGetPeopleResponseMsg" bpdm:msgVarScopeId="_xvnW4KYREd2ops0OAH3MYQ" bpdm:variableIsManaged="true" bpdm:messageType="ns:getPeopleOutput" bpdm:binding="ns:getPeoplePortSoapBinding" bpdm:ID="_N7YikAZuEeSdRZ4skEucPg"></bpdm:linkset>
+            </bpdm:messagingtask>
+        </bpel:sequence>
+    </bpel:scope>
+</bpel:process>

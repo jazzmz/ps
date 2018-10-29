@@ -1,0 +1,143 @@
+#########################################
+#              ВНИМАНИЕ !!!             #
+#					#
+# 	Комментарий строго #пробел      #
+#					#
+#########################################
+
+############# парсер ####################
+pp-pcomm.p
+pp-prsfn.p
+dpspars.p
+details.p
+parsacct.p
+parssen.p
+############# инкдюдники ################
+
+### ПАРСЕР ДЛЯ ОТКРЫТИЯ СЧЕТОВ ###
+accttmpl.p
+
+bcur-p3.p
+f652_v7p_1.p
+stmtg2.p
+
+# for otchetnaya spravka (kassa 318-p) "i56#a.i", "i56#a.p"
+i56_1#.p
+
+############# компиляция chdat(op.i
+bchst(op.p
+chd-opa.p
+mvnaldoc.p
+############# other #################
+
+# move to comments VNE 28/12/2008
+############# компиляция a-op.trg
+a-in.p
+af-ex.p 
+as-ex.p 
+af-move.p 
+as-out.p
+a-io(gr).p 
+a-mv(gr).p 
+af-amor.p 
+af-over.p 
+a-trans.p
+############# added by VNErmilov
+# changes for pko/rko in style 318-P )
+cashord.p
+cashord2.p
+########### added by Maslov #########
+# Event #380
+op-print.p
+#
+
+############# added by VNErmilov 24/02/2011
+# changes for our cash order
+cjour-i.p
+cjour-i-br.p
+cjour-o.p
+cjour-o-br.p
+
+############# added by Borisov 24/02/2011
+# changes for f.601
+f601tp2.p
+f601tp3.p
+f601tp4.p
+f601tp5.p
+f601tp6.p
+f601tp7.p
+f601tp8.p
+
+# ПО ЗАЯВКЕ #692 #
+op-ened.p
+op-ed.p
+# КОНЕЦ ПО #692  #
+
+# ВРЕМЕННО ПО ПОС #
+pp-ploan.p
+over-tmp.p
+#
+# ВРЕМЕННО ОШИБКА ОКРУГЛЕНИЯ #
+pp-i254.p
+
+# Временно нет парсерной функции ФормРезВб #
+# Добавлена парсерная функция в инклюде
+# ploan.i
+pp-ploan.p
+
+# Временно заглушки по портфелю
+# Инклюд ppbag.api
+pp-bag.p
+#
+
+#По приказу №64
+norm-rpt.p
+#
+
+# ПО ЗАЯВКЕ #895 #
+accttmpl.p
+
+# ПО ЗАЯВКЕ #956 #
+tr-db(l.p
+tr-cr(l.p
+#
+
+# На переходный период при смене наименования, после удалить вместе с op-ident.i br-put.i#
+in-uni_1.p
+#
+
+# по заявке 2218 поправил функцию #
+filleps.p
+#
+
+# по заявке 2802. Дописана процедура f711_3#1.cal и f711_3p расчета ф.711.
+f711_3#8.p
+f711_3p.p
+f711_3p2.p
+#
+
+# по заявке 2892. изменена процедура ovn-nps объявление на взнос наличных. 
+ovn-nps.p
+ovn-nps2.p
+#
+
+# В связи с переходом на новое наименование. В результате тестирования патча 90
+#23.05.13
+stmti1.p
+#
+
+# по заявке 3854. Жду фиксов к патчу 95 
+e2k_155_2835.p
+e2k_155_3006.p
+f155_2_3_print.p
+f155_2_3_print2.p
+f155_2_3_print3.p
+f155_2_3_print4.p
+f155_2_3_print5.p
+f155_2_3_print6.p
+#
+
+# по заявке 4025. Жду патч 97 или фиксов к 96 
+e2k_407_2539.p
+e2k_407_3006.p
+#

@@ -1,0 +1,18 @@
+DEF VAR numPartPayment AS INTEGER NO-UNDO.
+DEF VAR codePayDoc AS CHAR NO-UNDO.
+DEF VAR numPayDoc  AS CHAR NO-UNDO.
+DEF VAR DatePayDoc AS DATE No-UNDO.
+DEF VAR sum-balance AS DECIMAL NO-UNDO.
+DEF VAR sum-balance-str AS CHARACTER NO-UNDO.
+DEF VAR DetailPay       AS CHARACTER EXTENT 6 NO-UNDO.
+DEF VAR DestPay         AS CHARACTER NO-UNDO.
+DEF VAR SodOper         AS CHARACTER          NO-UNDO.
+
+DEFINE VARIABLE mIR AS CHARACTER NO-UNDO.
+
+DEF BUFFER buf-op FOR op.
+DEF BUFFER buf-op-entry FOR op-entry.
+define variable namepr as char FORMAT "x(22)" NO-UNDO.
+DEF VAR theBank   AS CHAR FORMAT "x(22)" NO-UNDO.
+DEF VAR theCity   AS CHAR FORMAT "x(22)" NO-UNDO.
+

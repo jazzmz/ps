@@ -1,0 +1,295 @@
+{pirsavelog.p}
+
+
+Form "~n@(#) acct-ved.p 1.0 RGen 16/02/04 RGen 16/02/04 [ AutoReport By R-Gen ]"
+     with frame sccs-id stream-io width 250.
+
+{globals.i}
+{chkacces.i}
+/*-------------------- Входные параметры --------------------*/
+Define Input Param RID as RecID no-undo.
+
+Define Buffer buf_0_op               For op.
+
+Define Variable cAcct            As Character            No-Undo.
+Define Variable cAmtCurDescr     As Character Extent   2 No-Undo.
+Define Variable cContract        As Character            No-Undo.
+Define Variable CharSumm         As Character            No-Undo.
+
+/*--------------- Определение форм для циклов ---------------*/
+/* Форма для цикла "acct" */
+Form
+  "Счет N" at 5 /* "&d0D" at 20 */ cAcct format "x(25)" at 25  /* "&d@ */ "(" at 52  cContract format "x(11)" at 58 ")" at 69 skip
+  "Сумма цифрами"  at 5 /* "&d0D" at 20 */ CharSumm format "x(20)" at 25 /* "&d@" at 45 */ skip
+  "Сумма прописью" at 5 cAmtCurDescr[1] format "x(68)" at 20 skip
+                        cAmtCurDescr[2] format "x(68)" at 20 skip(1)
+with frame frm_-1 down no-labels no-underline no-box width 95.
+
+Def Var FH_acct-ved-1 as integer init 11 no-undo. /* frm_1: мин. строк до перехода на новую страницу */
+
+
+/* Начальные действия */
+{sh-defs.i}
+end-date = DATE(1,1,YEAR(today)).
+{getdate.i
+   &noinit = yes
+}
+
+{pir-acctvedh.frm} /* форма для заголовка отчета по клиенту ЮЛ, банк */
+{pir-acctvedf.frm} /* форма для подвала отчета по клиенту ЮЛ, банк */
+/*{pir-acctvedh1.frm}*/ /* форма для заголовка отчета по клиенту ФЛ */
+/*{pir-acctvedf1.frm}*/ /* форма для подвала отчета по клиенту ФЛ */
+
+{get_set.i "Банк"} /* подтягиваем наименование банка */
+DEF VAR dAmtCur AS DEC no-undo.
+DEF VAR cAmtSum AS CHAR no-undo.
+DEF VAR mCatCorp AS CHAR INIT "Ю" no-undo.
+DEF VAR mCatCorpList AS CHAR INIT "Ю,Ч,Б" no-undo.
+DEF VAR icust-cat LIKE acct.cust-cat no-undo.
+mDay = DAY(end-date).
+mMonth = ENTRY(MONTH(end-date),"января,февраля,марта,апреля,мая,июня,июля,августа,сентября,октября,ноября,декабря").
+def temp-table clis NO-UNDO
+   field cust-id like acct.cust-id
+   field cust-stat like cust-corp.cust-stat
+   field name-corp like cust-corp.name-corp
+INDEX name-corp name-corp
+.
+
+DEF VAR LastCustID like acct.cust-id no-undo.
+
+DEF VAR lIsNewPageClient AS LOG INIT yes NO-UNDO.
+def var codes as char init "" no-undo.
+
+{getacat.i}
+
+codes = in-acct-cat.
+
+MESSAGE "Выводить каждого клиента на отдельной странице (Y/N)" 
+  UPDATE lIsNewPageClient.
+
+DEF VAR cAcctMask AS CHAR FORMAT "x(38)" INIT "40*,45*" NO-UNDO.
+MESSAGE "Введите маски лицевых счетов для отчета " 
+  UPDATE cAcctMask.
+
+RUN messmenu.p(9,
+               "ТИП КЛИЕНТА",
+               "Выберите тип клиента",
+               "Юридические,Физические,Банки").
+IF keyfunc(lastkey) = "END-ERROR" THEN RETURN.
+
+icust-cat = entry(int(pick-value),mCatCorpList).
+
+hide frame cats.
+
+
+/*-----------------------------------------
+   Проверка наличия записи главной таблицы,
+   на которую указывает Input Param RID
+-------------------------------------------*/
+Find op Where RecID(op) = RID no-lock no-error.
+If Not Avail(op) then do:
+  message "Нет записи <op>".
+  Return.
+end.
+
+/*------------------------------------------------
+   Выставить buffers на записи, найденные
+   в соответствии с заданными в отчете правилами
+------------------------------------------------*/
+/* Т.к. не задано правило для выборки записей из главной таблицы,
+   просто выставим его buffer на input RecID                    */
+find buf_0_op where RecID(buf_0_op) = RecID(op) no-lock.
+
+/*-------------------- Формирование отчета --------------------*/
+{strtout3.i &cols=80 &option=Paged}
+
+LastCustID = 0.
+
+/* Начало цикла "acct" */
+do:
+  
+  IF icust-cat EQ "Ю" THEN 
+  DO:
+     for each cust-corp no-lock:
+        create clis.
+        assign
+           clis.cust-id = cust-corp.cust-id
+           clis.cust-stat = cust-corp.cust-stat
+           clis.name-corp = cust-corp.name-corp
+        .
+        release clis.
+     end.
+  END.
+  ELSE IF icust-cat EQ "Ч" THEN 
+  DO:
+     for each person no-lock:
+        create clis.
+        assign
+           clis.cust-id = person.person-id
+           clis.cust-stat = ""
+           clis.name-corp = person.name-last + " " + person.first-names
+        .
+        release clis.
+     end.
+  END.
+  ELSE
+  DO:
+     FOR EACH banks WHERE banks.client NO-LOCK:
+        CREATE clis.
+        ASSIGN
+           clis.cust-id   = banks.bank-id
+           clis.cust-stat = ""
+           clis.name-corp = banks.name
+        .
+        RELEASE clis.
+     END.
+  END.
+  {repinfo.i}
+  cBankName = getBranchXAttrValue(dept.branch,"Банк").
+  
+  FOR EACH clis NO-LOCK USE-INDEX name-corp:
+    FOR EACH acct WHERE acct.cust-id = clis.cust-id AND CAN-DO(cAcctMask, acct.acct) AND
+      (acct.close-date = ? OR acct.close-date > end-date) AND (acct.cust-cat = icust-cat)
+      AND acct.acct-cat begins codes NO-LOCK :
+  
+      IF LastCustID NE clis.cust-id THEN DO:
+         IF LastCustID NE 0  THEN DO:
+	  IF acct.cust-cat = "Ч" THEN
+            DISP
+               YEAR(end-date) @ iYear
+               YEAR(end-date) @ iYear1
+               WITH FRAME acctvedf-Frame-2.
+	  ELSE
+            DISP
+               YEAR(end-date) @ iYear
+               YEAR(end-date) @ iYear1
+               WITH FRAME acctvedf-Frame-1.
+	 END.
+         IF Line-Count <> 1 AND lIsNewPageClient /* каждого клиента на новой странице */
+            THEN PAGE.
+           /* печатаем заголовок */
+        cClientName[1] = clis.cust-stat + ' ' + clis.name-corp.
+        {wordwrap.def}
+        {wordwrap.i &s=cClientName &l=75 &n=2}
+	IF acct.cust-cat = "Ч" THEN
+        DISP
+          cBankName
+          cClientName[1]
+          mDay           
+          mMonth         
+          YEAR(end-date) @ Year3
+            WITH FRAME acctvedh-Frame-2.
+	ELSE
+        DISP
+          cBankName
+          cClientName[1]
+          mDay           
+          mMonth         
+          YEAR(end-date) @ Year3
+            WITH FRAME acctvedh-Frame-1.
+      END.
+
+      LastCustID = clis.cust-id.
+      
+      /* вычисляем остаток на глобальную дату с глобальным статусум */
+      RUN acct-pos IN h_base (acct.acct, acct.currency,                                                      end-date, end-date, gop-status).
+      ASSIGN
+        cAcct     = acct.acct
+        cContract = acct.contract
+        dAmtCur   = IF acct.currency <> '' THEN ABS(sh-val) ELSE ABS(sh-bal)
+      .
+      /* назначения полностью */
+      cContract = REPLACE(cContract, "Расчет", "Расчетный").
+      cContract = REPLACE(cContract, "Текущ",  "Текущий").
+      cContract = REPLACE(cContract, "Транз1", "Транзитный").
+      cContract = REPLACE(cContract, "СпецТр", "Спец.транзитный").
+      cContract = REPLACE(cContract, "Кредит", "Ссудный").
+  
+      IF dAmtCur <> 0 THEN DO:
+         if acct.acct-cat = "d" then do:
+            Run x-amtstr.p(dAmtCur,"",false,false,output cAmtSum, output cAmtCurDescr[2]).
+            cAmtCurDescr[1] = cAmtSum + ' шт.'.
+         end.
+         else do:
+            Run x-amtstr.p(dAmtCur,acct.currency,true,true,output cAmtSum, output cAmtCurDescr[2]).
+            cAmtCurDescr[1] = cAmtSum + ' ' + TRIM(cAmtCurDescr[2]).
+         end.
+         SUBSTR(cAmtCurDescr[1],1,1) = Caps(SubStr(cAmtCurDescr[1],1,1)).
+  
+        {wordwrap.i &s=cAmtCurDescr &l=68 &n=2}
+/*         if Length(cAmtCurDescr[1]) > 68 then do:  cAmtCurDescr[1]=Substr(cAmtCurDescr[1],1,R-Index(Substr(cAmtCurDescr[1],1,68),' ') - 1).
+            cAmtCurDescr[2] = Substr(cAmtSum, Length(cAmtCurDescr[1]) + 1) + ' ' + TRIM(cAmtCurDescr[2]). 
+         end.
+         else
+            cAmtCurDescr[2] = ''.*/
+      END.
+      ELSE cAmtCurDescr = ''.
+  
+         if acct.acct-cat = "d" then
+            assign
+               CharSumm = TRIM(string(dAmtCur, "zzzzzzzzzzzzzzzzzz9")).
+         else
+            assign
+               CharSumm = TRIM(string(dAmtCur, "zzzzzzzzzzzzzzz9.99")).
+  
+      if cAmtCurDescr[1] = "" then do:
+  
+         if acct.acct-cat = "d" then do:
+            cAmtCurDescr[1] = 'Ноль шт.'.
+         end.
+         else do:
+            Run x-amtstr.p(10,acct.currency,true,true,output cAmtSum, output cAmtCurDescr[2]).
+            cAmtCurDescr[1] = "Ноль " + substring(trim(cAmtSum),8) + " " + trim(cAmtCurDescr[2]).
+         end.
+         cAmtCurDescr[2] = ''.
+      end.
+
+  Disp
+    cAcct
+    cContract
+    CharSumm
+    cAmtCurDescr
+    cAmtCurDescr
+  with frame frm_-1.
+  if Line-Count + FH_acct-ved-1 >= Page-Size and Page-Size <> 0 then do:
+    Page.
+  end.
+  else
+    Down with frame frm_-1.
+  end.
+end.
+end.
+/* Конец цикла "acct" */
+
+
+/* Конечные действия */
+/* самый последний подвал */
+IF icust-cat = "Ч" THEN
+DISP
+  YEAR(end-date) @ iYear
+  YEAR(end-date) @ iYear1
+    WITH FRAME acctvedf-Frame-2.
+ELSE
+DISP
+  YEAR(end-date) @ iYear
+  YEAR(end-date) @ iYear1
+    WITH FRAME acctvedf-Frame-1.
+
+/* преобразуем в описание валюты */
+/*PROCEDURE TransformToCurrency.
+DEF INPUT PARAM  cCurrency AS CHAR.
+DEF INPUT-OUTPUT PARAM cAmtDescr AS CHAR. */
+  /* отбрасываем дробную часть */
+/*  cAmtDescr = SUBSTR(cAmtDescr, 1, INDEX(cAmtDescr, 'pубл') - 1). */
+
+  /* ищем валюту и добавляем ее описание */
+/*  FIND FIRST currency
+    WHERE currency = cCurrency
+      NO-LOCK NO-ERROR.
+  IF AVAIL currency
+    THEN cAmtDescr = cAmtDescr + ' ' + currency.name-currenc.
+END PROCEDURE. */
+
+
+{endout3.i &nofooter=yes}
+

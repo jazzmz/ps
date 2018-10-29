@@ -1,0 +1,13 @@
+<VirtualHost *:80>
+ ServerName localwww2
+ ServerAlias localwww2 localwww2.pirbank.ru
+ DocumentRoot "/var/www/localwww2/"
+
+<Directory "/var/www/localwww2">
+
+        AllowOverride All
+
+  </Directory>
+
+
+</VirtualHost>

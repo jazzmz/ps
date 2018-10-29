@@ -1,0 +1,23 @@
+<VirtualHost *:80 *:443>
+ ServerName localwww2
+ ServerAlias localwww2 localwww2.pirbank.ru
+ DocumentRoot "/var/www/localwww2/"
+
+<Directory "/var/www/localwww2">
+        AuthType Kerberos
+        AuthName "Kerberos"
+        KrbMethodNegotiate on
+        KrbMethodK5Passwd on
+        KrbAuthRealms PIRBANK.RU
+        Krb5KeyTab /etc/krb5.keytab
+#        KrbSaveCredetials On
+        KrbServiceName HTTP/help.pirbank.ru@PIRBANK.RU 
+        
+        Require valid-user
+
+        AllowOverride All
+
+  </Directory>
+
+
+</VirtualHost>

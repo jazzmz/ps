@@ -1,0 +1,10 @@
+INTERFACE ITable:
+
+  METHOD PUBLIC TTable addRow().
+  METHOD PUBLIC TTable addCell(INPUT cValue AS CHAR).
+  METHOD PUBLIC TTable addCell(INPUT cValue AS DEC).
+  METHOD PUBLIC TTable addCell(INPUT cValue AS INT).
+  METHOD PUBLIC TTable addCell(INPUT cValue AS INT64).
+  METHOD PUBLIC TTable addCell(INPUT cValue AS LOG).
+ 
+END INTERFACE.

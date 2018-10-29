@@ -1,0 +1,275 @@
+/**
+	pirdps114.p - формирование распоряжения о начислении процентов
+	по депозиту и возврат вклада и начисленных процентов в связи с
+	окончанием срока.
+*/
+
+DEF INPUT PARAM iParam AS CHAR.
+
+{tmprecid.def}        /** Используем информацию из броузера */
+
+/** Дата распоряжения */
+DEF VAR docDate AS DATE LABEL "Дата распоряжения" NO-UNDO.
+/** Период расчета процентов */
+DEF VAR periodBegin AS DATE NO-UNDO.
+DEF VAR periodEnd AS DATE NO-UNDO.
+/** Даты подпериодов */
+DEF VAR subperBegin AS DATE NO-UNDO.
+DEF VAR subperEnd AS DATE NO-UNDO.
+DEF VAR subperDays AS INTEGER NO-UNDO.
+/** Номер депозитного счета */
+DEF VAR dpsAcct AS CHAR NO-UNDO.
+/** Комиссия по договору */
+DEF VAR comm AS DECIMAL NO-UNDO.
+DEF VAR newComm AS DECIMAL NO-UNDO.
+/** Остаток по счету */
+DEF VAR amount AS DECIMAL NO-UNDO.
+DEF VAR newAmount AS DECIMAL NO-UNDO.
+/** Сумма процентов за период */
+DEF VAR persAmount AS DECIMAL NO-UNDO.
+/** Общая сумма процентов */
+DEF VAR totalPersAmount AS DECIMAL NO-UNDO.
+DEF VAR totalPersAmountStr AS CHAR EXTENT 2 NO-UNDO.
+DEF VAR totalAmountStr AS CHAR EXTENT 2 NO-UNDO.
+
+/** Итератор */
+DEF VAR iDate AS DATE NO-UNDO.
+DEF VAR i AS INTEGER NO-UNDO.
+/** Кол-во дней в глобальном периоде */
+DEF VAR globDays AS INTEGER INITIAL 365 NO-UNDO.
+/** Таблица процентов */
+DEF VAR persTable AS CHAR NO-UNDO.
+/** Вместо SKIP */
+DEF VAR cr AS CHAR NO-UNDO.
+cr = CHR(10).
+/** Временная */
+DEF VAR tmpStr AS CHAR EXTENT 10 NO-UNDO.
+
+/** Выплата в конце срока */
+DEF VAR payOutFlag AS LOGICAL INITIAL FALSE NO-UNDO.
+
+/** Перенос строк */
+{wordwrap.def}
+
+/** Глобальные определения */
+{globals.i}
+{get-bankname.i}
+/** Библиотека функций работы с договорами */
+{ulib.i}
+
+def var cur_year as integer NO-UNDO.
+/** Бос */
+DEF VAR pirbosdps AS CHAR NO-UNDO.
+pirbosdps = FGetSetting("PIRboss","PIRbosdps","").
+DEF VAR pirboskzn AS CHAR NO-UNDO.
+pirboskzn = FGetSetting("PIRboss", "PIRbosKazna","").
+
+DEF VAR fioSpecDPS AS CHAR NO-UNDO. /** Специалист отдела ДПС */
+fioSpecDPS = ENTRY(1, iParam).
+
+{getdate.i}
+ASSIGN docDate = end-date.
+{getdates.i}
+
+/** Поиск выбранного договора */
+FOR EACH tmprecid NO-LOCK,
+		FIRST loan WHERE RECID(loan) EQ tmprecid.id NO-LOCK
+	:
+		ASSIGN
+			totalPersAmount = 0
+			periodBegin = beg-date.	
+			IF (periodBegin <= loan.open-date) THEN periodBegin = loan.open-date + 1.
+			periodEnd = end-date.
+			IF(periodEnd > loan.end-date) THEN periodEnd = loan.end-date.
+		
+		  cur_year = YEAR(periodEnd).
+			if TRUNCATE(cur_year / 4,0) = cur_year / 4 then
+				globDays = 366.
+			else
+				globDays = 365.
+			
+			payOutFlag = FALSE.
+			IF(periodEnd = loan.end-date) THEN payOutFlag = TRUE.
+		
+		{setdest.i}
+		
+		/** Поиск депозитного счета */
+		/***************************
+		 * 
+		 * Modifed by Maslov D. A.
+		 * Event: #495
+		 *
+		 ***************************/
+		dpsAcct = GetLoanAcct_ULL(loan.contract, loan.cont-code, "Депоз", periodBegin, false).
+
+		/** Процентная ставка */
+		/***************************
+		 * 
+		 * Modifed by Maslov D. A.
+		 * Event: #495
+		 *
+		 ***************************/
+		comm = GetLoanCommission_ULL(loan.contract, loan.cont-code, "%Деп", periodBegin, false).
+		/** Остаток вклада */
+		/***************************
+		 * 
+		 * Modifed by Maslov D. A.
+		 * Event: #495
+		 *
+		 ***************************/
+		amount = ABS(GetAcctPosValue_UAL(dpsAcct, loan.currency, periodBegin, false)).
+		/** Подпериод равен всему периоду */
+		ASSIGN 
+			subperBegin = periodBegin
+			subperEnd = periodEnd.
+		
+		/** 
+			Шапка таблицы 
+		*/
+		
+		
+		persTable = "                 РАСЧЕТ  ПРОЦЕНТОВ  С  " + STRING(periodBegin,"99/99/9999") 
+			+ "  ПО  " + STRING(periodEnd, "99/99/9999") + cr
+			+ "┌──────────────────┬─────────────────────┬────────┬────────┬──────────────────┐" + cr
+			+ "│ Остаток          │   Расчетный период  │ Кол-во │ Ставка │ Начислено        │" + cr
+			+ "│ на счете         ├──────────┬──────────┤ дней   │        │ процентов        │" + cr
+			+ "│                  │     С    │    ПО    │        │        │                  │" + cr
+			+ "├──────────────────┼──────────┼──────────┼────────┼────────┼──────────────────┤" + cr.
+			
+		
+		/** 
+			Основной цикл формирования таблицы начисления процентов.
+			Пробегаем по каждому дню, и определяем, изменилась ли процентная ставка или остаток.
+			Если изменения были в указанный день, то разбиваем общий период на подпериоды.
+		*/
+		DO iDate = periodBegin TO periodEnd - 1 :
+                        dpsAcct = GetLoanAcct_ULL(loan.contract, loan.cont-code, "Депоз", iDate, false).
+			newAmount = ABS(GetAcctPosValue_UAL(dpsAcct, loan.currency, iDate, false)).
+			newComm = GetLoanCommission_ULL(loan.contract, loan.cont-code, "%Деп", iDate, false).
+			IF (newAmount <> amount) OR (newComm <> comm) OR (DAY(iDate + 1) = 1) THEN DO:
+				subperEnd = iDate.
+				subperDays = subperEnd - subperBegin + 1.
+  		  cur_year = YEAR(subperEnd).
+	  		if TRUNCATE(cur_year / 4,0) = cur_year / 4 then	globDays = 366.	else globDays = 365.
+				persAmount = ROUND(amount * comm / globDays * subperDays,2).
+				persTable = persTable + 
+					"│" + STRING(amount,">>>,>>>,>>>,>>9.99") +
+					"│" + STRING(subperBegin,"99/99/9999") +
+					"│" + STRING(subperEnd, "99/99/9999") +
+					"│" + STRING(subperDays, ">>>>>>>>") +
+					"│" + STRING(comm * 100,">>>>9.99") +
+					"│" + STRING(persAmount,">>>,>>>,>>>,>>9.99") +
+					"│" + cr.
+				totalPersAmount = totalPersAmount + persAmount.
+				amount = newAmount.
+				comm = newComm.
+				subperBegin = iDate + 1.
+				subperEnd = periodEnd.
+			END.
+		END.
+		
+		/** Обработаем последний подпериод */
+	  cur_year = YEAR(subperEnd).
+ 		if TRUNCATE(cur_year / 4,0) = cur_year / 4 then	globDays = 366.	else globDays = 365.
+		subperDays = subperEnd - subperBegin + 1.
+		persAmount = ROUND(amount * comm / globDays * subperDays,2).
+		persTable = persTable + 
+			"│" + STRING(amount,">>>,>>>,>>>,>>9.99") +
+			"│" + STRING(subperBegin,"99/99/9999") +
+			"│" + STRING(subperEnd, "99/99/9999") +
+			"│" + STRING(subperDays, ">>>>>>>>") +
+			"│" + STRING(comm * 100,">>>>9.99") +
+			"│" + STRING(persAmount,">>>,>>>,>>>,>>9.99") +
+			"│" + cr.
+		totalPersAmount = totalPersAmount + persAmount.
+		
+		/** 
+			Итоги таблицы 
+		*/
+		persTable = persTable + "└──────────────────┴──────────┴──────────┴────────┴────────┴──────────────────┘" + cr
+			 	                  + "                                        Начислено процентов:" + STRING(totalPersAmount,">>>,>>>,>>>,>>9.99") + cr.
+
+		
+		/** Формируем распоряжение */
+		
+		PUT UNFORMATTED SPACE(50) "В Департамент 3" SKIP
+		SPACE(50) cBankName SKIP(2)
+		SPACE(50) 'Дата: ' docDate FORMAT "99/99/9999" SKIP(4)
+		SPACE(25) 'Р А С П О Р Я Ж Е Н И Е' SKIP(3).
+		
+		Run x-amtstr.p(totalPersAmount, loan.currency, true, true, 
+				output totalPersAmountStr[1], 
+				output totalPersAmountStr[2]).
+	  totalPersAmountStr[1] = totalPersAmountStr[1] + ' ' + totalPersAmountStr[2].
+		Substr(totalPersAmountStr[1],1,1) = Caps(Substr(totalPersAmountStr[1],1,1)).
+		
+		tmpStr[1] = 'В соответствии с Положением Банка России №39-П от 26.06.1998г. начислить ' +
+		'проценты за период с ' + STRING(periodBegin, "99/99/9999") + ' по ' + STRING(periodEnd, "99/99/9999") + 
+		' вкл. по Договору банковского вклада №' + loan.cont-code + ' от ' + STRING(loan.open-date, "99/99/9999") + 
+		' (вкладчик - ' + GetLoanInfo_ULL(loan.contract, loan.cont-code, "client_name", false) + ') по счету №' +
+		dpsAcct + ' в размере ' + STRING(ROUND(totalPersAmount,2)) + ' (' + totalPersAmountStr[1] + ')'.
+		IF (payOutFlag) THEN
+			tmpStr[1] = tmpStr[1] + '.'.
+		ELSE
+			tmpStr[1] = tmpStr[1] + ' и перевести начисленные проценты на счет №' + 
+			GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false) + ' (' +
+			GetAcctClientName_UAL(
+					GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false), false) + ').'.
+		
+		{wordwrap.i &s=tmpStr &n=10 &l=80}
+		
+		tmpStr[1] = '   ' + tmpStr[1].
+		DO i = 1 TO 10 :
+			IF tmpStr[i] <> "" THEN
+				PUT UNFORMATTED tmpStr[i] SKIP.
+		END.
+		
+		/**
+			Если возврат вклада 
+		*/
+		IF (payOutFlag) THEN DO:
+		
+						Run x-amtstr.p(amount, loan.currency, true, true, 
+						output totalAmountStr[1], 
+						output totalAmountStr[2]).
+			  totalAmountStr[1] = totalAmountStr[1] + ' ' + totalAmountStr[2].
+				Substr(totalAmountStr[1],1,1) = Caps(Substr(totalAmountStr[1],1,1)).
+		
+		
+		/*	tmpStr[1] = 'В связи с окончанием срока действия Договора банковского вклада ' + loan.cont-code + 
+			' от ' + STRING(loan.open-date, "99/99/9999") + 'г. осуществить возврат вклада и начисленных процентов на счет №' +
+			GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false) + ' (' +
+			GetAcctClientName_UAL(
+					GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false), false) + ').'.
+*/
+
+			tmpStr[1] = 'В связи с окончанием срока действия Договора банковского вклада ' + loan.cont-code + 
+			' от ' + GetLoanInfo_ULL(loan.contract, loan.cont-code, "open_date", false) + 'г. осуществить возврат вклада в сумме '  + STRING(ROUND(Amount,2)) + ' (' + totalAmountStr[1] + ') и начисленных процентов в размере ' + STRING(ROUND(totalPersAmount,2)) + ' (' + totalPersAmountStr[1] + ') на счет №' +
+			GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false) + ' (' +
+			GetAcctClientName_UAL(
+					GetLoanAcct_ULL(loan.contract, loan.cont-code, "ДепРасч", periodEnd, false), false) + ').'.
+					
+			{wordwrap.i &s=tmpStr &n=10 &l=80}
+		
+			tmpStr[1] = '   ' + tmpStr[1].
+			DO i = 1 TO 10 :
+				IF tmpStr[i] <> "" THEN
+					PUT UNFORMATTED tmpStr[i] SKIP.
+			END.
+			
+		END.
+		
+		
+		PUT UNFORMATTED "" SKIP(3) persTable SKIP(4).
+		
+		/** Подпись */
+		PUT UNFORMATTED ENTRY(1,pirbosdps) SPACE(80 - LENGTH(ENTRY(1,pirbosdps))) ENTRY(2,pirbosdps) SKIP(1).
+				
+		PUT UNFORMATTED ENTRY(1,pirboskzn) SPACE(80 - LENGTH(ENTRY(1,pirboskzn))) ENTRY(2,pirboskzn) SKIP(1).
+				
+		if fioSpecDPS <> "" then
+				PUT UNFORMATTED 'Ведущий специалист Депозитного отдела: ' SPACE(80 - LENGTH('Ведущий специалист Депозитного отдела: ')) fioSpecDPS SKIP.
+		
+		{preview.i}
+
+END.

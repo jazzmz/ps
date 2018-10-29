@@ -1,0 +1,539 @@
+/* ========================================================================= */
+/** 
+    Copyright: ООО ПИР Банк, Управление автоматизации (C) 2013
+     Filename: pir-drast-raspval.i
+      Comment:  используется при досрочном расторжении вклада 
+		для печати распоряжений (в валюте)
+		Запускается из pir-ordrast-trans.p
+      Created: Sitov S.A., 20.02.2013
+	Basis: #1073 
+     Modified:  
+*/
+/* ========================================================================= */
+
+
+
+{get-bankname.i}
+{wordwrap.def}
+
+
+/* ========================================================================= */
+				/** Объявления */
+/* ========================================================================= */
+
+/* iParam = 10,21,22,23,24  - одна   распоряга 01 - без выплат  */
+/* iParam = 31,32,33,34     - вторая распоряга 02 - с выплатами */
+
+
+DEF VAR TablShapka01	AS CHAR NO-UNDO.
+DEF VAR TablSep01   	AS CHAR NO-UNDO.
+DEF VAR TablDno01   	AS CHAR NO-UNDO.
+DEF VAR TablShapka02	AS CHAR NO-UNDO.
+DEF VAR TablSep02   	AS CHAR NO-UNDO.
+DEF VAR TablDno02   	AS CHAR NO-UNDO.
+
+
+DEF VAR RaspShapka	AS CHAR NO-UNDO.
+DEF VAR RaspPreamb	AS CHAR NO-UNDO.
+DEF VAR RaspPodpis	AS CHAR NO-UNDO.
+
+DEF VAR RaspTelo10_1 AS CHAR NO-UNDO.
+DEF VAR RaspTelo10_2 AS CHAR NO-UNDO.
+DEF VAR RaspTelo20_1 AS CHAR NO-UNDO.
+DEF VAR RaspTelo20_2 AS CHAR NO-UNDO.
+DEF VAR RaspTelo20_3 AS CHAR NO-UNDO.
+DEF VAR RaspTelo30_1 AS CHAR NO-UNDO.
+DEF VAR RaspTelo30_2 AS CHAR NO-UNDO.
+DEF VAR RaspTelo30_3 AS CHAR NO-UNDO.
+DEF VAR RaspTelo30_4 AS CHAR NO-UNDO.
+
+DEF VAR tmpStr AS CHAR EXTENT 20 NO-UNDO.
+DEF VAR s AS INT NO-UNDO.
+
+
+	/*** Временная таблица  ***/
+DEF TEMP-TABLE reprasp NO-UNDO
+	FIELD stb01  AS DEC
+	FIELD stb02  AS DATE
+	FIELD stb03  AS DATE
+	FIELD stb04  AS INT
+	FIELD stb05  AS DEC
+	FIELD stb06  AS DEC
+	FIELD stb07  AS DEC
+	FIELD stb08  AS DEC
+	FIELD stb09  AS DEC
+	FIELD stb10  AS DEC
+	FIELD stb11  AS DEC
+	FIELD stb12  AS DEC
+	FIELD stb12dt  AS DATE
+	FIELD stb13  AS DEC
+	FIELD stb14  AS DEC
+.
+
+	/**** заменить */
+DEF VAR  SumStb06	AS DEC  NO-UNDO.
+DEF VAR  SumStb10	AS DEC  NO-UNDO.
+DEF VAR  SumStb14	AS DEC  NO-UNDO.
+
+SumStb06 = SumNachPenProc_All + SumDonachPenProc_All.
+SumStb10 = SumNachProc_All .
+SumStb14 = SumVplProc_All .
+
+/*
+DEF VAR  AmtUDohod	AS DEC  NO-UNDO.
+AmtUDohod  = 0 .
+*/
+DEF VAR ListMonth    AS CHAR EXTENT 12 INITIAL [" январь ","ферваль ","  март  "," апрель ","  май   ","  июнь  ","  июль  "," август ","сентябрь","октябрь "," ноябрь ","декабрь "]  NO-UNDO.
+
+DEF VAR  Stb01PrevTmp	AS DEC  NO-UNDO.
+DEF VAR  Stb06PrevTmp	AS DEC  NO-UNDO.
+DEF VAR  Stb09PrevTmp	AS DEC  NO-UNDO.
+
+
+
+/* ========================================================================= */
+			/** создаем таблицу для распоряжения */
+/* ========================================================================= */
+
+FOR EACH repkau :
+  IF repkau.stb13 <> "vpl" THEN
+  DO:
+    CREATE reprasp .
+    ASSIGN
+	reprasp.stb01 = repkau.stb01    /* остаток вклада на конец периода */ 
+	reprasp.stb02 = repkau.stb02    /* начало периода начисления */       
+	reprasp.stb03 = repkau.stb03    /* конец  периода начисления */       
+	reprasp.stb04 = repkau.stb04
+	reprasp.stb05 = repkau.stb06	/* % ставка досрочного расторжения */
+	reprasp.stb06 = repkau.stb11	/* сумма процентов пересчитанных поставке до востребования за период ВАЛ */
+	reprasp.stb07 = (IF repkau.stb13 <> "donach" THEN repkau.stb11 ELSE 0 )
+	reprasp.stb08 = repkau.stb05	/* % ставка по договору на дату */
+	reprasp.stb09 = repkau.stb09	/* сумма в вал дог = сумма %-ов по ставке договора */ 
+	reprasp.stb10 = repkau.stb09    /* сумма в вал дог = сумма %-ов по ставке договора */ 
+	reprasp.stb11 = MAXIMUM(repkau.stb09 - repkau.stb11,0)	/* сумма излишне признанных процентов */
+	reprasp.stb12 = repkau.stb08	/* курс валюты на дату проводки */
+	reprasp.stb12dt = repkau.stb07	/* дата проводки */
+	reprasp.stb13 = ROUND(MAXIMUM(repkau.stb09 - repkau.stb11,0) * repkau.stb08,2)    /* рублевый эквивалент */
+	reprasp.stb14 = 0
+    .	
+  END.
+  ELSE
+  DO:
+    ASSIGN
+	reprasp.stb14 = repkau.stb09	/* сумма выплаченных % вал */
+    .
+  END.
+
+END.  /* end FOR EACH */
+
+
+
+	/*** отдельно преобразуем таблицу для вкладов с выплатами процентов ***/
+/*
+IF iParam = 31 OR iParam = 32 OR iParam = 33 OR iParam = 34 THEN 
+DO:
+
+ Stb01PrevTmp = 0 .
+ Stb06PrevTmp = 0 .
+ Stb09PrevTmp = 0 .
+
+ FOR EACH reprasp :
+
+	/* меняем значения некоторых полей на 0, если остаток не изменился */
+	/* а если изменился, то корреутируем значение других полей */
+  IF reprasp.stb01 = Stb01PrevTmp  THEN  
+     ASSIGN
+	reprasp.stb07 = 0
+	reprasp.stb10 = 0
+	reprasp.stb11 = 0	
+	reprasp.stb12 = 0	
+	reprasp.stb13 = 0	
+     .
+  ELSE
+     ASSIGN
+	reprasp.stb07 = Stb06PrevTmp + reprasp.stb06 
+	reprasp.stb10 = Stb09PrevTmp + reprasp.stb09
+	reprasp.stb11 = MAXIMUM( reprasp.stb10 - reprasp.stb07 , 0) 
+	reprasp.stb13 = ROUND( reprasp.stb11 * reprasp.stb12, 2)
+     .
+
+
+  ASSIGN
+    Stb01PrevTmp = reprasp.stb01 .
+    Stb06PrevTmp = reprasp.stb06 .
+    Stb09PrevTmp = reprasp.stb09 .
+  .
+
+ END. /* end FOR EACH */
+
+END. /*  IF iParam = 31 OR iParam = 32 OR iParam = 33 OR iParam = 34 THEN   */ 
+*/
+
+
+
+
+/* ========================================================================= */
+			/** заготовки для распоряжений  */
+/* ========================================================================= */
+
+TablShapka01 = 
+	CHR(10) + FILL(" ", 20) + "ПЕРЕСЧЕТ ПРОЦЕНТОВ ЗА ПЕРИОД С " + STRING(LoanOpDate + 1,"99/99/9999") + " ПО " + STRING(RaspDate,"99/99/9999") + "г." + CHR(10) + 
+	"┌───────────────┬─────────────────────┬──────┬──────┬─────────┬──────────────┬──────┬──────────────┬──────────────┬──────────────┬──────────┬──────────────┐" + CHR(10) +
+	"│ Остаток       │   Расчетный период  │Кол-во│Ставка│Расчет   │ Сумма начис  │Ставка│   Расчет     │ Сумма ранее  │ Сумма излишне│Курс валю-│ Рублевый     │" + CHR(10) +
+	"│ на счете      ├──────────┬──────────┤ дней │доср. │процентов│ ленных процен│по    │   процентов  │ начисленных  │ признанных   │ты на дату│ эквивалент   │" + CHR(10) +
+	"│               │     С    │    ПО    │      │растор│по ставке│ тов          │дого- │   по ставке  │ процентов    │ процентов    │начисления│              │" + CHR(10) +
+	"│               │          │          │      │      │доср.рас-│              │вору  │   договора   │              │              │процентов │              │" + CHR(10) +
+	"│               │          │          │      │      │торжения │              │      │              │              │              │          │              │" + CHR(10) +
+	"├───────────────┼──────────┼──────────┼──────┼──────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┤" + CHR(10) +
+	"│      1        │     2    │    3     │   4  │  5   │    6    │       7      │   8  │       9      │       10     │       11     │    12    │      13      │" + CHR(10) +		
+	"├───────────────┼──────────┼──────────┼──────┼──────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┤" 
+	.                                                                                                   
+	                                                                                                    
+TablSep01 =                                                                                                   
+	"├───────────────┼──────────┼──────────┼──────┼──────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┤" . 
+	.                                                                                                   
+	                                                                                                    
+TablDno01 =                                                                                                   
+	"│                   ИТОГО                           │" + STRING(SumStb06,">>,>>9.99") +  "│              │      │" + STRING(SumStb10,">>>,>>>,>>9.99") + "│                                                       │" + CHR(10) +	
+	"└───────────────┴──────────┴──────────┴──────┴──────┴─────────┴──────────────┴──────┴──────────────┴──────────────┴──────────────┴──────────┴──────────────┘" + CHR(10)
+	.
+
+
+
+TablShapka02 = 
+	CHR(10) + FILL(" ", 20) + "ПЕРЕСЧЕТ ПРОЦЕНТОВ ЗА ПЕРИОД С " + STRING(LoanOpDate + 1,"99/99/9999") + " ПО " + STRING(RaspDate,"99/99/9999") + "г." + CHR(10) + 
+	"┌───────────────┬─────────────────────┬──────┬──────┬─────────┬──────────────┬──────┬──────────────┬──────────────┬──────────────┬──────────┬──────────────┬──────────────┐" + CHR(10) +
+	"│ Остаток       │   Расчетный период  │Кол-во│Ставка│Расчет   │ Сумма начис  │Ставка│   Расчет     │ Сумма ранее  │ Сумма излишне│Курс валю-│ Рублевый     │ Сумма выпла- │" + CHR(10) +
+	"│ на счете      ├──────────┬──────────┤ дней │доср. │процентов│ ленных процен│по    │   процентов  │ начисленных  │ признанных   │ты на дату│ эквивалент   │ ченных       │" + CHR(10) +
+	"│               │     С    │    ПО    │      │растор│по ставке│ тов          │дого- │   по ставке  │ процентов    │ процентов    │начисления│              │ процентов    │" + CHR(10) +
+	"│               │          │          │      │      │доср.рас-│              │вору  │   договора   │              │              │процентов │              │              │" + CHR(10) +
+	"│               │          │          │      │      │торжения │              │      │              │              │              │          │              │              │" + CHR(10) +
+	"├───────────────┼──────────┼──────────┼──────┼──────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┼──────────────┤" + CHR(10) +
+	"│      1        │     2    │    3     │   4  │  5   │    6    │       7      │   8  │       9      │       10     │       11     │    12    │      13      │       14     │" + CHR(10) +		
+	"├───────────────┼──────────┼──────────┼──────┼──────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┼──────────────┤" 
+	.
+
+TablSep02 =
+	"├───────────────────────────────────────────────────┼─────────┼──────────────┼──────┼──────────────┼──────────────┼──────────────┼──────────┼──────────────┼──────────────┤" . 
+	.
+
+TablDno02 =
+	"│                          ИТОГО                    │" + STRING(SumStb06,">>,>>9.99") + "│" +  FILL(" ",14) + "│" + FILL(" ",6) + "│" + FILL(" ",14) + "│" + STRING(SumStb10,">>>,>>>,>>9.99") + "│" + FILL(" ",14) + "│" + FILL(" ",10) + "│" + FILL(" ",14) + "│" + STRING(SumStb14,">>>,>>>,>>9.99")  + "│" + CHR(10) + 
+	"└───────────────────────────────────────────────────┴─────────┴──────────────┴──────┴──────────────┴──────────────┴──────────────┼──────────┴──────────────┼──────────────┤" + CHR(10) + 
+												      		   FILL(" ", 129) + "│  Сумма к удержанию:     │" + STRING(SumStb14 - SumStb06,"->>,>>>,>>9.99") + "│" + CHR(10) +
+												      		   FILL(" ", 129) + "└─────────────────────────┴──────────────┘" + CHR(10) 
+	.
+
+
+RaspShapka =	FILL(" ",120) + "В Департамент 3" + CHR(10) + CHR(10) +
+		FILL(" ",120) + cBankName + CHR(10) + CHR(10) +
+		FILL(" ",120) + "Дата:" + STRING(RaspDate,"99/99/9999") + CHR(10) + CHR(10) + CHR(10) +
+		FILL(" ",70)  + "Р А С П О Р Я Ж Е Н И Е" + CHR(10) + CHR(10) + CHR(10) 
+		.
+
+RaspPreamb =	"В связи с досрочным расторжением Договора банковского вклада  №" + LoanNumber + " от " + STRING(LoanOpDate,"99/99/9999") + "г. " + 
+		"и заявлением " + LoanClient + " произвести следующие операции:" + CHR(10) 
+		.
+
+
+RaspPodpis =	CHR(10) + CHR(10) + CHR(10) +
+		"Начальник казначейства                " + FILL(" ",32) + "Е.М. Маршева" + CHR(10) + CHR(10) +
+		"Ведущий специалист Депозитного отдела " + FILL(" ",32) + "С.В. Балан" 
+		.
+
+
+/* ========================================================================= */
+	/**  НЕ БЫЛО ВЫПЛАТ  01 */
+	/**  СЛУЧАЙ  10         */
+/* ========================================================================= */
+                                                                                                              
+RaspTelo10_1 = 
+	"  1) Осуществить возврат вклада в сумме " + 
+	GetSumStr(AmtOsn,LoanCurrency) + 
+	"на счет " + LoanAcctOut +  " (" + LoanClient + ");" + CHR(10) +
+	"  2) Доначислить проценты за период с " + 
+	STRING( PerDonachBegDate ,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " " +
+	"по ставке до востребования в сумме " +
+	GetSumStr(SumDonachPenProc_All,LoanCurrency) + 
+	"со счета " + LoanAcctExp + " на счет " + LoanAcctInt + ";" + CHR(10) + 
+	"  3) Осуществить выплату процентов за период с " + 
+	STRING(LoanOpDate + 1,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " в размере " +
+	GetSumStr(SumNachPenProc_All + SumDonachPenProc_All,LoanCurrency) + 
+	"со счета " + LoanAcctInt + " на счет " + LoanAcctOut + " (" + LoanClient + ");" + CHR(10) .
+
+  /*** Далее идет ТАБЛИЦА ПЕРЕСЧЕТА - это цикл по таблице reprasp ***/
+
+RaspTelo10_2 = 
+	"  4) Осуществить сторнирование сумм положительных и отрицательных переоценок в соответствии "
+	+ "с Приложением к Распоряжению." + CHR(10) .
+
+
+
+/* ========================================================================= */
+	/**  НЕ БЫЛО ВЫПЛАТ  01  */
+	/**  СЛУЧАЙ  21,22,23,24 */
+/* ========================================================================= */
+                                                                                                              
+RaspTelo20_1 = 
+	"  1) Осуществить возврат вклада в сумме " + 
+	GetSumStr(AmtOsn,LoanCurrency) + 
+	"на счет " + LoanAcctOut +  " (" + LoanClient + ");" + CHR(10) +
+	"  2) Доначислить проценты за период с " + 
+	STRING( PerDonachBegDate ,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " " +
+	"по ставке до востребования в сумме " +
+	GetSumStr(SumDonachPenProc_All,LoanCurrency) + 
+	"со счета " + LoanAcctExp + " на счет " + LoanAcctInt + ";" + CHR(10) + 
+	"  3) Осуществить выплату процентов за период с " + 
+	STRING(LoanOpDate + 1,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " в размере " +
+	GetSumStr(SumNachPenProc_All + SumDonachPenProc_All,LoanCurrency) + 
+	"со счета " + LoanAcctInt + " на счет " + LoanAcctOut + " (" + LoanClient + ");" + CHR(10) +
+	"  4) Осуществить возврат излишне признанных расходов по курсу валюты на дату начисления " +
+	"со счета " + LoanAcctInt + " на" + " счет " + LoanAcctExp + ":" + CHR(10) .
+
+  /*** Далее идет расшифровка пункта 4 - это цикл по таблице ***/
+FOR EACH repkau :
+  IF repkau.stb13 = "novpl" THEN
+    RaspTelo20_2 = RaspTelo20_2 + CHR(10) + 
+	"- за " + ListMonth[MONTH(repkau.stb03)] + " " + STRING(YEAR(repkau.stb03)) + " года " +
+	"(по курсу ЦБ РФ за " + STRING(repkau.stb07,"99/99/99") + "г.- " + TRIM(STRING(repkau.stb08,">>>9.9999")) + " рублей) " +
+	"в сумме " + GetSumStr(repkau.stb09 - repkau.stb11, LoanCurrency ) + ";" .
+END.
+
+
+  /*** Далее идет ТАБЛИЦА ПЕРЕСЧЕТА - это цикл по таблице reprasp ***/
+
+RaspTelo20_3 = 
+	"  5) Осуществить сторнирование сумм положительных и отрицательных переоценок в соответствии "
+	+ "с Приложением к Распоряжению." + CHR(10) .
+
+
+
+
+/* ========================================================================= */
+	/**  БЫЛИ ВЫПЛАТЫ  02 */
+	/**  СЛУЧАЙ  31,32,33,34 */
+/* ========================================================================= */
+
+RaspTelo30_1 = 
+	"  1) Осуществить возврат вклада в сумме " + 
+	GetSumStr(AmtOsn,LoanCurrency) + 
+	"на счет " + LoanAcctOut + " (" + LoanClient + ");" + CHR(10) + 
+	"  2) В соответствии с условиями Договора списать " + 
+	"со счета " + LoanAcctOut + " сумму в размере " + 
+	GetSumStr(SumVplProc_All - SumNachPenProc_All - SumDonachPenProc_All,LoanCurrency) +  
+	"как возмещение разницы между выплаченными ранее процентами за период с " + 
+	STRING(LoanOpDate + 1,"99/99/9999") + " по " + STRING(PerVplEndDateRasp,"99/99/9999") + " вкл. в размере " + 
+	GetSumStr(SumVplProc_All,LoanCurrency) +  
+	"и причитающимся за период с " + STRING(LoanOpDate + 1,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " вкл. в размере " + 
+	GetSumStr(SumNachPenProc_All + SumDonachPenProc_All,LoanCurrency) + CHR(10) .
+
+  /*** Далее идет ТАБЛИЦА ПЕРЕСЧЕТА - это цикл по таблице reprasp ***/
+
+RaspTelo30_2 = 
+	"  3) Доначислить проценты за период с " + 
+	STRING( PerDonachBegDate ,"99/99/9999") + " по " + STRING(RaspDate,"99/99/9999") + " " +
+	"по ставке до востребования в сумме " +
+	GetSumStr(SumDonachPenProc_All,LoanCurrency) + 
+	"со счета " + LoanAcctExp + " на счет " + LoanAcctInt + ";" + CHR(10) + 
+	  "4) Осуществить возврат излишне признанных расходов по курсу валюты на дату начисления " +
+	"со счета " + LoanAcctInt + " на" + " счет " + LoanAcctExp + ":" + CHR(10) .
+
+  /*** Далее идет расшифровка пункта 4 - это цикл по таблице ***/
+FOR EACH reprasp WHERE reprasp.stb11 <> 0 :
+    RaspTelo30_3 = RaspTelo30_3 + CHR(10) + 
+	"- за " + ListMonth[MONTH(reprasp.stb03)] + " " + STRING(YEAR(reprasp.stb03)) + " года " +
+	"(по курсу ЦБ РФ за " + STRING(reprasp.stb12dt,"99/99/99") +  "г.- " + TRIM(STRING(reprasp.stb12,">>>9.9999")) + " рублей) " +
+	"в сумме " + GetSumStr(reprasp.stb11, LoanCurrency ) + ";" .
+END.
+
+
+RaspTelo30_4 = 
+	"  5) Осуществить сторнирование сумм положительных и отрицательных переоценок в соответствии "
+	+ "с Приложением к Распоряжению." + CHR(10) + 
+	"  6) Учесть доход от операций по досрочному расторжению банковского вклада " + LoanNumber + 
+	" от " + STRING(LoanOpDate,"99/99/9999") + "г. " + LoanClient + " в сумме " + 
+	GetSumStr(SumDohodRashod_All,LoanCurrency) + CHR(10) .
+
+
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* ========================================================================= */
+
+MESSAGE "Случай расторжения по тех.заданию = " iParam VIEW-AS ALERT-BOX.
+
+CASE iParam :
+    WHEN 10  THEN DO:
+	tmpStr[1] =  RaspPreamb + RaspTelo10_1 .
+    END.
+    WHEN 21 OR WHEN 22 OR WHEN 23 OR WHEN 24 THEN DO:
+	tmpStr[1] =  RaspPreamb + RaspTelo20_1 .
+    END.
+    WHEN 31 OR WHEN 32 OR WHEN 33 OR WHEN 34 THEN DO:
+	tmpStr[1] =  RaspPreamb + RaspTelo30_1 .	
+    END.
+END CASE.
+
+
+
+/* ========================================================================= */
+			/** Печатная форма распоряжения */
+/* ========================================================================= */
+
+{setdest.i}
+
+CASE iParam :
+
+    WHEN 10  THEN 
+    DO:
+
+	PUT UNFORM RaspShapka SKIP.
+
+	{wordwrap.i &s=tmpStr &n=20 &l=160}
+	DO s = 1 TO 20 :
+	  IF tmpStr[s] <> "" THEN
+	    	PUT UNFORM tmpStr[s] SKIP.
+	END.
+
+	PUT UNFORM TablShapka01 	SKIP.	
+
+	FOR EACH reprasp :
+	 PUT UNFORM  
+	   "│"
+	   STRING(reprasp.stb01,">>>>,>>>,>>9.99")   "│"  
+	   STRING(reprasp.stb02,"99/99/9999")        "│"
+	   STRING(reprasp.stb03,"99/99/9999")        "│"
+	   STRING(reprasp.stb04,">>>>>9")            "│"
+	   STRING(reprasp.stb05,">>9.99")            "│"
+	   STRING(reprasp.stb06,">>,>>9.99")         "│"
+	   STRING(reprasp.stb07,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb08,">>9.99")            "│"
+	   STRING(reprasp.stb09,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb10,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb11,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb12,">>>>9.9999")        "│"
+	   STRING(reprasp.stb13,">>>,>>>,>>9.99")    "│"
+	 SKIP.
+	END.
+
+	PUT UNFORM TablSep01	SKIP.	
+	PUT UNFORM TablDno01	SKIP.	
+	PUT UNFORM RaspTelo10_2	SKIP.	
+	PUT UNFORM RaspPodpis SKIP.
+
+    END.
+
+    WHEN 21 OR WHEN 22 OR WHEN 23 OR WHEN 24 THEN 
+    DO:
+
+	PUT UNFORM RaspShapka SKIP.
+
+	{wordwrap.i &s=tmpStr &n=20 &l=160}
+	DO s = 1 TO 20 :
+	  IF tmpStr[s] <> "" THEN
+	    	PUT UNFORM tmpStr[s] SKIP.
+	END.
+
+	PUT UNFORM RaspTelo20_2	SKIP.	
+	PUT UNFORM TablShapka01 	SKIP.	
+
+	FOR EACH reprasp :
+	 PUT UNFORM  
+	   "│"
+	   STRING(reprasp.stb01,">>>>,>>>,>>9.99")   "│"  
+	   STRING(reprasp.stb02,"99/99/9999")        "│"
+	   STRING(reprasp.stb03,"99/99/9999")        "│"
+	   STRING(reprasp.stb04,">>>>>9")            "│"
+	   STRING(reprasp.stb05,">>9.99")            "│"
+	   STRING(reprasp.stb06,">>,>>9.99")         "│"
+	   STRING(reprasp.stb07,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb08,">>9.99")            "│"
+	   STRING(reprasp.stb09,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb10,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb11,">>>,>>>,>>9.99")    "│"
+	   STRING(reprasp.stb12,">>>>9.9999")        "│"
+	   STRING(reprasp.stb13,">>>,>>>,>>9.99")    "│"
+	 SKIP.
+	END.
+
+	PUT UNFORM TablSep01	SKIP.	
+	PUT UNFORM TablDno01	SKIP.	
+	PUT UNFORM RaspTelo20_3	SKIP.	
+	PUT UNFORM RaspPodpis SKIP.
+
+    END.
+
+    WHEN 31 OR WHEN 32 OR WHEN 33 OR WHEN 34 THEN 
+    DO:
+
+	PUT UNFORM RaspShapka SKIP.
+
+	{wordwrap.i &s=tmpStr &n=20 &l=160}
+	DO s = 1 TO 20 :
+	  IF tmpStr[s] <> "" THEN
+	    	PUT UNFORM tmpStr[s] SKIP.
+	END.
+
+
+	PUT UNFORM TablShapka02 	SKIP.	
+
+	FOR EACH reprasp :
+	 PUT UNFORM  
+	   "│"
+	   STRING(reprasp.stb01,">>>>,>>>,>>9.99")   "│"  
+	   STRING(reprasp.stb02,"99/99/9999")        "│"
+	   STRING(reprasp.stb03,"99/99/9999")        "│"
+	   STRING(reprasp.stb04,">>>>>9")            "│"
+	   STRING(reprasp.stb05,">>9.99")            "│"
+	   STRING(reprasp.stb06,">>,>>9.99")         "│"
+	   (IF reprasp.stb07 <> 0 THEN STRING(reprasp.stb07,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )   "│"
+	   STRING(reprasp.stb08,">>9.99")            "│"
+	   STRING(reprasp.stb09,">>>,>>>,>>9.99")    "│"
+	   (IF reprasp.stb10 <> 0 THEN STRING(reprasp.stb10,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )  "│"
+	   (IF reprasp.stb11 <> 0 THEN STRING(reprasp.stb11,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )  "│"
+	   (IF reprasp.stb12 <> 0 THEN STRING(reprasp.stb12,">>>>9.9999")     ELSE STRING("","X(10)") )  "│"
+	   (IF reprasp.stb13 <> 0 THEN STRING(reprasp.stb13,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )  "│"
+	   (IF reprasp.stb14 <> 0 THEN STRING(reprasp.stb14,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )  "│"
+	 SKIP.
+	END.
+
+	PUT UNFORM TablSep02	SKIP.	
+	PUT UNFORM TablDno02	SKIP.	
+
+	tmpStr[1] =  RaspTelo30_2 + RaspTelo30_3 + CHR(10) + RaspTelo30_4 .
+
+	{wordwrap.i &s=tmpStr &n=20 &l=160}
+	DO s = 1 TO 20 :
+	  IF tmpStr[s] <> "" THEN
+	    	PUT UNFORM tmpStr[s] SKIP.
+	END.
+
+	PUT UNFORM RaspPodpis SKIP.
+
+    END.
+END CASE.
+
+
+{preview.i}
+(IF reprasp.stb14 <> 0 THEN STRING(reprasp.stb14,">>>,>>>,>>9.99") ELSE STRING("","X(14)") )  "│"
+	 SKIP.
+	END.
+
+	PUT UNFORM TablSep02	SKIP.	
+	PUT UNFORM TablDno02	SKIP.	
+
+	tmpStr[1] =  RaspTelo30_2 + RaspTelo30_3 + CHR(10) + RaspTelo30_4 .
+
+	{wordwrap.i &s=tmpStr &n=20 &l=160}
+	DO s = 1 TO 20 :
+	  IF tmpStr[s] <> "" THEN
+	    	PUT UNFORM tmpStr[s] SKIP.
+	END.
+
+	PUT UNFORM RaspPodpis SKIP.
+
+    END.
+END CASE.
+
+
+{preview.i}

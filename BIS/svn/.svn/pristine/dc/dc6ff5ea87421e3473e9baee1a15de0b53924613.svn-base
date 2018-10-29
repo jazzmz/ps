@@ -1,0 +1,686 @@
+/* ========================================================================= */
+/** 
+    Copyright: ООО ПИР Банк, Управление автоматизации (C) 2013
+     Filename: pir-ordrast-trans.p
+      Comment: Процедура используется при досрочном расторжении вклада
+		Используется с входными параметрами. 
+		Запускается из транзакции досрочного расторжения или процедуры 
+   Parameters: описаны ниже
+       Launch: 
+         Uses: pir-dps-tblkau.i - строим талицу по аналитике и проходимся по ней 
+		pir-drast-rasprub.i - печать распоряжения
+      Created: Sitov S.A., 20.02.2013
+	Basis: #1073 
+     Modified:  
+*/
+/* ========================================================================= */
+
+
+
+{globals.i}		/** Глобальные определения */
+{ulib.i}		/** Библиотека ПИР-функций */
+{sh-defs.i}
+
+/* ========================================================================= */
+				/** Объявления */
+/* ========================================================================= */
+
+  /* Входные и выходные параметры процедуры */
+DEF INPUT PARAM LoanNumber	AS CHAR  NO-UNDO.	/* номер договора */
+DEF INPUT PARAM RaspDate	AS DATE  NO-UNDO.	/* дата расторжения */
+DEF INPUT PARAM RatePen		AS DEC   NO-UNDO.	/* штрафная проц ставка */
+DEF INPUT PARAM SPODDate	AS DATE  NO-UNDO.	/* дата СПОД */
+DEF INPUT PARAM ShowTabl	AS LOGICAL NO-UNDO.	/* показывать расчет */
+DEF INPUT PARAM ShowRasp	AS LOGICAL NO-UNDO.	/* печать распоряжений */
+DEF OUTPUT PARAM Result AS CHAR NO-UNDO.
+
+
+  /* договор и инфа по нему */
+DEF VAR LoanCurrency AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanOpDate   AS DATE NO-UNDO.
+DEF VAR LoanClient   AS CHAR NO-UNDO.
+DEF VAR AmtOsn	     AS DEC NO-UNDO.
+
+  /* счета */
+DEF VAR LoanAcct    AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctOut AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctCur AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctInt AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExp AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpProsh AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpSPOD  AS CHAR INIT "" NO-UNDO.
+DEF VAR LoanAcctExpSPODBefLast AS CHAR INIT "" NO-UNDO.
+
+
+  /* по периодам (в циклах) */
+DEF VAR LoanIntSchBase	AS INT  NO-UNDO.
+DEF VAR RateNorm   AS DEC  NO-UNDO.
+
+DEF VAR PerBegDate	    AS DATE NO-UNDO.
+DEF VAR PerEndDate	    AS DATE NO-UNDO.
+DEF VAR PerKolDay	    AS INT  NO-UNDO.
+DEF VAR PerEndOstAcct	    AS DEC  NO-UNDO.
+
+DEF VAR FlgRazb  AS LOGICAL INIT no  NO-UNDO.
+
+DEF VAR oSysClass AS TSysClass NO-UNDO.
+oSysClass = new TSysClass().
+
+DEF VAR PerEndKurs	    AS DEC  NO-UNDO.
+DEF VAR PerEndKursDate	    AS DATE NO-UNDO.
+DEF VAR PerEndSumNachRub    AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachVal    AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachPenaltyRub  AS DEC  NO-UNDO.
+DEF VAR PerEndSumNachPenaltyVal  AS DEC  NO-UNDO.
+
+DEF VAR PerVplBegDate	    AS DATE NO-UNDO.
+DEF VAR PerVplEndDate	    AS DATE NO-UNDO.
+DEF VAR PerVplEndDateRasp   AS DATE  NO-UNDO. /* для распоряги. последняя выплата процентов. конец периода */
+DEF VAR PerDonachBegDate    AS DATE  NO-UNDO. /* для распоряги. начало периода доначисления */
+
+DEF VAR PerEndSumDonachPenaltyVal  AS DEC  NO-UNDO.
+DEF VAR PerEndSumDonachPenaltyRub  AS DEC  NO-UNDO.
+
+
+    /* итоговые суммы */
+ /* выплаченные проценты */
+DEF VAR SumVplProc_iter		AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_All          AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_Current      AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_Last         AS DEC INIT 0 NO-UNDO.
+DEF VAR SumVplProc_BeforeLast   AS DEC INIT 0 NO-UNDO.
+                                
+ /* проценты начисленные по ставке договора */
+DEF VAR SumNachProc_iter        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_All         AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_Current     AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_Last        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachProc_BeforeLast  AS DEC INIT 0 NO-UNDO.
+
+ /* проценты пересчитанные по ставе до востребования */
+DEF VAR SumNachPenProc_iter       AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_All        AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_Current    AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_Last       AS DEC INIT 0 NO-UNDO.
+DEF VAR SumNachPenProc_BeforeLast AS DEC INIT 0 NO-UNDO.
+
+ /* проценты доначисленные по ставе до востребования */
+DEF VAR SumDonachPenProc_iter       AS DEC INIT 0 NO-UNDO. 
+DEF VAR SumDonachPenProc_All        AS DEC INIT 0 NO-UNDO. 
+
+	/*** Временная таблица  ***/
+DEF TEMP-TABLE repkau NO-UNDO
+	FIELD stb00  AS INT
+	FIELD stb01  AS DEC
+	FIELD stb02  AS DATE
+	FIELD stb03  AS DATE
+	FIELD stb04  AS INT
+	FIELD stb05  AS DEC
+	FIELD stb06  AS DEC
+	FIELD stb06dt AS DATE
+	FIELD stb07  AS DEC
+	FIELD stb08  AS DEC
+	FIELD stb09  AS DEC
+	FIELD stb10  AS DEC
+	FIELD stb11  AS DEC
+	FIELD stb12  AS DEC
+	FIELD stb13  AS DEC
+	FIELD stb14  AS CHAR
+.
+
+DEF VAR i AS INT INIT 0 NO-UNDO.
+DEF VAR j AS INT INIT 0 NO-UNDO.
+DEF VAR n AS INT INIT 0 NO-UNDO.
+
+
+DEFINE BUFFER trloan FOR loan .
+
+
+DEF VAR FlgNach  AS LOGICAL INIT no  NO-UNDO.
+DEF VAR FlgVpl   AS LOGICAL INIT no  NO-UNDO.
+DEF VAR iParam   AS INT INIT 0 NO-UNDO.
+
+
+
+
+
+/* ========================================================================= */
+				/** Функция */
+/* ========================================================================= */
+
+  /*** временная база начисления процентов */
+FUNCTION GetLoanIntSchBase RETURNS DECIMAL ( INPUT iDate  AS DATE ).
+
+	DEFINE VARIABLE BaseNach AS DEC NO-UNDO.
+
+	BaseNach = (DATE('31/12/' + STRING(YEAR(iDate))) - DATE('01/01/' + STRING(YEAR(iDate))) + 1).
+
+	RETURN BaseNach.
+
+END FUNCTION.
+
+
+
+/* ========================================================================= */
+				/** Реализация */
+/* ========================================================================= */
+/*
+message 
+  " Вход для drast-trans.p " 
+  " LoanNumber  = " LoanNumber
+  " RaspDate    = " RaspDate  
+  " RatePen     = " RatePen   
+  " SPODDate    = " SPODDate
+  " ShowTabl    = " ShowTabl 
+  " ShowRasp    = " ShowRasp 
+view-as alert-box.
+*/
+
+FIND FIRST trloan 
+   WHERE trloan.contract = "dps"
+   AND   trloan.cont-code = LoanNumber
+NO-LOCK NO-ERROR.
+
+
+/****************************************************************************/
+	/* определяем информацию по договору */
+/****************************************************************************/
+
+LoanCurrency = trloan.currency .
+LoanOpDate  = trloan.open-date .
+LoanClient  = GetClientInfo_ULL("Ч," + STRING(trloan.cust-id), "name", false) .
+
+  /* 423 */
+LoanAcct    = GetLoanAcct_ULL(trloan.contract, trloan.cont-code, 'loan-dps-t', trloan.open-date, false).
+  /* 47411 */
+LoanAcctInt = GetLoanAcct_ULL(trloan.contract, trloan.cont-code, 'loan-dps-int', trloan.open-date, false).
+  /* 70606 - может поменяться. нам нужен только для распоряжения на дату распоряжения */ 
+LoanAcctExp = GetLoanAcct_ULL(trloan.contract, trloan.cont-code, 'loan-expens', RaspDate, false).
+  /* 40817 - может поменяться. надо определять его для каждого периода  */
+LoanAcctOut = GetLoanAcct_ULL(trloan.contract, trloan.cont-code, 'loan-dps-out', trloan.open-date, false).
+  /* текущий loan-dps-cur */	
+LoanAcctCur = "" .
+  /* СПОД !!! пока так */
+LoanAcctExpSPOD = (IF RaspDate > SPODDate THEN LoanAcctExp ELSE (if substring(LoanAcct,1,3) = '426' then '70706810600002160202' else '70706810600002160105') ) .
+LoanAcctExpSPODBefLast = (IF LoanCurrency = "" THEN '70701810600001720101' ELSE '70701810900001720102' ) .
+LoanAcctExpProsh = (IF RaspDate > SPODDate AND year(RaspDate) = year(LoanOpDate) THEN LoanAcctExp ELSE '70601810900001720105' ) .
+
+
+  /* Остаток вклада на дату расторжения */
+RUN acct-pos IN h_base (LoanAcct, LoanCurrency, RaspDate - 1 , RaspDate - 1 , CHR(251) ) .
+AmtOsn = IF LoanCurrency = "" THEN ABS(sh-bal) ELSE ABS(sh-val) .
+
+	/* Ставка До востребования */
+IF RatePen = ? OR RatePen = 0 THEN
+   RatePen = GetDpsCommission_ULL(LoanNumber, 'pen-commi', RaspDate, false) .
+ELSE 
+   RatePen = RatePen / 100 .
+
+
+/****************************************************************************/
+	/*  заполняем таблицу по аналитике до даты расторжения */
+/****************************************************************************/
+
+  /* строим таблицу по аналитике и проходимся по ней */
+{pir-dps-tblkau.i}
+
+
+/****************************************************************************/
+	/*  получаем новую рабочую таблицу */
+/****************************************************************************/
+
+FOR EACH tblkau :
+
+  IF tblkau.Op-ContractDate = LoanOpDate AND tblkau.KauEntry-Kau = 'ОстВклС' 
+  THEN  NEXT.
+
+  n = n + 1 .
+
+	/* отбираем все, кроме выплат процентов */
+  IF NOT ( tblkau.KauEntry-AcctDb = LoanAcctInt AND tblkau.KauEntry-AcctCr BEGINS SUBSTRING(LoanAcctOut,1,5) )  THEN
+  DO:
+
+    i = i + 1 .
+    FlgNach = yes .
+
+	/* начало и конец периода начисления */ 
+    PerBegDate = ( IF i = 1 THEN LoanOpDate + 1 ELSE PerEndDate + 1 ).
+    PerEndDate = tblkau.Op-ContractDate .
+    PerKolDay  = PerEndDate - PerBegDate + 1 .
+
+	/* сумма остатка на счете на конец периода */ 
+    RUN acct-pos IN h_base (LoanAcct, LoanCurrency, (PerEndDate - 1), (PerEndDate - 1), CHR(251) ) .
+    PerEndOstAcct = IF LoanCurrency = "" THEN ABS(sh-bal) ELSE ABS(sh-val).
+
+	/* ставка по договору на конец периода начисления */ 
+    RateNorm = GetDpsCommission_ULL(LoanNumber, 'commission', PerEndDate, false) .
+
+	/* временная база начисления на конец периода */
+    LoanIntSchBase = GetLoanIntSchBase(PerEndDate) . 
+
+	/* дата проводки. на эту дату мы берем курс */
+    PerEndKursDate = tblkau.KauEntry-OpDate .
+	/* курс валюты на дату проводки  tblkau.KauEntry-OpDate */
+    PerEndKurs = oSysClass:getCBRKurs( ( if LoanCurrency = "" then INT("810") else INT(LoanCurrency) ) , PerEndKursDate) . 
+
+
+	/* сумма начисленных процентов на конец периода */ 
+    IF (tblkau.KauEntry-Kau = 'ОстВклС') OR (tblkau.KauEntry-Kau = 'НачПр' AND FlgRazb = yes ) THEN
+    DO:
+  	    /* было изменение остатка, тогда надо рассчитать */
+  	IF LoanCurrency = "" THEN
+  	DO:
+  	  PerEndSumNachRub = ROUND( PerEndOstAcct * PerKolDay * RateNorm / LoanIntSchBase , 2).
+	  PerEndSumNachVal = 0 .
+	END.
+	ELSE
+	DO:
+	  PerEndSumNachVal = ROUND( PerEndOstAcct * PerKolDay * RateNorm / LoanIntSchBase , 2).
+	  PerEndSumNachRub = ROUND( PerEndSumNachVal * PerEndKurs, 2) . 
+	END.
+
+	FlgRazb = yes .
+    END.
+    ELSE
+    DO:
+	PerEndSumNachRub = tblkau.KauEntry-AmtRub .
+	PerEndSumNachVal = tblkau.KauEntry-AmtCur .
+	FlgRazb = no .
+    END.
+
+
+	/* сумма процентов пересчитанных по ставке до востребования за период */
+    IF LoanCurrency = "" THEN
+    DO:
+	PerEndSumNachPenaltyRub = ROUND( PerEndOstAcct * PerKolDay * RatePen / LoanIntSchBase , 2).
+	PerEndSumNachPenaltyVal = 0 .
+    END.
+    ELSE
+    DO:
+	PerEndSumNachPenaltyVal = ROUND( PerEndOstAcct * PerKolDay * RatePen / LoanIntSchBase , 2).
+	PerEndSumNachPenaltyRub = ROUND( PerEndSumNachPenaltyVal * PerEndKurs, 2) . 
+    END.
+
+
+	/* заполняем таблицу */
+    CREATE repkau .
+    ASSIGN
+	repkau.stb00 = n
+	repkau.stb01 = PerEndOstAcct	/* остаток вклада на конец периода */
+	repkau.stb02 = PerBegDate	/* начало периода начисления */
+	repkau.stb03 = PerEndDate	/* конец  периода начисления */
+	repkau.stb04 = PerKolDay 
+	repkau.stb05 = RateNorm * 100	/* ставка по договору */
+	repkau.stb06 = PerEndKurs	/* курс валюты на дату проводки */
+	repkau.stb06dt = PerEndKursDate	/* сама дата проводки, на которую взят курс */
+	repkau.stb07 = PerEndSumNachRub /* сумма начисленных % руб */
+	repkau.stb08 = PerEndSumNachVal /* сумма начисленных % вал */
+	repkau.stb09 = 0		/* сумма выплаченных % руб */   
+	repkau.stb10 = 0        	/* сумма выплаченных % вал */   
+	repkau.stb11 = RatePen * 100	/* ставка до востребования */
+	repkau.stb12 = PerEndSumNachPenaltyRub   /* сумма процентов пересчитанных поставке до востребования за период РУБ */
+	repkau.stb13 = PerEndSumNachPenaltyVal   /* сумма процентов пересчитанных поставке до востребования за период ВАЛ */
+	repkau.stb14 = "novpl"		/* не выплат процентов */
+    .                       
+
+  END.  /* закончили отбирать все, кроме выплат процентов */
+
+  
+	/* отбираем выплаченные проценты */ 
+  IF ( tblkau.KauEntry-AcctDb = LoanAcctInt AND tblkau.KauEntry-AcctCr BEGINS SUBSTRING(LoanAcctOut,1,5) ) THEN
+  DO:
+
+    j = j + 1 .
+    FlgVpl  = yes .
+
+    PerVplBegDate = ( IF j = 1 THEN LoanOpDate + 1 ELSE PerVplEndDate + 1 ).
+
+    IF  DAY(tblkau.Op-ContractDate) = 5 OR DAY(tblkau.Op-ContractDate) = 7 THEN
+	PerVplEndDate = tblkau.Op-ContractDate - DAY(tblkau.Op-ContractDate) .
+    ELSE
+	PerVplEndDate = tblkau.Op-ContractDate .
+
+    PerKolDay  = PerVplEndDate - PerVplBegDate + 1 .
+
+	/* дата проводки. на эту дату мы берем курс */
+    PerEndKursDate = tblkau.KauEntry-OpDate .
+	/* курс валюты на дату проводки  tblkau.KauEntry-OpDate */
+    PerEndKurs = oSysClass:getCBRKurs( ( if LoanCurrency = "" then INT("810") else INT(LoanCurrency) ) , PerEndKursDate) . 
+
+
+	/* заполняем таблицу */
+    CREATE repkau .
+    ASSIGN
+	repkau.stb00 = n
+	repkau.stb01 = 0 		/* остаток вклада на конец периода */
+	repkau.stb02 = PerVplBegDate	/* начало периода выплаты */
+	repkau.stb03 = PerVplEndDate	/* конец  периода выплаты */
+	repkau.stb04 = PerKolDay 
+	repkau.stb05 = 0		/* ставка по договору */
+	repkau.stb06 = PerEndKurs	/* курс валюты на дату проводки */
+	repkau.stb06dt = PerEndKursDate	/* сама дата проводки, на которую взят курс */
+	repkau.stb07 = 0		/* сумма начисленных % руб */
+	repkau.stb08 = 0 		/* сумма начисленных % вал */
+	repkau.stb09 = tblkau.KauEntry-AmtRub	/* сумма выплаченных % руб */   
+	repkau.stb10 = tblkau.KauEntry-AmtCur  	/* сумма выплаченных % вал */   
+	repkau.stb11 = 0		/* ставка до востребования */
+	repkau.stb12 = 0   		/* сумма процентов пересчитанных поставке до востребования за период РУБ */
+	repkau.stb13 = 0  		/* сумма процентов пересчитанных поставке до востребования за период ВАЛ */
+	repkau.stb14 = "vpl"		/* выплата процентов */
+    .                       
+
+  END.
+
+END.
+
+
+
+/****************************************************************************/
+	/*  последнюю строку рассчитываем отдельно - доначисление */
+/****************************************************************************/
+
+n = n + 1 .
+
+	/* начало и конец периода начисления */ 
+PerBegDate = ( IF n = 1 THEN LoanOpDate + 1 ELSE PerEndDate + 1 ).
+PerEndDate = RaspDate .
+PerKolDay  = PerEndDate - PerBegDate + 1 .
+
+	/* сумма остатка на счете на конец периода */ 
+RUN acct-pos IN h_base (LoanAcct, LoanCurrency, (PerEndDate - 1), (PerEndDate - 1), CHR(251) ) .
+PerEndOstAcct = IF LoanCurrency = "" THEN ABS(sh-bal) ELSE ABS(sh-val).
+
+	/* временная база начисления */
+LoanIntSchBase = GetLoanIntSchBase(PerEndDate) . 
+
+	/* сумма доначисленных процентов по ставке до востребования */
+IF LoanCurrency = "" THEN
+DO:
+  PerEndSumDonachPenaltyRub = ROUND( PerEndOstAcct * PerKolDay * RatePen / LoanIntSchBase , 2).
+  PerEndSumDonachPenaltyVal = 0 .
+END.
+ELSE
+DO:
+	/* курс валюты на дату проводки  - дата расторжения вклада */
+  PerEndKursDate = RaspDate .
+  PerEndKurs = oSysClass:getCBRKurs( ( if LoanCurrency = "" then INT("810") else INT(LoanCurrency) ) , PerEndKursDate) . 
+  PerEndSumDonachPenaltyVal = ROUND( PerEndOstAcct * PerKolDay * RatePen / LoanIntSchBase , 2).
+  PerEndSumDonachPenaltyRub = ROUND( PerEndSumDonachPenaltyVal * PerEndKurs, 2) . 
+END.
+
+	/* заполняем таблицу */
+CREATE repkau .
+ASSIGN
+	repkau.stb00 = n
+	repkau.stb01 = PerEndOstAcct	/* остаток вклада на конец периода */
+	repkau.stb02 = PerBegDate	/* начало периода */
+	repkau.stb03 = PerEndDate	/* конец  периода */
+	repkau.stb04 = PerKolDay 
+	repkau.stb05 = 0		/* ставка по договору */
+	repkau.stb06 = PerEndKurs	/* курс валюты на дату проводки */
+	repkau.stb06dt = PerEndKursDate	/* дата расторжения вклада */
+	repkau.stb07 = 0		/* сумма доначисленных % руб */
+	repkau.stb08 = 0 		/* сумма доначисленных % вал */
+	repkau.stb09 = 0		/* сумма выплаченных % руб */   
+	repkau.stb10 = 0  		/* сумма выплаченных % вал */   
+	repkau.stb11 = RatePen * 100	/* ставка до востребования */
+	repkau.stb12 = PerEndSumDonachPenaltyRub	/* сумма доначисленных % по ставке до востребования за период РУБ */
+	repkau.stb13 = PerEndSumDonachPenaltyVal  	/* сумма доначисленных % по ставке до востребования за период ВАЛ */
+	repkau.stb14 = "donach"		/* доначисление процентов */
+.                       
+
+	/*  закончили рассчитывать последнюю строку  */
+/****************************************************************************/
+
+
+
+
+/****************************************************************************/
+	/*  определяем итоговые суммы   */
+/****************************************************************************/
+
+
+FOR EACH repkau :
+
+	/* определяем итоговые суммы выплаченных процентов 
+	за весь период, текущий год, прошлый год, позапрошлый год и ранее */
+  IF repkau.stb14 = "vpl" THEN
+  DO:
+	SumVplProc_iter = ( IF LoanCurrency = "" THEN repkau.stb09 ELSE repkau.stb10 ).
+
+	SumVplProc_All = SumVplProc_All + SumVplProc_iter.
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) THEN
+	  SumVplProc_Current = SumVplProc_Current + SumVplProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 1  THEN
+	  SumVplProc_Last = SumVplProc_Last + SumVplProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 2  THEN
+	  SumVplProc_BeforeLast = SumVplProc_BeforeLast + SumVplProc_iter .
+
+	PerVplEndDateRasp = repkau.stb03 .
+
+  END.
+
+
+	/* определяем итоговые суммы начисленных и пересчитанных процентов 
+	за весь период, текущий год, прошлый год, позапрошлый год и ранее */
+  IF repkau.stb14 = "novpl" THEN
+  DO:
+
+	   /* проценты начисленные по ставке договора */
+
+	SumNachProc_iter = ( IF LoanCurrency = "" THEN repkau.stb07 ELSE repkau.stb08 ).
+
+	SumNachProc_All = SumNachProc_All + SumNachProc_iter.
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) THEN
+	  SumNachProc_Current = SumNachProc_Current + SumNachProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 1  THEN
+	  SumNachProc_Last = SumNachProc_Last + SumNachProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 2  THEN
+	  SumNachProc_BeforeLast = SumNachProc_BeforeLast + SumNachProc_iter .
+
+
+	   /* проценты пересчитанные по ставе до востребования */
+
+	SumNachPenProc_iter = ( IF LoanCurrency = "" THEN repkau.stb12 ELSE repkau.stb13 ).
+
+	SumNachPenProc_All = SumNachPenProc_All + SumNachPenProc_iter.
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) THEN
+	  SumNachPenProc_Current = SumNachPenProc_Current + SumNachPenProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 1  THEN
+	  SumNachPenProc_Last = SumNachPenProc_Last + SumNachPenProc_iter .
+
+	IF YEAR(repkau.stb03) = YEAR(RaspDate) - 2  THEN
+	  SumNachPenProc_BeforeLast = SumNachPenProc_BeforeLast + SumNachPenProc_iter .
+
+  END.
+
+
+	/* определяем итоговые суммы доначисленных процентов по ставке до востребования */
+  IF repkau.stb14 = "donach" THEN
+  DO:
+
+	PerDonachBegDate = repkau.stb02 .
+
+	   /* проценты пересчитанные по ставке до востребования */
+
+	SumDonachPenProc_iter = ( IF LoanCurrency = "" THEN repkau.stb12 ELSE repkau.stb13 ).
+
+	SumDonachPenProc_All  = SumDonachPenProc_All + SumDonachPenProc_iter .
+
+  END.
+
+
+END.
+	/*  закончили определять итоговые суммы   */
+/****************************************************************************/
+
+
+/****************************************************************************/
+	/*  определяем выходную Result  */
+/****************************************************************************/
+
+Result = 
+    /* выплаченные проценты */
+  STRING(SumVplProc_All)	+ "," +
+  STRING(SumVplProc_Current)	+ "," +
+  STRING(SumVplProc_Last)	+ "," +
+  STRING(SumVplProc_BeforeLast)	+ "," +
+    /* проценты начисленные по ставке договора */
+  STRING(SumNachProc_All)	 + "," +
+  STRING(SumNachProc_Current)    + "," +
+  STRING(SumNachProc_Last)       + "," +
+  STRING(SumNachProc_BeforeLast) + "," +
+    /* проценты пересчитанные по ставе до востребования */
+  STRING(SumNachPenProc_All)        + "," +
+  STRING(SumNachPenProc_Current)    + "," +
+  STRING(SumNachPenProc_Last)       + "," +
+  STRING(SumNachPenProc_BeforeLast) + "," +
+    /* проценты пересчитанные по ставке до востребования */
+  STRING(SumDonachPenProc_All)
+  .
+	/*  закончили определять Result   */
+/****************************************************************************/
+
+
+
+
+
+/****************************************************************************/
+	/*  при необходимости выводим расчет   */
+/****************************************************************************/
+
+IF ShowTabl = yes  THEN
+DO:
+
+  {setdest.i}
+
+  FOR EACH repkau :
+    PUT UNFORM
+       repkau.stb00  " | "
+       repkau.stb01  " | "
+       repkau.stb02  " | "
+       repkau.stb03  " | "
+       repkau.stb04  " | "
+       repkau.stb05  " | "
+       repkau.stb06  " | "
+       repkau.stb07  " | "
+       repkau.stb08  " | "
+       repkau.stb09  " | "
+       repkau.stb10  " | "
+       repkau.stb11  " | "
+       repkau.stb12  " | "
+       repkau.stb13  " | "
+       repkau.stb14  " | "
+    SKIP.       
+  END.
+
+  PUT UNFORM SKIP(1).
+
+     /* выплаченные проценты */
+  PUT UNFORM "Выплаченные проценты:" SKIP(1)
+    SumVplProc_All	" | "
+    SumVplProc_Current	" | "
+    SumVplProc_Last	" | "
+    SumVplProc_BeforeLast	" | "
+  SKIP(1).
+  
+     /* проценты начисленные по ставке договора */
+  PUT UNFORM "Проценты начисленные по ставке договора:" SKIP(1)
+    SumNachProc_All	 " | "
+    SumNachProc_Current    " | "
+    SumNachProc_Last       " | "
+    SumNachProc_BeforeLast " | "
+  SKIP(1).
+  
+     /* проценты пересчитанные по ставе до востребования */
+  PUT UNFORM "Проценты пересчитанные по ставе до востребования:" SKIP(1)
+    SumNachPenProc_All        " | "
+    SumNachPenProc_Current    " | "
+    SumNachPenProc_Last       " | "
+    SumNachPenProc_BeforeLast " | "
+  SKIP(1) .
+  
+     /* проценты пересчитанные по ставке до востребования */
+  PUT UNFORM "Проценты доначисленные по ставке до востребования:" SKIP(1)
+    SumDonachPenProc_All
+  SKIP(1) .
+
+  {preview.i}
+
+END.
+
+/****************************************************************************/
+
+
+
+
+
+/****************************************************************************/
+	/*  при необходимости печатаем распоряжения   */
+/****************************************************************************/
+
+IF ShowRasp = yes  THEN
+DO:
+
+    /* для процедуры печати передаем параметр типа распоряжения */
+
+  IF FlgNach = no AND FlgVpl = no THEN
+    iParam = 10 . /* п.1 */
+
+
+  IF FlgNach = yes AND FlgVpl = no THEN
+    IF YEAR(LoanOpDate) = YEAR(RaspDate) THEN
+	    iParam = 21 . /* п.2.1 */
+    ELSE
+    DO:
+       IF MONTH(RaspDate) = 1 THEN
+	    iParam = 22 . /* п.2.2 */
+
+       IF DATE('01/02/' + STRING(YEAR(RaspDate)) ) <= RaspDate   AND  RaspDate <= SPODDate  THEN
+	    iParam = 23 . /* п.2.3 */
+
+       IF RaspDate > SPODDate THEN
+	    iParam = 24 . /* п.2.4 */
+    END.
+
+
+  IF FlgNach = yes AND FlgVpl = yes THEN
+    IF YEAR(LoanOpDate) = YEAR(RaspDate) THEN
+	    iParam = 31 . /* п.3.1 */
+    ELSE
+    DO:
+       IF MONTH(RaspDate) = 1 THEN
+	    iParam = 32 . /* п.3.2 */
+
+       IF DATE('01/02/' + STRING(YEAR(RaspDate)) ) <= RaspDate   AND  RaspDate <= SPODDate  THEN
+	    iParam = 33 . /* п.3.3 */
+
+       IF RaspDate > SPODDate THEN
+	    iParam = 34 . /* п.3.4 */
+    END.
+
+    /* печатаем распоряжения */
+
+  IF LoanCurrency = "" THEN
+	{pir-drast-rasprub.i} 
+/*
+  ELSE 
+	{pir-drast-raspval.i} .
+*/
+
+END.
+
+/****************************************************************************/
+
+
+
+DELETE OBJECT oSysClass.
+

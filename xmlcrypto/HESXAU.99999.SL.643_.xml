@@ -1,0 +1,134 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ftc:FATCA_OECD version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:oecd:ties:fatca:v1" xmlns:ftc="urn:oecd:ties:fatca:v1" xmlns:iso="urn:oecd:ties:isofatcatypes:v1" xmlns:sfa="urn:oecd:ties:stffatcatypes:v1">
+	<ftc:MessageSpec>
+		<sfa:SendingCompanyIN>HESXAU.99999.SL.643</sfa:SendingCompanyIN>
+		<sfa:TransmittingCountry>RU</sfa:TransmittingCountry>
+		<sfa:ReceivingCountry>US</sfa:ReceivingCountry>
+		<sfa:MessageType>FATCA</sfa:MessageType>
+		<sfa:Warning></sfa:Warning>
+		<sfa:Contact></sfa:Contact>
+		<sfa:MessageRefId>a1aa421f-3820-4e09-8853-251465b6fe9b</sfa:MessageRefId>
+		<sfa:ReportingPeriod>2014-12-31</sfa:ReportingPeriod>
+		<sfa:Timestamp>2015-03-30T11:50:30</sfa:Timestamp>
+	</ftc:MessageSpec>
+	<ftc:FATCA>
+		<ftc:ReportingFI>
+			<sfa:ResCountryCode>RU</sfa:ResCountryCode>
+			<sfa:Name>ООО "А-Нью Технолоджи"</sfa:Name>
+			<sfa:Address>
+				<sfa:CountryCode>RU</sfa:CountryCode>
+				<sfa:AddressFix>
+					<sfa:Street>Ленинский проспект</sfa:Street>
+					<sfa:BuildingIdentifier>75/9</sfa:BuildingIdentifier>
+					<sfa:SuiteIdentifier></sfa:SuiteIdentifier>
+					<sfa:FloorIdentifier></sfa:FloorIdentifier>
+					<sfa:DistrictName></sfa:DistrictName>
+					<sfa:POB></sfa:POB>
+					<sfa:PostCode></sfa:PostCode>
+					<sfa:City>Москва</sfa:City>
+					<sfa:CountrySubentity>RU</sfa:CountrySubentity>
+				</sfa:AddressFix>
+				<sfa:AddressFree>Москва г,Ленинский проспект, дом 75/9</sfa:AddressFree>
+			</sfa:Address>
+			<ftc:DocSpec>
+				<ftc:DocTypeIndic>FATCA1</ftc:DocTypeIndic>
+				<ftc:DocRefId>Ref201503263</ftc:DocRefId>
+				<ftc:CorrMessageRefId></ftc:CorrMessageRefId>
+				<ftc:CorrDocRefId></ftc:CorrDocRefId>
+			</ftc:DocSpec>
+		</ftc:ReportingFI>
+		<ftc:ReportingGroup>
+			<ftc:Sponsor>
+				<sfa:ResCountryCode>US</sfa:ResCountryCode>
+				<sfa:TIN issuedBy="US">463105042</sfa:TIN>
+				<sfa:Name>ANEWS INC.</sfa:Name>
+				<sfa:Address>
+					<sfa:CountryCode>US</sfa:CountryCode>
+					<sfa:AddressFix>
+						<sfa:Street>Leavenworth St.</sfa:Street>
+						<sfa:BuildingIdentifier>2670</sfa:BuildingIdentifier>
+						<sfa:SuiteIdentifier></sfa:SuiteIdentifier>
+						<sfa:FloorIdentifier></sfa:FloorIdentifier>
+						<sfa:DistrictName>Ste.E</sfa:DistrictName>
+						<sfa:POB>CA</sfa:POB>
+						<sfa:PostCode>94133</sfa:PostCode>
+						<sfa:City>San Francisco</sfa:City>
+						<sfa:CountrySubentity>US</sfa:CountrySubentity>
+					</sfa:AddressFix>
+					<sfa:AddressFree>2670 Leavenworth St., Ste.E, San Francisco, CA 94133, US</sfa:AddressFree>
+				</sfa:Address>
+				<ftc:DocSpec>
+					<ftc:DocTypeIndic>FATCA1</ftc:DocTypeIndic>
+					<ftc:DocRefId>Ref201503264</ftc:DocRefId>
+					<ftc:CorrMessageRefId></ftc:CorrMessageRefId>
+					<ftc:CorrDocRefId></ftc:CorrDocRefId>
+				</ftc:DocSpec>
+			</ftc:Sponsor>
+			<ftc:AccountReport>
+				<ftc:DocSpec>
+					<ftc:DocTypeIndic>FATCA1</ftc:DocTypeIndic>
+					<ftc:DocRefId>ref201503265</ftc:DocRefId>
+					<ftc:CorrMessageRefId></ftc:CorrMessageRefId>
+					<ftc:CorrDocRefId></ftc:CorrDocRefId>
+				</ftc:DocSpec>
+				<ftc:AccountNumber>40702810000001123832</ftc:AccountNumber>
+				<ftc:AccountHolder>
+					<ftc:Organisation>
+						<sfa:ResCountryCode>RU</sfa:ResCountryCode>
+						<sfa:Name>ООО "А-Нью Технолоджи"</sfa:Name>
+						<sfa:Address>
+							<sfa:CountryCode>RU</sfa:CountryCode>
+							<sfa:AddressFix>
+								<sfa:Street>Ленинский проспект</sfa:Street>
+								<sfa:BuildingIdentifier>75/9</sfa:BuildingIdentifier>
+								<sfa:SuiteIdentifier></sfa:SuiteIdentifier>
+								<sfa:FloorIdentifier></sfa:FloorIdentifier>
+								<sfa:DistrictName></sfa:DistrictName>
+								<sfa:POB></sfa:POB>
+								<sfa:PostCode></sfa:PostCode>
+								<sfa:City>Москва</sfa:City>
+								<sfa:CountrySubentity>RU</sfa:CountrySubentity>
+							</sfa:AddressFix>
+							<sfa:AddressFree>Москва г,Ленинский проспект, дом 75/9</sfa:AddressFree>
+						</sfa:Address>
+					</ftc:Organisation>
+					<ftc:AcctHolderType>FATCA101</ftc:AcctHolderType>
+				</ftc:AccountHolder>
+				<ftc:AccountBalance currCode="RUB">608784.37</ftc:AccountBalance>
+				<ftc:AccountBalance currCode="USD">10822.83</ftc:AccountBalance>
+			</ftc:AccountReport>
+			<ftc:AccountReport>
+				<ftc:DocSpec>
+					<ftc:DocTypeIndic>FATCA1</ftc:DocTypeIndic>
+					<ftc:DocRefId>ref201503263</ftc:DocRefId>
+					<ftc:CorrMessageRefId></ftc:CorrMessageRefId>
+					<ftc:CorrDocRefId></ftc:CorrDocRefId>
+				</ftc:DocSpec>
+				<ftc:AccountNumber>40702840600002123832</ftc:AccountNumber>
+				<ftc:AccountHolder>
+					<ftc:Organisation>
+						<sfa:ResCountryCode>RU</sfa:ResCountryCode>
+						<sfa:Name>ООО "А-Нью Технолоджи"</sfa:Name>
+						<sfa:Address>
+							<sfa:CountryCode>RU</sfa:CountryCode>
+							<sfa:AddressFix>
+								<sfa:Street>Ленинский проспект</sfa:Street>
+								<sfa:BuildingIdentifier>75/9</sfa:BuildingIdentifier>
+								<sfa:SuiteIdentifier></sfa:SuiteIdentifier>
+								<sfa:FloorIdentifier></sfa:FloorIdentifier>
+								<sfa:DistrictName></sfa:DistrictName>
+								<sfa:POB></sfa:POB>
+								<sfa:PostCode></sfa:PostCode>
+								<sfa:City>Москва</sfa:City>
+								<sfa:CountrySubentity>RU</sfa:CountrySubentity>
+							</sfa:AddressFix>
+							<sfa:AddressFree>Москва г,Ленинский проспект, дом 75/9</sfa:AddressFree>
+						</sfa:Address>
+					</ftc:Organisation>
+					<ftc:AcctHolderType>FATCA101</ftc:AcctHolderType>
+				</ftc:AccountHolder>
+				<ftc:AccountBalance currCode="USD">3000.00</ftc:AccountBalance>
+			</ftc:AccountReport>
+		</ftc:ReportingGroup>
+	</ftc:FATCA>
+</ftc:FATCA_OECD>

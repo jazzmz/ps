@@ -1,0 +1,94 @@
+/*
+               Банковская интегрированная система БИСквит
+    Copyright: (C) 1992-1998 ТОО "Банковские информационные системы"
+     Filename: pp-new.var
+      Comment: Определение переменных для печати платежных поручений
+   Parameters:
+         Uses:
+      Used by: pp-new.p pp-new1.p
+      Created: 09.11.1999 Kostik
+     Modified: 28.07.2003 Guva заявка 15378 добавлено поле дата перечисления платежа 
+     Modified:
+*/
+Form "~n@(#) pp-new.var 1.0 Kostik 09/11/1999 Kostik 09/11/1999 Определение переменных" with frame sccs-id width 250.
+
+
+&if defined( FILE_sword_p ) = 0 and defined( FILE_sword_p_p ) = 0 &then
+Define Input Param rid As RecID No-Undo.
+&endif
+
+  /* #2895 */
+DEF VAR flReplDocType AS LOGICAL INIT no NO-UNDO.
+DEF VAR vReplDocType  AS CHAR NO-UNDO.
+
+Define Variable AmtStr           As Character Extent   3 No-Undo.
+Define Variable Detail           As Character Extent   5 No-Undo.
+
+Define Variable PayType          As Character            No-Undo.
+Define Variable PlINN            As Character            No-Undo.
+Define Variable PlKPP            As Character            No-Undo.
+Define Variable PlCAcct          As Character            No-Undo.
+Define Variable PlLAcct          As Character            No-Undo.
+Define Variable PlMFO            As Character            No-Undo.
+Define Variable PlName           As Character Extent   5 No-Undo.
+Define Variable PlRKC            As Character Extent   2 No-Undo.
+
+Define Variable PoINN            As Character            No-Undo.
+Define Variable PoKPP            As Character            No-Undo.
+Define Variable PoAcct           As Character            No-Undo.
+Define Variable PoBankName       As Character Extent   3 No-Undo.
+Define Variable PoCAcct          As Character            No-Undo.
+Define Variable PoMFO            As Character            No-Undo.
+Define Variable PoName           As Character Extent   5 No-Undo.
+Define Variable PoRKC            As Character Extent   2 No-Undo.
+
+Define Variable Rub              As Character            No-Undo.
+Define Variable theDate          As Character            No-Undo.
+Define Variable NameOrder        As Character            No-Undo.
+Define Variable NumberForm       As Character            No-Undo.
+
+Define Variable Format-Rub       As Character            No-Undo.
+Define Variable INNPl		 As Character 		 No-Undo.
+Define Variable INNPo		 As Character 		 No-Undo.
+
+DEFINE VARIABLE mKBK             AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mOKATO           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokOp           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokNP           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokND           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokDD           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokTP           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPokST           AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mSpisPl          AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mPPDate          AS CHARACTER  FORMAT "x(10)" NO-UNDO.
+DEFINE VARIABLE mDateCart        AS DATE                NO-UNDO.
+
+/* &IF DEFINED(uni1) NE 0 OR DEFINED(unibk) NE 0 OR DEFINED(uni2) NE 0 &THEN */
+DEF VAR theHeader AS CHAR FORMAT "x(78)" NO-UNDO.
+DEF VAR theBank   AS CHAR FORMAT "x(22)" NO-UNDO.
+DEF VAR theCity   AS CHAR FORMAT "x(22)" NO-UNDO.
+DEF VAR theUser   AS CHAR FORMAT "x(22)" NO-UNDO.
+DEF VAR theUserID AS CHAR                NO-UNDO.
+DEF VAR theKontr  AS CHAR                NO-UNDO.
+DEF VAR theKontrID AS CHAR               NO-UNDO.
+/* &ENDIF */
+
+Def Var InCity  As logic          No-Undo.
+Def Var NameCli As Char  extent 2 No-undo.
+
+Def Var vtmp As Char No-Undo.
+
+Def Buffer Bank1 For Banks.
+Def Buffer c-nostro-db For c-nostro.
+Def Buffer c-nostro-cr For c-nostro.
+
+def temp-table tt-op-entry NO-UNDO like op-entry.
+def buffer bo-op for op.
+def buffer bop-entry for op-entry.
+
+DEF STREAM listDirExch.
+
+{wordwrap.def}
+{pick-val.i}
+{bank-id.i}
+

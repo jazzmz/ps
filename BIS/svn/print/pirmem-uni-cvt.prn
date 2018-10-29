@@ -1,0 +1,35 @@
+DISPLAY
+      buf_0_op.doc-num
+      theDate
+      AmtStr
+      PlName
+      val1
+      Summa1
+      val2
+      Summa2
+      PlLAcct
+      PlRKC
+      PlMFO
+      PlCAcct
+      PoRKC
+      PolMFO
+      PoCAcct
+      PoName
+      PoAcct
+      val3
+      Summa3
+      val4
+      Summa4
+      type-doc 
+      buf_0_op.order-pay
+      CrName
+      val5
+      Summa5
+      acct-cur
+      Detail
+      theKontr
+      theUser
+      INNPo
+      INNPl
+WITH FRAME out-mem.
+DOWN WITH FRAME out-mem.

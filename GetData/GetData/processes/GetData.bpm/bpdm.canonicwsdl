@@ -1,0 +1,26 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<wsdl:definitions xmlns:diag="http://thisdiagram" xmlns:Database="http://thisdiagram/Database" xmlns:Get_Data="http://thisdiagram/Get_Data" xmlns:tns="http://www.example.org/MoveData" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns="urn:intalio.com:connectors:database:getdata:getpeopleservice" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:pnlk="http://docs.oasis-open.org/wsbpel/2.0/plnktype" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable" xmlns:vprop="http://docs.oasis-open.org/wsbpel/2.0/varprop" xmlns:bpdm="http://www.intalio/designer/business-process-data-modeling" targetNamespace="http://thisdiagram" bpdm:version="6000089" bpdm:canid="_IYuCoKXOEd2ops0OAH3MYQ" bpdm:displayName="diag">
+  <pnlk:partnerLinkType name="DatabaseAndGet_Data" bpdm:poolOneId="_xvnW4KYREd2ops0OAH3MYQ" bpdm:poolOneIsExecutable="false" bpdm:poolOneName="Database" bpdm:poolTwoId="_IdCh8KXOEd2ops0OAH3MYQ" bpdm:poolTwoIsExecutable="true" bpdm:poolTwoName="Get Data">
+    <pnlk:role name="Database_for_Get_Data" portType="Database:ForGet_Data" bpdm:thisPoolId="_xvnW4KYREd2ops0OAH3MYQ">
+      <wsdl:portType name="ForGet_Data">
+        <wsdl:operation name="Provide-Service-Getpeople" bpdm:canid="_HKzmoAZuEeSdRZ4skEucPg._amvlUKaqEd2WW8PCIurzBA." bpdm:dataobjectPointer="project:///getPeople.sql/getPeople.sql.wsdl?wsdloperationbound={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople">
+          <wsdl:input message="ns:getPeopleRequest" name="Provide-Service-Getpeople" bpdm:canid="_NiAZQAZuEeSdRZ4skEucPg" bpdm:senderId="_amvlUKaqEd2WW8PCIurzBA" bpdm:receiverId="_HKzmoAZuEeSdRZ4skEucPg" bpdm:senderName="Request people record" bpdm:receiverName="Provide-Service-Getpeople" bpdm:receiverPoolId="_xvnW4KYREd2ops0OAH3MYQ" bpdm:dataobjectPointer="project:///getPeople.sql/getPeople.sql.wsdl?messageForBoundOperation={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople/input/getPeopleRequest"></wsdl:input>
+          <wsdl:output message="ns:getPeopleResponse" name="Provide-Service-GetpeopleResponse" bpdm:canid="_N7YikAZuEeSdRZ4skEucPg" bpdm:senderId="_HKzmoAZuEeSdRZ4skEucPg" bpdm:receiverId="_amvlUKaqEd2WW8PCIurzBA" bpdm:senderName="Provide-Service-Getpeople" bpdm:receiverName="Request people record" bpdm:receiverPoolId="_IdCh8KXOEd2ops0OAH3MYQ" bpdm:dataobjectPointer="project:///getPeople.sql/getPeople.sql.wsdl?messageForBoundOperation={urn:intalio.com:connectors:database:getdata:getpeopleservice}getPeopleService/getPeoplePort/getPeople/output/getPeopleResponse"></wsdl:output>
+        </wsdl:operation>
+      </wsdl:portType>
+    </pnlk:role>
+  </pnlk:partnerLinkType>
+  <pnlk:partnerLinkType name="DatabaseAndGet_DataForGetPeoplePortPlk" bpdm:canPlkId="_xvnW4KYREd2ops0OAH3MYQ-_IdCh8KXOEd2ops0OAH3MYQ">
+    <pnlk:role name="Database_for_Get_Data" portType="ns:getPeoplePort"></pnlk:role>
+  </pnlk:partnerLinkType>
+  <pnlk:partnerLinkType name="InterfaceAndGet_Data" bpdm:poolOneId="_IdCh8KXOEd2ops0OAH3MYQ" bpdm:poolOneIsExecutable="true" bpdm:poolOneName="Get Data" bpdm:poolTwoId="_SCrSgKaqEd2WW8PCIurzBA" bpdm:poolTwoIsExecutable="false" bpdm:poolTwoName="Interface">
+    <pnlk:role name="Get_Data_for_Interface" portType="Get_Data:ForInterface" bpdm:thisPoolId="_IdCh8KXOEd2ops0OAH3MYQ">
+      <wsdl:portType name="ForInterface">
+        <wsdl:operation name="Task" bpdm:canid="_IgKucKXOEd2ops0OAH3MYQ._VeUS8KaqEd2WW8PCIurzBA._vWvCcKaqEd2WW8PCIurzBA.">
+          <wsdl:input message="Get_Data:TaskRequest" name="Task" bpdm:canid="_YG2bcKaqEd2WW8PCIurzBA" bpdm:senderId="_VeUS8KaqEd2WW8PCIurzBA" bpdm:receiverId="_IgKucKXOEd2ops0OAH3MYQ" bpdm:senderName="Interface" bpdm:receiverName="Task" bpdm:receiverPoolId="_IdCh8KXOEd2ops0OAH3MYQ" bpdm:dataobjectPointer="project:///schema/GetData.xsd?xsdelement={http://www.example.org/MoveData}MoveDataRequest"></wsdl:input>
+          <wsdl:output message="Get_Data:TaskResponse" name="TaskResponse" bpdm:canid="_w-S2IKaqEd2WW8PCIurzBA" bpdm:senderId="_vWvCcKaqEd2WW8PCIurzBA" bpdm:receiverId="_VeUS8KaqEd2WW8PCIurzBA" bpdm:senderName="EventEndMessage" bpdm:receiverName="Interface" bpdm:receiverPoolId="_SCrSgKaqEd2WW8PCIurzBA" bpdm:dataobjectPointer="project:///schema/GetData.xsd?xsdelement={http://www.example.org/MoveData}MoveDataResponse"></wsdl:output>
+        </wsdl:operation>
+      </wsdl:portType>
+    </pnlk:role>
+  </pnlk:partnerLinkType>
+</wsdl:definitions>
